@@ -15,14 +15,10 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
 <!-- ============================================================
-     2) Monetag SDK
-        PODMIEŃ:
-          - src na adres podany w Twoim panelu Monetag
-          - data-zone   na swoje GŁÓWNE zone ID (nie sub-zone!)
-          - data-sdk    na show_<TWOJE_ZONE_ID>
-        Ta sama nazwa musi trafić do MONETAG_ZONE poniżej w JS.
+     2) Monetag SDK — zone ID: 11784973
+        Po załadowaniu dostępna jest globalna funkcja show_11784973()
      ============================================================ -->
-<script src="https://libtl.com/sdk.js" data-zone="TWOJE_ZONE_ID" data-sdk="show_TWOJE_ZONE_ID"></script>
+<script src="https://libtl.com/sdk.js" data-zone="11784973" data-sdk="show_11784973"></script>
 <style>
   :root{
     --sky-top:#FFD873; --sky-bottom:#FF9F4A;
@@ -391,56 +387,56 @@
   }
 
   /* =========================================================
-     REKLAMY — MONETAG (Telegram Mini Apps)
+     REKLAMY — MONETAG, zone 11784973
      ---------------------------------------------------------
-     SDK udostępnia globalną funkcję show_<ZONE_ID>() zwracającą
-     Promise. PODMIEŃ MONETAG_ZONE na swoje główne zone ID
-     (to samo, które wpisałeś w data-zone/data-sdk w <head>).
+     Składnia wg dokumentacji Monetag:
+       show_11784973()                    -> Rewarded Interstitial
+       show_11784973({ymid, requestVar})  -> j.w. + śledzenie
+       show_11784973('pop')               -> Rewarded Popup
+       show_11784973({type:'preload'})    -> wstępne ładowanie
+       show_11784973({type:'inApp', ...}) -> automatyczne reklamy
 
-     Formaty:
-       show_X()                      -> Rewarded Interstitial
-       show_X({type:'pop'})          -> Rewarded Popup
-       show_X({type:'preload'})      -> wstępne ładowanie
-       show_X({ymid})                -> identyfikator do postbacków
-       show_X({requestVar})          -> etykieta miejsca w statystykach
+     UWAGA co do In-App Interstitial (na dole pliku, wyłączony):
+     ten format pokazuje reklamy SAM, według harmonogramu — także
+     w środku wyprawy, gdy gracz skrada się obok sąsiadki. To by
+     rujnowało rozgrywkę i cele typu "nie daj się zauważyć",
+     dlatego domyślnie go nie włączam. Opis jak włączyć niżej.
      ========================================================= */
-  const MONETAG_ZONE = 'TWOJE_ZONE_ID';
+  const MONETAG_ZONE = '11784973';
   const AD_CONFIG = { showInterstitialEveryNRounds: 2 };
 
   const Ads = (function(){
     function sdk(){ return window['show_'+MONETAG_ZONE] || null; }
-    let preloaded = false;
 
     async function init(){
       const fn = sdk();
       if(!fn){ console.log('[ads] SDK Monetag niedostępne — tryb podglądu (makiety).'); return; }
       try{
         await fn({ type:'preload', ymid: tgUserId() });
-        preloaded = true;
         console.log('[ads] Monetag wstępnie załadowane');
       }catch(e){ console.warn('[ads] preload nieudany', e); }
     }
     function preloadNext(){
       const fn = sdk();
       if(!fn) return;
-      fn({ type:'preload', ymid: tgUserId() }).then(()=>{ preloaded=true; }).catch(()=>{});
+      try{ fn({ type:'preload', ymid: tgUserId() }).catch(()=>{}); }catch(e){}
     }
 
-    // Interstitial między rundami — używamy Rewarded Popup (mniej nachalny),
-    // a wynik ignorujemy: gra leci dalej niezależnie od tego, czy obejrzał.
+    // Między rundami: Rewarded Popup — lżejszy format.
+    // Gra rusza dalej niezależnie od tego, czy obejrzał do końca.
     async function showInterstitial(onClosed){
       const fn = sdk();
       if(!fn){ return mockAd('interstitial', null, onClosed); }
       try{
-        await fn({ type:'pop', ymid: tgUserId(), requestVar:'between_rounds' });
+        await fn('pop');
       }catch(e){
-        console.warn('[ads] interstitial nieudany', e);
+        console.warn('[ads] popup nieudany/przerwany', e);
       }
       preloadNext();
       onClosed && onClosed();
     }
 
-    // Rewarded — nagroda TYLKO gdy Promise się rozwiąże.
+    // Rewarded Interstitial: nagroda TYLKO gdy Promise się rozwiąże.
     async function showRewarded(onReward, onClosed, placement){
       const fn = sdk();
       if(!fn){ return mockAd('rewarded', onReward, onClosed); }
@@ -455,7 +451,32 @@
         onClosed && onClosed(false);
       }
     }
-    return { init, showInterstitial, showRewarded, preloadNext };
+
+    /* --- In-App Interstitial (WYŁĄCZONY) ---------------------
+       Automatyczne reklamy wg harmonogramu. Włącz TYLKO jeśli
+       zaakceptujesz, że reklama może wyskoczyć w trakcie wyprawy.
+       Żeby włączyć: odkomentuj wywołanie w boot() na dole pliku.
+       Ustawienia poniżej są łagodniejsze niż domyślne z docsów
+       (2 reklamy / 6 minut to bardzo dużo przy 1-minutowych rundach).
+    --------------------------------------------------------- */
+    function enableInAppAuto(){
+      const fn = sdk();
+      if(!fn) return;
+      try{
+        fn({
+          type:'inApp',
+          inAppSettings:{
+            frequency: 1,     // 1 reklama...
+            capping: 0.25,    // ...na 15 minut
+            interval: 60,     // min. 60 s odstępu
+            timeout: 20,      // 20 s opóźnienia przed pierwszą
+            everyPage: false
+          }
+        });
+      }catch(e){ console.warn('[ads] inApp', e); }
+    }
+
+    return { init, showInterstitial, showRewarded, preloadNext, enableInAppAuto };
   })();
 
   const adMockEl = document.getElementById('adMock');
@@ -2090,6 +2111,10 @@
     player.x=W/2; player.y=H-90;
     initTelegram();
     Ads.init();            // preload w tle, nie blokuje startu
+    // Ads.enableInAppAuto();  // <-- odkomentuj, jeśli chcesz automatyczne
+                               //     reklamy w tle (mogą wyskoczyć w trakcie
+                               //     wyprawy i zepsuć skradanie — patrz komentarz
+                               //     przy enableInAppAuto)
     await loadProfile();
     // pierwszy raz w Telegramie: weź nick z konta zamiast losowego
     if(tgUser && !profile.nickSet){
