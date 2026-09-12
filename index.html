@@ -368,7 +368,7 @@
      initData) gra automatycznie działa wyłącznie na localStorage,
      bez wywoływania API.
      ========================================================= */
-  const API_BASE = 'https://express-js-on-vercel-teal-six-21.vercel.app/api'; // <-- PODMIEŃ
+  const API_BASE = 'https://TWOJ-PROJEKT.vercel.app/api'; // <-- PODMIEŃ
 
   const LocalDB = (function(){
     function apiUsable(){
@@ -980,7 +980,7 @@
     if(profile.energy<=0){ startBtn.disabled=true; startBtn.textContent='BRAK ENERGII'; }
     else { startBtn.disabled=false; startBtn.textContent='START'; }
   }
-  setInterval(regenTick, 15000);
+  setInterval(regenTick, 1000);
 
   async function checkDailyStreak(){
     const today = todayStr();
@@ -1231,6 +1231,8 @@
   let roundsPlayed=0, doubleUsedThisRound=false, leveledThisRound=false, lastBankedAmount=0;
   const player={x:0,y:0,r:20,moving:false,heat:0,noiseRadius:0,hidden:false};
   let pointer={x:0,y:0,active:false};
+  let joy={active:false,anchorX:0,anchorY:0,dx:0,dy:0};
+  const JOY_MAX=46, JOY_DEADZONE=6;
   const keys={};
   let items=[], particles=[], confettiParticles=[], dog=null;
   let bins=[], npcs=[], npcSpawnTimer=0.5;
@@ -1320,10 +1322,22 @@
 
   function setPointer(cx,cy){ const r=canvas.getBoundingClientRect(); pointer.x=cx-r.left; pointer.y=cy-r.top; }
   let pointerDownInfo=null;
-  canvas.addEventListener('pointerdown', e=>{ pointer.active=true; setPointer(e.clientX,e.clientY); pointerDownInfo={t:performance.now(), x:pointer.x, y:pointer.y}; });
-  window.addEventListener('pointermove', e=>{ if(pointer.active) setPointer(e.clientX,e.clientY); });
+  canvas.addEventListener('pointerdown', e=>{
+    pointer.active=true; setPointer(e.clientX,e.clientY);
+    pointerDownInfo={t:performance.now(), x:pointer.x, y:pointer.y};
+    joy.active=true; joy.anchorX=pointer.x; joy.anchorY=pointer.y; joy.dx=0; joy.dy=0;
+  });
+  window.addEventListener('pointermove', e=>{
+    if(!pointer.active) return;
+    setPointer(e.clientX,e.clientY);
+    let dx=pointer.x-joy.anchorX, dy=pointer.y-joy.anchorY;
+    const len=Math.hypot(dx,dy);
+    if(len>JOY_MAX){ dx=dx/len*JOY_MAX; dy=dy/len*JOY_MAX; }
+    joy.dx=dx; joy.dy=dy;
+  });
   window.addEventListener('pointerup', ()=>{
     pointer.active=false;
+    joy.active=false; joy.dx=0; joy.dy=0;
     if(pointerDownInfo){
       const heldMs=performance.now()-pointerDownInfo.t;
       const dist=Math.hypot(pointer.x-pointerDownInfo.x, pointer.y-pointerDownInfo.y);
@@ -1331,7 +1345,7 @@
     }
     pointerDownInfo=null;
   });
-  window.addEventListener('pointercancel', ()=>{ pointer.active=false; pointerDownInfo=null; });
+  window.addEventListener('pointercancel', ()=>{ pointer.active=false; joy.active=false; joy.dx=0; joy.dy=0; pointerDownInfo=null; });
   window.addEventListener('keydown', e=>{
     const k=e.key.toLowerCase(); keys[k]=true;
     if((k===' '||k==='e') && !e.repeat) attemptBinTap();
@@ -1347,7 +1361,13 @@
     if(keys['arrowright']||keys['d']) dx+=1;
     const speed=playerSpeed();
     if(dx!==0||dy!==0){ const len=Math.hypot(dx,dy); player.x+=(dx/len)*speed*dt; player.y+=(dy/len)*speed*dt; }
-    else if(pointer.active){ const ddx=pointer.x-player.x, ddy=pointer.y-player.y; const dist=Math.hypot(ddx,ddy); if(dist>4){ const step=Math.min(dist,speed*dt); player.x+=(ddx/dist)*step; player.y+=(ddy/dist)*step; } }
+    else if(joy.active){
+      const len=Math.hypot(joy.dx,joy.dy);
+      if(len>JOY_DEADZONE){
+        const nx=joy.dx/len, ny=joy.dy/len;
+        player.x+=nx*speed*dt; player.y+=ny*speed*dt;
+      }
+    }
     player.x=Math.max(player.r+6,Math.min(W-player.r-6,player.x));
     player.y=Math.max(70,Math.min(H-player.r-16,player.y));
     player.moving = Math.hypot(player.x-px, player.y-py) > 0.4;
@@ -1988,6 +2008,19 @@
     ctx.globalCompositeOperation='source-over';
     ctx.restore();
   }
+  function drawJoystick(){
+    if(!joy.active) return;
+    ctx.save();
+    ctx.globalAlpha=0.55;
+    ctx.beginPath(); ctx.arc(joy.anchorX,joy.anchorY,JOY_MAX,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.globalAlpha=0.85;
+    ctx.beginPath(); ctx.arc(joy.anchorX+joy.dx, joy.anchorY+joy.dy, 18, 0, Math.PI*2);
+    ctx.fillStyle='rgba(255,215,0,0.75)'; ctx.fill();
+    ctx.strokeStyle='rgba(31,58,46,0.6)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.restore();
+  }
   function draw(){
     drawBackground();
     drawRoad();
@@ -2005,6 +2038,7 @@
     drawParticles();
     drawFlashlight();
     drawVignette();
+    drawJoystick();
   }
 
   let last=performance.now();
