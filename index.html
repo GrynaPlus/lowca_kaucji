@@ -186,13 +186,14 @@
       <h1>ŁOWCA KAUCJI</h1>
       <p class="sub">Zacznij na własnym osiedlu, potem ruszaj w miasto. Zbieraj, unikaj wzroku, wracaj do 🚪 zanim Cię namierzą.</p>
 
-      <div class="profile-strip">
+      <div class="profile-strip" id="profileStripStart" role="button" tabindex="0" style="cursor:pointer;">
         <div class="avatar" id="avatarDisplayStart">🧢</div>
         <div class="info">
           <div class="nick" id="nickDisplayStart">Łowca</div>
           <div class="lvl"><span id="lvlDisplayStart">Poziom 1</span></div>
           <div class="xpbar-track"><div class="xpbar-fill" id="xpBarStart" style="width:0%"></div></div>
         </div>
+        <div style="font-size:18px;color:#9CBF8F;flex-shrink:0;">⚙️</div>
       </div>
 
       <div class="wallet-box">
@@ -271,14 +272,13 @@
   <!-- PAYOUT REQUEST -->
   <div class="overlay hidden" id="couponOverlay">
     <div class="card">
-      <h1>🎟️ PROŚBA O WYPŁATĘ</h1>
-      <p class="sub">Wyślij ten bilet, a punkty zostaną dopisane do Twojego konta grynaplus ręcznie (zwykle w ciągu 24h).</p>
+      <h1>🎟️ TWÓJ KOD</h1>
+      <p class="sub">Wpisz ten kod w aplikacji grynaplus, żeby odebrać punkty.</p>
       <div class="coupon-code" id="couponCodeVal">—</div>
       <div class="coupon-points" id="couponPointsVal">+0 pkt</div>
-      <button class="secondary reward" id="sendRequestBtn">📨 Wyślij prośbę o wypłatę</button>
-      <button class="secondary" id="copyCodeBtn">📋 Kopiuj bilet</button>
+      <button class="secondary reward" id="copyCodeBtn">📋 Kopiuj kod</button>
       <button class="primary" id="closeCouponBtn">GOTOWE</button>
-      <div class="footnote">Bilet znajdziesz też w profilu, w sekcji „Moje wypłaty”.</div>
+      <div class="footnote">Kod znajdziesz też w profilu, w sekcji „Moje wypłaty”.</div>
     </div>
   </div>
 
@@ -369,6 +369,23 @@
      bez wywoływania API.
      ========================================================= */
   const API_BASE = 'https://TWOJ-PROJEKT.vercel.app/api'; // <-- PODMIEŃ
+
+  // Wspólny helper do wywołań API spoza LocalDB (np. odbiór kodu bonusowego).
+  // Zwraca sparsowany JSON, albo rzuca błąd z komunikatem z serwera.
+  async function apiCall(path, body){
+    if(!TG || !TG.initData){
+      throw new Error('Dostępne tylko w Telegramie — otwórz grę przez bota.');
+    }
+    const res = await fetch(API_BASE + path, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'tma '+TG.initData },
+      body: JSON.stringify(body||{})
+    });
+    let data = {};
+    try{ data = await res.json(); }catch(e){}
+    if(!res.ok) throw new Error(data.error || ('Błąd serwera (HTTP '+res.status+')'));
+    return data;
+  }
 
   const LocalDB = (function(){
     function apiUsable(){
@@ -742,10 +759,14 @@
        oraz ok. 3 zł/1000 = 0,003 zł za popup.
        koszt punktu: 100 pkt = 1 zł    => 1 pkt = 0,01 zł
 
-       UWAGA: przy tych stawkach marża jest DUŻO cieńsza niż
-       przy AdMob. Nie włączaj wymiany kuponów, dopóki nie
-       zobaczysz realnego CPM w panelu Monetag — patrz komentarz
-       pod PAYOUT_CONFIG.
+       UWAGA: te liczby wciąż są SZACUNKIEM. Bezpieczeństwo wydawania
+       kodów (serwer + realna pula w Supabase) jest już załatwione —
+       ale to nie znaczy, że progi są opłacalne. Sprawdź w panelu
+       Monetag realny CPM po 2–4 tygodniach ruchu i porównaj z tym
+       wyliczeniem. Jeśli marża wyjdzie poniżej ~1,5x, podnieś
+       costKaucja albo obniż pointsReward w PAYOUT_TIERS w server.js
+       (to on jest teraz źródłem prawdy — pilnuj, żeby id progów
+       tutaj i tam się zgadzały).
 
      Przy tych stawkach marża wynosi ok. 2,0–2,2x na KAŻDYM progu
      (wyższe kupony dają tylko symboliczny bonus, żeby marża nie
@@ -754,10 +775,11 @@
      Chcesz większą retencję -> zwiększ, ale pilnuj marży > 1,5x.
      ========================================================= */
   const PAYOUT_CONFIG = {
-    // ⚠️ ZOSTAW false, dopóki nie zobaczysz realnego CPM w panelu Monetag.
-    // Przy false sekcja wymiany pokazuje "wkrótce" i nic Cię nie kosztuje,
-    // a gra i tak zbiera statystyki i przychód z reklam.
-    enabled: false,
+    // Teraz bezpieczne: kody wydaje serwer z prawdziwej puli w Supabase
+    // (zobacz server.js -> /api/claim-code). Serwer sam sprawdza saldo
+    // ze SWOJEJ kopii profilu, więc podmiana wallet w konsoli przeglądarki
+    // niczego nie da.
+    enabled: true,
     dailyPointsCap: 30,        // maks. pkt do odebrania na dobę
     requireAdToClaim: true,    // reklama przy każdym odbiorze kodu
     // Progi przeliczone na OSTROŻNE stawki Monetag (marża ~1,9-2,1x).
@@ -780,103 +802,41 @@
     return { ok:true };
   }
   /* ---------------------------------------------------------
-     WYPŁATY RĘCZNE — bez własnego API
-     ---------------------------------------------------------
-     Gracz klika "Poproś o wypłatę", gra generuje BILET z jego
-     danymi i otwiera wypełniony Formularz Google (albo czat
-     z Tobą na Telegramie). Ty dostajesz powiadomienie, sprawdzasz
-     bilet i ręcznie dopisujesz punkty w grynaplus.
-
-     ⚙️ USTAW TO NIŻEJ w PAYOUT_CONTACT:
-       method   'form'     -> Formularz Google (zalecane: masz maila
-                             przy każdym zgłoszeniu + arkusz z historią)
-                'telegram' -> otwiera czat z Tobą z gotową wiadomością
-       formUrl  link do formularza z prefillem (instrukcja w pliku MD)
-       tgContact  Twój nick na Telegramie (bez @)
+     ODBIÓR KODU — automatyczny, przez server.js + Supabase.
+     Serwer sam sprawdza saldo (swoją kopię, nie tę z przeglądarki),
+     dzienny limit i atomowo wydaje jeden kod z puli. Zero ręcznej
+     pracy, dopóki pula dla danego progu się nie wyczerpie — wtedy
+     serwer zwróci błąd i gra pokaże go jako toast.
      --------------------------------------------------------- */
-  const PAYOUT_CONTACT = {
-    method: 'telegram',                    // 'form' albo 'telegram'
-    formUrl: 'https://docs.google.com/forms/d/e/TWOJ_ID/viewform',
-    formFields: {                          // ID pól z prefilla (patrz instrukcja)
-      ticket: 'entry.111111111',
-      nick:   'entry.222222222',
-      points: 'entry.333333333'
-    },
-    tgContact: 'TWOJ_NICK_TELEGRAM'
-  };
-
-  // Bilet: zwięzła paczka danych, którą możesz sprawdzić ręcznie.
-  // Suma kontrolna wyłapuje literówki i przypadkowe przeróbki
-  // (nie jest zabezpieczeniem kryptograficznym — patrz instrukcja).
-  function buildTicket(tier){
-    const uid   = tgUserId();
-    const games = profile.gamesPlayed;
-    const total = Math.round(profile.totalEarned);
-    const day   = Math.floor(Date.now()/86400000);   // numer dnia
-    const raw   = [uid, tier.pointsReward, games, total, day].join('-');
-    let sum = 0;
-    for(let i=0;i<raw.length;i++) sum = (sum*31 + raw.charCodeAt(i)) >>> 0;
-    const chk = sum.toString(36).toUpperCase().slice(0,4);
-    return 'LK-'+uid+'-'+tier.pointsReward+'P-'+games+'G-'+total+'Z-'+day+'-'+chk;
-  }
-
   async function grantPayout(tier){
-    const ticket = buildTicket(tier);
-    profile.wallet -= tier.costKaucja;
-    daily.pointsClaimed = pointsClaimedToday() + tier.pointsReward;
-    if(!Array.isArray(profile.coupons)) profile.coupons = [];
-    profile.coupons.unshift({ code:ticket, points:tier.pointsReward, ts:Date.now(), status:'oczekuje' });
+    let result;
+    try{
+      result = await apiCall('/claim-code', { tierId: tier.id });
+    }catch(e){
+      showToast(e.message || 'Nie udało się odebrać kodu — spróbuj później');
+      return;
+    }
+    // serwer jest źródłem prawdy dla salda — po prostu wczytujemy je z odpowiedzi
+    profile.wallet = result.wallet;
+    if(!Array.isArray(profile.coupons)) profile.coupons=[];
+    profile.coupons.unshift({ code:result.code, points:result.points, ts:Date.now(), status:'wydany' });
     profile.coupons = profile.coupons.slice(0,20);
-    await saveProfile(); await saveDaily();
+    try{ localStorage.setItem('lk_profile', JSON.stringify(profile)); }catch(e){} // odśwież kopię offline
     Sfx.star(); hapticNotify('success');
-    grynaPlusEvent('payout_requested', {
+    grynaPlusEvent('code_claimed', {
       tierId: tier.id,
-      kaucjaSpent: tier.costKaucja,
-      points: tier.pointsReward,
-      ticket,
+      points: result.points,
+      code: result.code,
       tgUserId: tgUserId(),
       profileNick: profile.nick
     });
-    showCouponModal(ticket, tier.pointsReward);
+    showCouponModal(result.code, result.points);
     refreshProfileUI(); renderPayouts(); renderMapSelector(); renderShop();
-  }
-
-  // otwiera formularz / czat z gotową treścią
-  function sendPayoutRequest(ticket, points){
-    const nick = (tgUser && tgUser.username) ? '@'+tgUser.username : profile.nick;
-    if(PAYOUT_CONTACT.method === 'form'){
-      const f = PAYOUT_CONTACT.formFields;
-      const url = PAYOUT_CONTACT.formUrl
-        + '?usp=pp_url'
-        + '&' + f.ticket + '=' + encodeURIComponent(ticket)
-        + '&' + f.nick   + '=' + encodeURIComponent(nick)
-        + '&' + f.points + '=' + encodeURIComponent(points);
-      if(TG && TG.openLink) TG.openLink(url); else window.open(url,'_blank');
-    } else {
-      const msg = 'Prośba o wypłatę w Łowcy Kaucji\n'
-        + 'Bilet: ' + ticket + '\n'
-        + 'Punkty: ' + points + '\n'
-        + 'Gracz: ' + nick;
-      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/'+PAYOUT_CONTACT.tgContact)
-        + '&text=' + encodeURIComponent(msg);
-      if(TG && TG.openTelegramLink) TG.openTelegramLink(url); else window.open(url,'_blank');
-    }
   }
 
   function showCouponModal(code, points){
     document.getElementById('couponCodeVal').textContent = code;
     document.getElementById('couponPointsVal').textContent = '+'+points+' pkt grynaplus';
-    const btn = document.getElementById('sendRequestBtn');
-    if(btn){
-      btn.disabled = false;
-      btn.textContent = '📨 Wyślij prośbę o wypłatę';
-      btn.onclick = ()=>{
-        Sfx.click(); haptic('light');
-        sendPayoutRequest(code, points);
-        btn.textContent = '✅ Wysłano — czekaj na punkty';
-        btn.disabled = true;
-      };
-    }
     document.getElementById('couponOverlay').classList.remove('hidden');
   }
   function renderPayouts(){
@@ -1199,14 +1159,16 @@
     try{
       await navigator.clipboard.writeText(code);
       e.target.textContent='✅ Skopiowano!';
-      setTimeout(()=>{ e.target.textContent='📋 Kopiuj bilet'; },1600);
+      setTimeout(()=>{ e.target.textContent='📋 Kopiuj kod'; },1600);
     }catch(err){
-      showToast('Skopiuj bilet ręcznie: '+code);
+      showToast('Skopiuj kod ręcznie: '+code);
     }
   });
 
   function openProfile(){ document.getElementById('profileOverlay').classList.remove('hidden'); refreshProfileUI(); renderTasks(); renderCoupons(); }
   document.getElementById('profileBtnGame').addEventListener('click', openProfile);
+  document.getElementById('profileStripStart').addEventListener('click', openProfile);
+  document.getElementById('profileStripStart').addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openProfile(); } });
   document.getElementById('muteBtn').addEventListener('click', (e)=>{
     const m = Sfx.toggle();
     e.currentTarget.textContent = m ? '🔇' : '🔊';
@@ -2200,7 +2162,7 @@
   document.getElementById('menuBtnEnd').addEventListener('click', goToMenu);
 
   // PODMIEŃ na link do swojego bota/mini-appki
-  const GAME_LINK = 'https://t.me/TWOJ_BOT/gra';
+  const GAME_LINK = 'https://t.me/lowcybot/Lowcy';
   document.getElementById('shareBtn').addEventListener('click', ()=>{
     const mapName = (MAPS.find(m=>m.id===currentMapId)||{}).name || '';
     const txt = 'Zebrałem '+fmt(lastBankedAmount)+' kaucji na mapie "'+mapName+'" w Łowcy Kaucji! Pobijesz?';
