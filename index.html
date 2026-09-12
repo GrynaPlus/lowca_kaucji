@@ -268,16 +268,17 @@
     </div>
   </div>
 
-  <!-- COUPON CODE -->
+  <!-- PAYOUT REQUEST -->
   <div class="overlay hidden" id="couponOverlay">
     <div class="card">
-      <h1>🎟️ TWÓJ KOD</h1>
-      <p class="sub">Wpisz ten kod w aplikacji grynaplus, żeby odebrać punkty.</p>
+      <h1>🎟️ PROŚBA O WYPŁATĘ</h1>
+      <p class="sub">Wyślij ten bilet, a punkty zostaną dopisane do Twojego konta grynaplus ręcznie (zwykle w ciągu 24h).</p>
       <div class="coupon-code" id="couponCodeVal">—</div>
       <div class="coupon-points" id="couponPointsVal">+0 pkt</div>
-      <button class="secondary reward" id="copyCodeBtn">📋 Kopiuj kod</button>
-      <button class="primary" id="closeCouponBtn">OK, ZAPISAŁEM</button>
-      <div class="footnote">Kody znajdziesz też w profilu, w sekcji „Moje kody”.</div>
+      <button class="secondary reward" id="sendRequestBtn">📨 Wyślij prośbę o wypłatę</button>
+      <button class="secondary" id="copyCodeBtn">📋 Kopiuj bilet</button>
+      <button class="primary" id="closeCouponBtn">GOTOWE</button>
+      <div class="footnote">Bilet znajdziesz też w profilu, w sekcji „Moje wypłaty”.</div>
     </div>
   </div>
 
@@ -300,7 +301,7 @@
       </div>
 
       <div class="tasks-box">
-        <div class="t-title">🎟️ Moje kody</div>
+        <div class="t-title">🎟️ Moje wypłaty</div>
         <div id="couponListModal"></div>
       </div>
 
@@ -325,46 +326,9 @@
 <script>
 (function(){
   /* =========================================================
-     ZAPIS STANU
-     W Telegramie: CloudStorage (stan wędruje za kontem usera
-     między urządzeniami). Poza Telegramem: localStorage, żeby
-     dało się testować w zwykłej przeglądarce.
-     ========================================================= */
-  const LocalDB = (function(){
-    function cloud(){
-      const t = window.Telegram && window.Telegram.WebApp;
-      return (t && t.CloudStorage && typeof t.CloudStorage.getItem === 'function') ? t.CloudStorage : null;
-    }
-    return {
-      async get(key){
-        const cs = cloud();
-        if(cs){
-          return new Promise(res=>{
-            try{ cs.getItem(key, (err,val)=> res(err ? null : (val||null)) ); }
-            catch(e){ res(null); }
-          });
-        }
-        try{ return localStorage.getItem(key); }catch(e){ return null; }
-      },
-      async set(key,value){
-        const cs = cloud();
-        if(cs){
-          return new Promise(res=>{
-            try{ cs.setItem(key, value, ()=>res()); }catch(e){ res(); }
-          });
-        }
-        try{ localStorage.setItem(key,value); }catch(e){}
-      }
-    };
-  })();
-
-  function grynaPlusEvent(type, payload){
-    console.log('[grynaplus]', type, payload);
-    window.dispatchEvent(new CustomEvent('grynaplus:event', { detail:{ type, payload, ts:Date.now() } }));
-  }
-
-  /* =========================================================
      TELEGRAM WEBAPP
+     (przeniesione przed LocalDB, bo LocalDB potrzebuje initData
+     do podpisywania zapytań do backendu)
      ========================================================= */
   const TG = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
   const tgUser = (TG && TG.initDataUnsafe && TG.initDataUnsafe.user) ? TG.initDataUnsafe.user : null;
@@ -384,6 +348,89 @@
       if(TG.setHeaderColor) TG.setHeaderColor('#1F3A2E');
       if(TG.setBackgroundColor) TG.setBackgroundColor('#1F3A2E');
     }catch(e){ console.warn('[tg] init', e); }
+  }
+
+  /* =========================================================
+     ZAPIS STANU — backend na Vercelu + Supabase
+     ---------------------------------------------------------
+     PODMIEŃ API_BASE na adres swojego wdrożenia z Vercela
+     (patrz plik server.js — sekcja "JAK WDROŻYĆ NA VERCEL").
+
+     Każde zapytanie niesie surowe initData z Telegrama w nagłówku
+     Authorization — backend sam je weryfikuje (podpis HMAC), więc
+     gra nie musi się logować ani trzymać żadnych tokenów.
+
+     localStorage działa tu wyłącznie jako AWARYJNA kopia offline:
+     jeśli backend akurat nie odpowiada (brak sieci, restart serwera),
+     gra i tak wczyta ostatnio znany stan i da się grać dalej —
+     przy najbliższym udanym zapisie backend znów stanie się źródłem
+     prawdy. Poza Telegramem (test w zwykłej przeglądarce, brak
+     initData) gra automatycznie działa wyłącznie na localStorage,
+     bez wywoływania API.
+     ========================================================= */
+  const API_BASE = 'https://express-js-on-vercel-teal-six-21.vercel.app/api'; // <-- PODMIEŃ
+
+  const LocalDB = (function(){
+    function apiUsable(){
+      // bez initData backend i tak odrzuci każde zapytanie (401),
+      // więc od razu spadamy na localStorage zamiast strzelać w API
+      return !!(TG && TG.initData);
+    }
+    function endpointFor(key){
+      if(key==='lk_profile') return API_BASE + '/profile';
+      if(key==='lk_daily')   return API_BASE + '/daily';
+      return null; // nieznany klucz — obsługiwany tylko lokalnie
+    }
+    function authHeaders(){
+      return {
+        'Content-Type': 'application/json',
+        'Authorization': 'tma ' + (TG && TG.initData ? TG.initData : '')
+      };
+    }
+    return {
+      async get(key){
+        const url = apiUsable() ? endpointFor(key) : null;
+        if(!url){
+          try{ return localStorage.getItem(key); }catch(e){ return null; }
+        }
+        try{
+          const res = await fetch(url, { method:'GET', headers: authHeaders() });
+          if(!res.ok){
+            console.warn('[api] GET '+key+' -> HTTP '+res.status+' — używam lokalnej kopii');
+            try{ return localStorage.getItem(key); }catch(e){ return null; }
+          }
+          const data = await res.json();
+          if(data.value != null){
+            try{ localStorage.setItem(key, data.value); }catch(e){} // odśwież kopię offline
+          }
+          return data.value != null ? data.value : null;
+        }catch(e){
+          console.warn('[api] GET '+key+' nieudane, używam lokalnej kopii', e);
+          try{ return localStorage.getItem(key); }catch(e2){ return null; }
+        }
+      },
+      async set(key,value){
+        // najpierw zawsze lokalnie — gra nigdy nie czeka na sieć, żeby zadziałać
+        try{ localStorage.setItem(key, value); }catch(e){}
+        const url = apiUsable() ? endpointFor(key) : null;
+        if(!url) return;
+        try{
+          const res = await fetch(url, { method:'POST', headers: authHeaders(), body: JSON.stringify({ value }) });
+          if(!res.ok){
+            let reason = 'HTTP '+res.status;
+            try{ const j = await res.json(); if(j && j.error) reason = j.error; }catch(e){}
+            console.warn('[api] POST '+key+' odrzucone: '+reason);
+          }
+        }catch(e){
+          console.warn('[api] POST '+key+' nieudane (zapisano tylko lokalnie)', e);
+        }
+      }
+    };
+  })();
+
+  function grynaPlusEvent(type, payload){
+    console.log('[grynaplus]', type, payload);
+    window.dispatchEvent(new CustomEvent('grynaplus:event', { detail:{ type, payload, ts:Date.now() } }));
   }
 
   /* =========================================================
@@ -733,65 +780,103 @@
     return { ok:true };
   }
   /* ---------------------------------------------------------
-     KODY KUPONÓW
-     Kod NIE jest zaszyty w aplikacji — byłby do wyciągnięcia
-     z pliku APK/konsoli i cała pula zniknęłaby w jeden dzień.
-     Gra prosi serwer o kod dopiero w momencie odbioru; serwer
-     wydaje jeden kod z puli i może odrzucić podejrzane żądanie.
-     PODMIEŃ fetchCouponCode() na wywołanie swojego API.
-     --------------------------------------------------------- */
-  async function fetchCouponCode(tier){
-    // === DOCELOWO (odkomentuj i wskaż swój endpoint) ===
-    // const res = await fetch('https://grynaplus.pl/api/kupony/wydaj', {
-    //   method:'POST',
-    //   headers:{ 'Content-Type':'application/json' },
-    //   body: JSON.stringify({
-    //     tierId: tier.id,
-    //     points: tier.pointsReward,
-    //     nick: profile.nick,
-    //     gamesPlayed: profile.gamesPlayed,   // serwer weryfikuje wiarygodność
-    //     totalEarned: profile.totalEarned
-    //   })
-    // });
-    // if(!res.ok) throw new Error('Serwer odmówił wydania kodu');
-    // const data = await res.json();
-    // return data.code;
+     WYPŁATY RĘCZNE — bez własnego API
+     ---------------------------------------------------------
+     Gracz klika "Poproś o wypłatę", gra generuje BILET z jego
+     danymi i otwiera wypełniony Formularz Google (albo czat
+     z Tobą na Telegramie). Ty dostajesz powiadomienie, sprawdzasz
+     bilet i ręcznie dopisujesz punkty w grynaplus.
 
-    // === TRYB PODGLĄDU: kod demonstracyjny, bez wartości ===
-    await new Promise(r=>setTimeout(r,600));
-    const rnd = Math.random().toString(36).toUpperCase().slice(2,6);
-    return 'DEMO-'+tier.id.toUpperCase()+'-'+rnd;
+     ⚙️ USTAW TO NIŻEJ w PAYOUT_CONTACT:
+       method   'form'     -> Formularz Google (zalecane: masz maila
+                             przy każdym zgłoszeniu + arkusz z historią)
+                'telegram' -> otwiera czat z Tobą z gotową wiadomością
+       formUrl  link do formularza z prefillem (instrukcja w pliku MD)
+       tgContact  Twój nick na Telegramie (bez @)
+     --------------------------------------------------------- */
+  const PAYOUT_CONTACT = {
+    method: 'telegram',                    // 'form' albo 'telegram'
+    formUrl: 'https://docs.google.com/forms/d/e/TWOJ_ID/viewform',
+    formFields: {                          // ID pól z prefilla (patrz instrukcja)
+      ticket: 'entry.111111111',
+      nick:   'entry.222222222',
+      points: 'entry.333333333'
+    },
+    tgContact: 'TWOJ_NICK_TELEGRAM'
+  };
+
+  // Bilet: zwięzła paczka danych, którą możesz sprawdzić ręcznie.
+  // Suma kontrolna wyłapuje literówki i przypadkowe przeróbki
+  // (nie jest zabezpieczeniem kryptograficznym — patrz instrukcja).
+  function buildTicket(tier){
+    const uid   = tgUserId();
+    const games = profile.gamesPlayed;
+    const total = Math.round(profile.totalEarned);
+    const day   = Math.floor(Date.now()/86400000);   // numer dnia
+    const raw   = [uid, tier.pointsReward, games, total, day].join('-');
+    let sum = 0;
+    for(let i=0;i<raw.length;i++) sum = (sum*31 + raw.charCodeAt(i)) >>> 0;
+    const chk = sum.toString(36).toUpperCase().slice(0,4);
+    return 'LK-'+uid+'-'+tier.pointsReward+'P-'+games+'G-'+total+'Z-'+day+'-'+chk;
   }
 
   async function grantPayout(tier){
-    let code;
-    try{
-      code = await fetchCouponCode(tier);
-    }catch(e){
-      showToast('Nie udało się pobrać kodu — spróbuj później');
-      return;
-    }
+    const ticket = buildTicket(tier);
     profile.wallet -= tier.costKaucja;
     daily.pointsClaimed = pointsClaimedToday() + tier.pointsReward;
     if(!Array.isArray(profile.coupons)) profile.coupons = [];
-    profile.coupons.unshift({ code, points:tier.pointsReward, ts:Date.now() });
+    profile.coupons.unshift({ code:ticket, points:tier.pointsReward, ts:Date.now(), status:'oczekuje' });
     profile.coupons = profile.coupons.slice(0,20);
     await saveProfile(); await saveDaily();
-    Sfx.star();
-    grynaPlusEvent('coupon_issued', {
+    Sfx.star(); hapticNotify('success');
+    grynaPlusEvent('payout_requested', {
       tierId: tier.id,
       kaucjaSpent: tier.costKaucja,
       points: tier.pointsReward,
-      code,
+      ticket,
+      tgUserId: tgUserId(),
       profileNick: profile.nick
     });
-    showCouponModal(code, tier.pointsReward);
+    showCouponModal(ticket, tier.pointsReward);
     refreshProfileUI(); renderPayouts(); renderMapSelector(); renderShop();
+  }
+
+  // otwiera formularz / czat z gotową treścią
+  function sendPayoutRequest(ticket, points){
+    const nick = (tgUser && tgUser.username) ? '@'+tgUser.username : profile.nick;
+    if(PAYOUT_CONTACT.method === 'form'){
+      const f = PAYOUT_CONTACT.formFields;
+      const url = PAYOUT_CONTACT.formUrl
+        + '?usp=pp_url'
+        + '&' + f.ticket + '=' + encodeURIComponent(ticket)
+        + '&' + f.nick   + '=' + encodeURIComponent(nick)
+        + '&' + f.points + '=' + encodeURIComponent(points);
+      if(TG && TG.openLink) TG.openLink(url); else window.open(url,'_blank');
+    } else {
+      const msg = 'Prośba o wypłatę w Łowcy Kaucji\n'
+        + 'Bilet: ' + ticket + '\n'
+        + 'Punkty: ' + points + '\n'
+        + 'Gracz: ' + nick;
+      const url = 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/'+PAYOUT_CONTACT.tgContact)
+        + '&text=' + encodeURIComponent(msg);
+      if(TG && TG.openTelegramLink) TG.openTelegramLink(url); else window.open(url,'_blank');
+    }
   }
 
   function showCouponModal(code, points){
     document.getElementById('couponCodeVal').textContent = code;
     document.getElementById('couponPointsVal').textContent = '+'+points+' pkt grynaplus';
+    const btn = document.getElementById('sendRequestBtn');
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = '📨 Wyślij prośbę o wypłatę';
+      btn.onclick = ()=>{
+        Sfx.click(); haptic('light');
+        sendPayoutRequest(code, points);
+        btn.textContent = '✅ Wysłano — czekaj na punkty';
+        btn.disabled = true;
+      };
+    }
     document.getElementById('couponOverlay').classList.remove('hidden');
   }
   function renderPayouts(){
@@ -1093,14 +1178,14 @@
     c.innerHTML='';
     const list = Array.isArray(profile.coupons) ? profile.coupons : [];
     if(!list.length){
-      c.innerHTML='<div class="task-row" style="color:#9CBF8F;">Brak kodów — wymień kaucję w menu</div>';
+      c.innerHTML='<div class="task-row" style="color:#9CBF8F;">Brak wypłat — zbieraj kaucję i poproś w menu</div>';
       return;
     }
     list.forEach(cp=>{
       const d=new Date(cp.ts);
       const row=document.createElement('div');
       row.className='coupon-row';
-      row.innerHTML='<span class="cc">'+cp.code+'</span><span class="cp">+'+cp.points+' pkt · '+d.toLocaleDateString('pl-PL')+'</span>';
+      row.innerHTML='<span class="cc">'+cp.code+'</span><span class="cp">+'+cp.points+' pkt · '+d.toLocaleDateString('pl-PL')+(cp.status?' · '+cp.status:'')+'</span>';
       c.appendChild(row);
     });
   }
@@ -1110,12 +1195,13 @@
   });
   document.getElementById('copyCodeBtn').addEventListener('click', async (e)=>{
     const code=document.getElementById('couponCodeVal').textContent;
+    haptic('light');
     try{
       await navigator.clipboard.writeText(code);
       e.target.textContent='✅ Skopiowano!';
-      setTimeout(()=>{ e.target.textContent='📋 Kopiuj kod'; },1600);
+      setTimeout(()=>{ e.target.textContent='📋 Kopiuj bilet'; },1600);
     }catch(err){
-      showToast('Skopiuj kod ręcznie: '+code);
+      showToast('Skopiuj bilet ręcznie: '+code);
     }
   });
 
