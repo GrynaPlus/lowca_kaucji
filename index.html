@@ -151,9 +151,9 @@
   #tutorialBox{position:absolute;bottom:28px;left:50%;transform:translate(-50%,14px);background:linear-gradient(180deg,rgba(46,80,62,0.97),rgba(24,42,32,0.97));color:var(--cream);font-family:'Fredoka',sans-serif;font-weight:600;font-size:14px;padding:12px 20px;border-radius:16px;border:2px solid rgba(255,215,0,0.45);box-shadow:0 5px 0 rgba(0,0,0,0.3);opacity:0;transition:opacity .3s ease,transform .3s ease;z-index:7;pointer-events:none;max-width:88vw;text-align:center;line-height:1.35;}
   #tutorialBox.show{opacity:1;transform:translate(-50%,0);}
 
-  .avatar-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
-  .avatar-opt{font-size:22px;background:rgba(255,255,255,0.06);border:2px solid transparent;border-radius:12px;padding:8px 0;cursor:pointer;}
-  .avatar-opt.selected{border-color:var(--gold);background:rgba(255,215,0,0.12);}
+  .avatar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:14px;}
+  .avatar-opt{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;background:rgba(255,255,255,0.06);border:2px solid transparent;border-radius:12px;padding:0;cursor:pointer;}
+  .avatar-opt.selected{border-color:var(--gold);background:rgba(255,210,63,0.14);box-shadow:0 0 10px rgba(255,210,63,0.35);}
   input.nick-input{width:100%;font-family:'Fredoka',sans-serif;font-size:15px;background:rgba(0,0,0,0.25);border:2px solid rgba(255,255,255,0.1);border-radius:10px;color:var(--cream);padding:9px 12px;margin-bottom:14px;text-align:center;}
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
   .stat-box{background:rgba(0,0,0,0.16);border-radius:10px;padding:8px;text-align:center;}
@@ -763,8 +763,77 @@
       click(){ tone(560,0.045,'square',0.13); }
     };
   })();
-  // odblokowanie audio przy pierwszej interakcji
-  ['pointerdown','keydown'].forEach(ev=> window.addEventListener(ev, ()=>Sfx.resume(), { once:true }));
+
+  /* =========================================================
+     MUZYKA W TLE — generowana proceduralnie (Web Audio), bez
+     plików mp3. Dwa oddzielne, zapętlone motywy: spokojniejszy
+     w menu, bardziej pulsujący i napięty podczas wyprawy —
+     przełączane automatycznie przy zmianie ekranu.
+     ========================================================= */
+  const Music = (function(){
+    let actx=null, master=null, muted=false, scheduler=null, current=null, nextTime=0, stepIndex=0;
+    function ensure(){
+      if(actx) return actx;
+      try{
+        actx = new (window.AudioContext||window.webkitAudioContext)();
+        master = actx.createGain(); master.gain.value=0.16; master.connect(actx.destination);
+      }catch(e){ console.warn('[music] brak Web Audio', e); }
+      return actx;
+    }
+    function resume(){ const a=ensure(); if(a && a.state==='suspended') a.resume(); }
+    function note(freq, time, dur, type, vol){
+      const a=ensure(); if(!a) return;
+      const o=a.createOscillator(), g=a.createGain();
+      o.type=type; o.frequency.setValueAtTime(freq, time);
+      g.gain.setValueAtTime(0.0001, time);
+      g.gain.exponentialRampToValueAtTime(vol, time+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, time+dur);
+      o.connect(g); g.connect(master);
+      o.start(time); o.stop(time+dur+0.05);
+    }
+    // spokojne, "chill" arpeggio dur — grane w menu
+    const MENU_TRACK = { stepDur:0.34, seq:[
+      {n:261.63,bass:130.81},{n:329.63},{n:392.00},{n:329.63},
+      {n:293.66,bass:146.83},{n:349.23},{n:440.00},{n:349.23},
+      {n:261.63,bass:196.00},{n:329.63},{n:392.00},{n:493.88},
+      {n:293.66,bass:174.61},{n:349.23},{n:440.00},{n:523.25}
+    ]};
+    // pulsujący, napięty motyw molowy — grany podczas wyprawy
+    const GAME_TRACK = { stepDur:0.22, seq:[
+      {n:220.00,bass:110.00},{n:0},{n:261.63},{n:0},
+      {n:220.00,bass:110.00},{n:0},{n:329.63},{n:0},
+      {n:196.00,bass:98.00},{n:0},{n:233.08},{n:0},
+      {n:196.00,bass:98.00},{n:0},{n:293.66},{n:0}
+    ]};
+    function scheduleLoop(){
+      const a=ensure(); if(!a || muted || !current) return;
+      while(nextTime < a.currentTime + 0.3){
+        const step = current.seq[stepIndex % current.seq.length];
+        if(step.n) note(step.n, nextTime, current.stepDur*0.85, 'triangle', current===GAME_TRACK?0.05:0.075);
+        if(step.bass) note(step.bass, nextTime, current.stepDur*1.7, 'sine', current===GAME_TRACK?0.045:0.06);
+        nextTime += current.stepDur;
+        stepIndex++;
+      }
+    }
+    function start(which){
+      const track = which==='game' ? GAME_TRACK : MENU_TRACK;
+      if(current===track) return; // już gra ten sam motyw
+      current = track; stepIndex = 0;
+      ensure();
+      nextTime = actx ? actx.currentTime + 0.05 : 0;
+      if(!scheduler) scheduler = setInterval(scheduleLoop, 100);
+    }
+    function stop(){ if(scheduler){ clearInterval(scheduler); scheduler=null; } current=null; }
+    return {
+      resume,
+      start,
+      stop,
+      isMuted:()=>muted,
+      setMuted(v){ muted=v; if(!muted) resume(); }
+    };
+  })();
+  // odblokowanie audio (efekty + muzyka) przy pierwszej interakcji
+  ['pointerdown','keydown'].forEach(ev=> window.addEventListener(ev, ()=>{ Sfx.resume(); Music.resume(); }, { once:true }));
 
   function cartBonus(){ return upLevel('cart'); }
 
@@ -804,7 +873,7 @@
     // ze SWOJEJ kopii profilu, więc podmiana wallet w konsoli przeglądarki
     // niczego nie da.
     enabled: true,
-    dailyPointsCap: 30,        // maks. pkt do odebrania na dobę
+    dailyPointsCap: 200,       // maks. pkt do odebrania na dobę
     requireAdToClaim: true,    // reklama przy każdym odbiorze kodu
     // Progi przeliczone na OSTROŻNE stawki Monetag (marża ~1,9-2,1x).
     // Przy AdMob można było dawać 150 zł za 10 pkt — tutaj to byłaby
@@ -905,7 +974,7 @@
     });
   }
 
-  const AVATARS = ['🧢','🧑‍🌾','🧑‍🔧','🧙','🦊','🐿️','🦝','🐸'];
+  const AVATARS = ['🧢','🥷','🦝','🦊','🐿️','🦔','🐹','🐸','🦉','😎','🤠','👻','🕵️','🧙','🐭'];
   const REGEN_MS = 20*60*1000;
   let profile = {
     nick:'Łowca#'+randId(), avatar:'🧢', level:1, xp:0,
@@ -1090,11 +1159,13 @@
 
       div.onclick = ()=>{
         if(owned){
+          Sfx.click(); haptic('light');
           currentMapId=m.id; profile.lastMapId=m.id; saveProfile();
           renderMapSelector(); renderGoalsList('goalsListStart', currentMapId);
         } else if(!canUnlock){
           showToast('Najpierw zdobądź 2 gwiazdki na: '+MAPS[idx-1].name);
         } else if(profile.wallet>=m.cost){
+          Sfx.buy(); hapticNotify('success');
           profile.wallet -= m.cost; profile.mapsOwned.push(m.id);
           currentMapId=m.id; profile.lastMapId=m.id;
           saveProfile();
@@ -1151,7 +1222,7 @@
     const b=document.createElement('div');
     b.className='avatar-opt'+(a===profile.avatar?' selected':'');
     b.textContent=a;
-    b.onclick=()=>{ profile.avatar=a; Array.from(avatarGrid.children).forEach(c=>c.classList.remove('selected')); b.classList.add('selected'); refreshProfileUI(); };
+    b.onclick=()=>{ Sfx.click(); haptic('light'); profile.avatar=a; Array.from(avatarGrid.children).forEach(c=>c.classList.remove('selected')); b.classList.add('selected'); refreshProfileUI(); };
     avatarGrid.appendChild(b);
   });
   function renderCoupons(){
@@ -1204,14 +1275,15 @@
     document.getElementById('menuScrollEl') && (document.getElementById('menuScrollEl').scrollTop = 0);
   }
   document.querySelectorAll('.tab-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=> switchTab(btn.dataset.tab));
+    btn.addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab(btn.dataset.tab); });
   });
-  function openProfile(){ refreshProfileUI(); switchTab('profil'); }
+  function openProfile(){ Sfx.click(); haptic('light'); refreshProfileUI(); switchTab('profil'); }
   document.getElementById('profileBtnGame').addEventListener('click', openProfile);
   document.getElementById('profileStripStart').addEventListener('click', openProfile);
   document.getElementById('profileStripStart').addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openProfile(); } });
   document.getElementById('muteBtn').addEventListener('click', (e)=>{
     const m = Sfx.toggle();
+    Music.setMuted(m);
     e.currentTarget.textContent = m ? '🔇' : '🔊';
   });
   document.getElementById('closeProfileBtn').addEventListener('click', async ()=>{
@@ -1226,6 +1298,7 @@
     state='idle';
     refreshProfileUI();
     switchTab('graj');
+    Music.start('menu');
   }
 
   let state='idle';
@@ -2135,6 +2208,7 @@
 
   async function onExtract(){
     state='banked';
+    Music.start('menu');
     document.getElementById('tutorialBox').classList.remove('show');
     tut.active=false;
     if(!profile.tutorialDone) profile.tutorialDone = true;
@@ -2191,6 +2265,7 @@
     document.getElementById('caughtOverlay').classList.add('hidden');
     resetGame(); state='playing'; roundsPlayed+=1;
     startTutorialIfNeeded();
+    Music.start('game');
   }
   function attemptStart(){
     regenTick();
@@ -2234,6 +2309,7 @@
   (async function boot(){
     player.x=W/2; player.y=H-90;
     initTelegram();
+    Music.start('menu');
     Ads.init();            // preload w tle, nie blokuje startu
     // Ads.enableInAppAuto();  // <-- odkomentuj, jeśli chcesz automatyczne
                                //     reklamy w tle (mogą wyskoczyć w trakcie
