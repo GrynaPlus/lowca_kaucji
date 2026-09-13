@@ -234,7 +234,7 @@
           <div class="legend">
             <div class="item"><div class="swatch" style="background:#1E88E5"></div>0,50 zł<br>butelka</div>
             <div class="item"><div class="swatch" style="background:#C9D1D6"></div>0,50 zł<br>puszka</div>
-            <div class="item"><div class="swatch" style="background:#FFD700"></div>5 zł<br>worek</div>
+            <div class="item"><div class="swatch" style="background:#3FBF7F"></div>0,50 zł<br>plastik</div>
             <div class="item"><div class="swatch" style="background:transparent;font-size:16px;">🗑️</div>?<br>kosz (może być pusto)</div>
           </div>
 
@@ -630,11 +630,11 @@
     { id:'blok',     name:'Blok nocą',          icon:'🌃', cost:42, sky:['#2B2F4A','#171A2E'], grass:['#33405A','#222A3D'] }
   ];
   const MAP_WEIGHTS = {
-    osiedle:  { bottle:32, can:32, plastic:16, trash:16, bag:4 },
-    miasto:   { bottle:28, can:32, plastic:16, trash:20, bag:4 },
-    festyn:   { bottle:28, can:24, plastic:18, trash:10, bag:20 },
-    row:      { bottle:34, can:34, plastic:16, trash:14, bag:2 },
-    blok:     { bottle:30, can:28, plastic:14, trash:22, bag:6 }
+    osiedle:  { bottle:32, can:32, plastic:16, trash:16 },
+    miasto:   { bottle:28, can:32, plastic:16, trash:20 },
+    festyn:   { bottle:28, can:24, plastic:18, trash:10 },
+    row:      { bottle:34, can:34, plastic:16, trash:14 },
+    blok:     { bottle:30, can:28, plastic:14, trash:22 }
   };
   const BIN_CONFIG = {
     osiedle:  { count:7, emptyChance:0.28 },
@@ -668,7 +668,7 @@
     ],
     festyn: [
       { id:'bank12',  label:'Zbankuj 12 zł w jednej wyprawie',      check:r=> r.banked>=12 },
-      { id:'bags2',   label:'Znajdź 2 worki w jednej wyprawie',     check:r=> r.bags>=2 },
+      { id:'bins6f',  label:'Opróżnij 6 koszy w jednej wyprawie',    check:r=> r.binsEmptied>=6 },
       { id:'combo6',  label:'Zdobądź combo x6',                     check:r=> r.comboMax>=6 }
     ],
     row: [
@@ -1318,12 +1318,14 @@
   // statystyki bieżącej wyprawy — na ich podstawie oceniane są cele mapy
   let run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
 
+  // Realny limit na jedną wyprawę — "pojemność plecaka". Z zapasem ponad
+  // najwyższy cel mapy (12 zł na festynie), ale nie bez końca.
+  const MAX_RUN_LOOT = 35;
   const TYPES = [
     { key:'bottle', value:0.5, r:14, color:'#1E88E5', dark:'#125A97' },
     { key:'can',    value:0.5, r:13, color:'#C9D1D6', dark:'#8B949B' },
     { key:'plastic',value:0.5, r:13, color:'#3FBF7F', dark:'#278C58' },
-    { key:'trash',  value:0,   r:12, color:'#8B4A4A', dark:'#5C3131' },
-    { key:'bag',    value:5,   r:20, color:'#FFD700', dark:'#B99400' }
+    { key:'trash',  value:0,   r:12, color:'#8B4A4A', dark:'#5C3131' }
   ];
   function pickType(){
     const w = MAP_WEIGHTS[currentMapId] || MAP_WEIGHTS.row;
@@ -1473,18 +1475,21 @@
 
   function collect(it){
     it.popped=true;
+    if(loot>=MAX_RUN_LOOT && it.type.value>0){
+      addFloatText(it.x,it.y,'🎒 Plecak pełny!','#FF9B7A');
+      updateHUD(); return;
+    }
     if(it.type.value>0){
       comboTimer=1.1;
-      combo=Math.min(6, combo+(it.type.key==='bag'?0:1));
-      const gain=it.type.value;
+      combo=Math.min(6, combo+1);
+      const gain=Math.min(it.type.value, MAX_RUN_LOOT-loot);
       loot+=gain; daily.items+=1;
       if(combo>daily.comboMax) daily.comboMax=combo;
       if(combo>run.comboMax) run.comboMax=combo;
-      if(it.type.key==='bag'){ Sfx.jackpot(); hapticNotify('success'); run.bags+=1; }
-      else if(it.type.key==='can') Sfx.can();
+      if(it.type.key==='can') Sfx.can();
       else if(it.type.key==='plastic') Sfx.plastic();
       else Sfx.bottle();
-      addFloatText(it.x,it.y,'+'+fmt(gain), it.type.key==='bag'?'#FFD700':'#9FB3F0');
+      addFloatText(it.x,it.y,'+'+fmt(gain), '#9FB3F0');
     } else {
       combo=1; comboTimer=0;
       Sfx.trash();
@@ -1524,20 +1529,18 @@
       addFloatText(bin.x, bin.y-10, 'Pusto... 😕', '#E0A9A9');
       updateHUD(); return;
     }
-    if(Math.random() < 0.08){
-      comboTimer=1.1; loot+=5; daily.items+=1; run.bags+=1;
-      Sfx.jackpot();
-      addFloatText(bin.x, bin.y-10, '+5,00 zł — WOREK!', '#FFD700');
-    } else {
-      const pieces = 1+Math.floor(Math.random()*3) + cartBonus();
-      comboTimer=1.1; combo=Math.min(6, combo+pieces);
-      if(combo>daily.comboMax) daily.comboMax=combo;
-      if(combo>run.comboMax) run.comboMax=combo;
-      const gain = 0.5*pieces;
-      loot+=gain; daily.items+=pieces;
-      Sfx.bottle();
-      addFloatText(bin.x, bin.y-10, '+'+fmt(gain), '#9FB3F0');
+    if(loot>=MAX_RUN_LOOT){
+      addFloatText(bin.x, bin.y-10, '🎒 Plecak pełny!', '#FF9B7A');
+      updateHUD(); return;
     }
+    const pieces = 1+Math.floor(Math.random()*3) + cartBonus();
+    comboTimer=1.1; combo=Math.min(6, combo+pieces);
+    if(combo>daily.comboMax) daily.comboMax=combo;
+    if(combo>run.comboMax) run.comboMax=combo;
+    const gain = Math.min(0.5*pieces, MAX_RUN_LOOT-loot);
+    loot+=gain; daily.items+=pieces;
+    Sfx.bottle();
+    addFloatText(bin.x, bin.y-10, '+'+fmt(gain), '#9FB3F0');
     updateHUD();
   }
   function updateBins(dt){
@@ -1551,6 +1554,7 @@
   }
   function attemptBinTap(){
     if(state!=='playing' || !activeBinTarget) return;
+    if(loot>=MAX_RUN_LOOT){ showToast('🎒 Plecak pełny — wracaj do bazy!'); return; }
     const bin=activeBinTarget;
     bin.tapsDone+=1; bin.shakeTimer=0.18;
     tut.tappedBin = true;
@@ -1647,12 +1651,17 @@
     // Teren się wyczerpuje: gdy wszystkie kosze przeszukane, przedmioty
     // przestają się pojawiać — trzeba wracać do bazy zamiast farmić w kółko.
     const allBinsDone = bins.length>0 && bins.every(b=>b.searched);
+    const backpackFull = loot>=MAX_RUN_LOOT;
     if(allBinsDone && !run.cleanedNotified){
       run.cleanedNotified = true;
       showToast('🧹 Teren wyczyszczony — wracaj do bazy!');
     }
+    if(backpackFull && !run.backpackNotified){
+      run.backpackNotified = true;
+      showToast('🎒 Plecak pełny — wracaj do bazy!');
+    }
     const spawnRate=Math.max(0.35, 0.85-elapsedSinceStart*0.008);
-    if(!allBinsDone && spawnTimer<=0 && items.length<14){ spawnItem(false); spawnTimer=spawnRate; }
+    if(!allBinsDone && !backpackFull && spawnTimer<=0 && items.length<14){ spawnItem(false); spawnTimer=spawnRate; }
     for(const it of items){ if(it.popped) continue; const dx=player.x-it.x, dy=player.y-it.y; if(Math.hypot(dx,dy)<player.r+it.type.r-4) collect(it); }
     items=items.filter(it=>!it.popped && (elapsedSinceStart-it.born)<it.life);
     particles.forEach(p=>{ p.y+=p.vy; p.life-=dt*0.9; });
@@ -1961,8 +1970,7 @@
     let alpha=1; if(age<0.25) alpha=age/0.25; else if(it.life-age<0.6) alpha=Math.max(0,(it.life-age)/0.6);
     ctx.save(); ctx.globalAlpha=alpha; ctx.translate(it.x,it.y+bob);
     drawSoftShadow(it.type.r);
-    if(it.type.key==='bag'){ ctx.save(); ctx.rotate(Math.sin(elapsedSinceStart*2+it.bob)*0.06); drawBagShape(it.type); ctx.restore(); }
-    else if(it.type.key==='trash'){ drawTrashShape(it.type); }
+    if(it.type.key==='trash'){ drawTrashShape(it.type); }
     else if(it.type.key==='can'){ drawCanShape(it.type); }
     else { drawBottleShape(it.type); }
     ctx.restore();
