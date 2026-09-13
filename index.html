@@ -199,6 +199,14 @@
   <div id="tutorialBox"></div>
 
   <!-- MENU -->
+  <div class="overlay hidden" id="desktopBlockOverlay">
+    <div class="card">
+      <h1 style="font-size:22px;">📱 Tylko na telefonie</h1>
+      <p class="sub">Łowca Kaucji działa wyłącznie na telefonie — na komputerze widać za dużo mapy naraz, co psuje zabawę w unikanie wzroku.</p>
+      <p class="sub">Otwórz tę grę w aplikacji Telegram na telefonie.</p>
+    </div>
+  </div>
+
   <div class="overlay" id="startOverlay">
     <div class="menu-app">
       <div class="menu-scroll" id="menuScrollEl">
@@ -373,14 +381,18 @@
   function hapticNotify(type){
     try{ TG && TG.HapticFeedback && TG.HapticFeedback.notificationOccurred(type||'success'); }catch(e){}
   }
+  const DESKTOP_PLATFORMS = ['tdesktop','macos','weba','webk','unigram'];
+  function isDesktopTelegram(){
+    return !!(TG && TG.platform && DESKTOP_PLATFORMS.includes(TG.platform));
+  }
   function initTelegram(){
     if(!TG){ console.log('[tg] poza Telegramem — tryb podglądu'); return; }
     try{
       TG.ready();
       TG.expand();
       if(TG.disableVerticalSwipes) TG.disableVerticalSwipes(); // żeby swipe nie zamykał gry
-      if(TG.setHeaderColor) TG.setHeaderColor('#1F3A2E');
-      if(TG.setBackgroundColor) TG.setBackgroundColor('#1F3A2E');
+      if(TG.setHeaderColor) TG.setHeaderColor('#7ED4FF');
+      if(TG.setBackgroundColor) TG.setBackgroundColor('#7ED4FF');
     }catch(e){ console.warn('[tg] init', e); }
   }
 
@@ -402,7 +414,7 @@
      initData) gra automatycznie działa wyłącznie na localStorage,
      bez wywoływania API.
      ========================================================= */
-  const API_BASE = 'https://express-js-on-vercel-teal-six-21.vercel.app/api'; // <-- PODMIEŃ
+  const API_BASE = 'https://express-js-on-vercel-teal-six-21.vercel.app/api';
 
   // Wspólny helper do wywołań API spoza LocalDB (np. odbiór kodu bonusowego).
   // Zwraca sparsowany JSON, albo rzuca błąd z komunikatem z serwera.
@@ -2406,6 +2418,12 @@
   (async function boot(){
     player.x=W/2; player.y=H-90;
     initTelegram();
+    if(isDesktopTelegram()){
+      document.getElementById('startOverlay').classList.add('hidden');
+      document.getElementById('desktopBlockOverlay').classList.remove('hidden');
+      console.log('[tg] platforma komputerowa ('+TG.platform+') — gra zablokowana');
+      return; // nie ładuj profilu, nie startuj muzyki/reklam, nic więcej
+    }
     Music.start('menu');
     Ads.init();            // preload w tle, nie blokuje startu
     // Ads.enableInAppAuto();  // <-- odkomentuj, jeśli chcesz automatyczne
