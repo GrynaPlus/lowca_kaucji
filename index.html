@@ -31,7 +31,7 @@
   #game-wrap{position:relative;width:100%;height:100vh;display:flex;align-items:center;justify-content:center;}
   canvas{display:block;width:100%;height:100%;cursor:crosshair;}
 
-  .hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(46px + env(safe-area-inset-top)) 16px 14px;pointer-events:none;z-index:5;gap:8px;}
+  .hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(92px + env(safe-area-inset-top)) 16px 14px;pointer-events:none;z-index:5;gap:8px;}
   .hud-left{display:flex;gap:8px;pointer-events:auto;align-items:flex-start;}
   .pill{background:linear-gradient(180deg, rgba(30,37,71,0.94), rgba(11,14,31,0.96));color:var(--cream);border-radius:14px;padding:8px 12px;font-family:'Fredoka',sans-serif;font-weight:600;font-size:14px;box-shadow:0 3px 0 rgba(0,0,0,0.35), 0 0 10px rgba(0,229,255,0.1), inset 0 1px 0 rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:70px;border:1px solid rgba(0,229,255,0.18);}
   .pill .label{font-family:'Inter',sans-serif;font-weight:500;font-size:9px;letter-spacing:0.03em;color:#8FA3D9;margin-bottom:1px;}
@@ -43,7 +43,7 @@
   .icon-btn{pointer-events:auto;width:38px;height:38px;border-radius:12px;background:linear-gradient(180deg, rgba(30,37,71,0.94), rgba(11,14,31,0.96));border:1px solid rgba(0,229,255,0.18);color:var(--cream);font-size:18px;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .icon-btn:active{transform:translateY(2px);box-shadow:none;}
 
-  #heatContainer{position:absolute;top:calc(46px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:180px;text-align:center;pointer-events:none;z-index:6;background:rgba(11,14,31,0.9);padding:7px 12px;border-radius:14px;border:1px solid rgba(255,46,77,0.25);box-shadow:0 3px 0 rgba(0,0,0,0.35);}
+  #heatContainer{position:absolute;top:calc(92px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:180px;text-align:center;pointer-events:none;z-index:6;background:rgba(11,14,31,0.9);padding:7px 12px;border-radius:14px;border:1px solid rgba(255,46,77,0.25);box-shadow:0 3px 0 rgba(0,0,0,0.35);}
   #heatContainer .lbl{font-size:9px;color:#FF9B7A;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-family:'Inter',sans-serif;}
   .heat-track{width:100%;height:10px;background:rgba(0,0,0,0.5);border-radius:6px;overflow:hidden;margin-top:5px;}
   .heat-fill{width:0%;height:100%;background:linear-gradient(90deg,#F5A623,#FF8A3A);transition:width .12s linear;}
@@ -1147,8 +1147,8 @@
       }
       let statusHtml;
       if(owned){
-        statusHtml = mapCompleted(m.id)
-          ? '<span class="status owned">🏅 Ukończona</span>'
+        statusHtml = (mapLevel(m.id) >= MAP_LEVEL_MAX)
+          ? '<span class="status owned">🏅 W pełni rozwinięta</span>'
           : '<span class="status owned">'+got+'/'+goals.length+' ★</span>';
       } else if(!canUnlock){
         statusHtml = '<span class="status locked">🔒</span>';
@@ -1196,7 +1196,7 @@
     if(lvl >= MAP_LEVEL_MAX){
       box.innerHTML = '<b style="color:var(--gold);">'+(map?map.name:'')+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+' (max)</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>. Ta mapa jest w pełni rozwinięta.';
     } else {
-      const nextCap = LEVEL_CAPS[lvl];
+      const nextCap = levelCapsFor(currentMapId)[lvl];
       box.innerHTML = '<b style="color:var(--gold);">'+(map?map.name:'')+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+'</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>.<br>Opróżnij <b>WSZYSTKIE</b> kosze i wróć z łupem, żeby awansować na poziom '+(lvl+1)+' (limit wzrośnie do '+fmt(nextCap)+').';
     }
   }
@@ -1333,18 +1333,27 @@
   let bins=[], npcs=[], npcSpawnTimer=0.5;
   let bushes=[], cars=[], carSpawnTimer=1.5;
   let noiseRings=[], activeBinTarget=null;
-  let exitZone={x:0,y:0,w:130,h:105};
+  let exitZone={x:0,y:92,w:130,h:110};
   let spawnTimer=0, elapsedSinceStart=0;
   // statystyki bieżącej wyprawy — na ich podstawie oceniane są cele mapy
   let run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
 
-  // Pojemność plecaka rośnie z poziomem KAŻDEJ mapy (1-5), nie jest już
-  // stała. Żeby awansować poziom na danej mapie: trzeba w jednej wyprawie
-  // opróżnić WSZYSTKIE kosze i wrócić z łupem (patrz onExtract).
-  const LEVEL_CAPS = [10, 16, 22, 28, 35]; // limit zł na wyprawę dla poziomu 1..5
-  const MAP_LEVEL_MAX = LEVEL_CAPS.length;
+  // Pojemność plecaka rośnie z poziomem KAŻDEJ mapy (1-5), osobno dla
+  // każdej mapy — bo mapy różnią się liczbą koszy i ich zamożnością.
+  // Poziom 1 na każdej mapie jest tak dobrany, żeby realnie starczał na
+  // JEDNO pełne wyczyszczenie (kosze + to, co zbierzesz po drodze z ziemi)
+  // z zapasem, a nie "na styk" — inaczej nigdy nie dałoby się awansować.
+  const MAP_LEVEL_CAPS = {
+    osiedle: [12, 17, 22, 28, 34],
+    miasto:  [14, 19, 25, 31, 37],
+    festyn:  [15, 20, 26, 32, 38],
+    row:     [11, 16, 21, 27, 33],
+    blok:    [12, 17, 23, 29, 35]
+  };
+  const MAP_LEVEL_MAX = 5;
   function mapLevel(mapId){ return (profile.mapLevels && profile.mapLevels[mapId]) || 1; }
-  function backpackCap(){ return LEVEL_CAPS[mapLevel(currentMapId)-1]; }
+  function levelCapsFor(mapId){ return MAP_LEVEL_CAPS[mapId] || MAP_LEVEL_CAPS.osiedle; }
+  function backpackCap(){ return levelCapsFor(currentMapId)[mapLevel(currentMapId)-1]; }
   const TYPES = [
     { key:'bottle', value:0.5, r:14, color:'#1E88E5', dark:'#125A97' },
     { key:'can',    value:0.5, r:13, color:'#C9D1D6', dark:'#8B949B' },
@@ -1382,7 +1391,7 @@
     doubleUsedThisRound=false; leveledThisRound=false;
     run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
     player.x=W/2; player.y=H-90; player.heat=0; player.noiseRadius=0; player.hidden=false;
-    exitZone = { x:W/2-65, y:0, w:130, h:105 };
+    exitZone = { x:W/2-65, y:92, w:130, h:110 };
     generateMapObjects();
     for(let i=0;i<6;i++) spawnItem(true);
     spawnBins();
@@ -1472,7 +1481,7 @@
       }
     }
     player.x=Math.max(player.r+6,Math.min(W-player.r-6,player.x));
-    player.y=Math.max(70,Math.min(H-player.r-16,player.y));
+    player.y=Math.max(110,Math.min(H-player.r-16,player.y));
     player.moving = Math.hypot(player.x-px, player.y-py) > 0.4;
     if(player.moving) tut.hasMoved = true;
   }
@@ -2219,7 +2228,7 @@
       setTimeout(()=>{ Sfx.star(); hapticNotify('success'); }, 500);
       newly.forEach(g=> showToast('⭐ Cel zaliczony: '+g.label+' (+'+bonus/newly.length+' zł)'));
       grynaPlusEvent('map_goals_completed', { mapId:currentMapId, goals:newly.map(g=>g.id), bonusKaucja:bonus, profileNick:profile.nick });
-      if(mapCompleted(currentMapId)) showToast('🏅 Mapa ukończona na 3 gwiazdki!');
+      if(mapCompleted(currentMapId)) showToast('⭐ Wszystkie cele mapy zdobyte!');
     }
     return newly;
   }
