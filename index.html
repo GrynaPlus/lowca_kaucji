@@ -1398,18 +1398,25 @@
     spawnBins();
     updateHUD();
   }
+  function tooCloseToExit(x,y,pad){
+    pad = pad===undefined?26:pad;
+    return x>exitZone.x-pad && x<exitZone.x+exitZone.w+pad && y>exitZone.y-pad && y<exitZone.y+exitZone.h+pad;
+  }
   function spawnBins(){
     const cfg = BIN_CONFIG[currentMapId] || BIN_CONFIG.row;
     const margin=60;
     for(let i=0;i<cfg.count;i++){
       let x,y;
       if(currentMapId==='row' && bushes.length){
-        const b = bushes[Math.floor(Math.random()*bushes.length)];
+        let tries=0, b;
+        do{ b = bushes[Math.floor(Math.random()*bushes.length)]; tries++; }
+        while(tooCloseToExit(b.x,b.y,50) && tries<10);
         x = b.x + (Math.random()-0.5)*26; y = b.y + (Math.random()-0.5)*26;
+        if(tooCloseToExit(x,y)) y += exitZone.h+50;
       } else {
         let tries=0;
         do{ x=margin+Math.random()*(W-margin*2); y=150+Math.random()*(H-260); tries++; }
-        while(bins.some(bn=>Math.hypot(bn.x-x,bn.y-y)<70) && tries<20);
+        while((bins.some(bn=>Math.hypot(bn.x-x,bn.y-y)<70) || tooCloseToExit(x,y)) && tries<25);
       }
       bins.push({ x,y, searched:false, empty:false, tapsNeeded:tapsNeededBase()+Math.floor(Math.random()*3), tapsDone:0, shakeTimer:0, bob:Math.random()*Math.PI*2 });
     }
@@ -1417,7 +1424,7 @@
   function spawnItem(initial){
     const margin=50, t=pickType();
     let x = margin+Math.random()*(W-margin*2);
-    const y = 130+Math.random()*(H-230);
+    let y = 130+Math.random()*(H-230);
     if(currentMapId==='row'){
       // butelki leżą w rowie, nie na asfalcie
       const roadHalf=95;
@@ -1425,6 +1432,7 @@
       const rightMin = Math.min(W-margin, W/2+roadHalf);
       x = Math.random()<0.5 ? margin+Math.random()*(leftMax-margin) : rightMin+Math.random()*(W-margin-rightMin);
     }
+    if(tooCloseToExit(x,y)) y = exitZone.y+exitZone.h+30+Math.random()*40;
     const it={ type:t, x, y, born:elapsedSinceStart, life:6+Math.random()*4, bob:Math.random()*Math.PI*2, popped:false };
     if(!initial){ const dx=it.x-player.x, dy=it.y-player.y; if(Math.hypot(dx,dy)<80){ it.x = player.x + (dx>=0?1:-1)*140; } }
     items.push(it);
