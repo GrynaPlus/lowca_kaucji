@@ -227,6 +227,11 @@
           <div class="map-list" id="mapsRowStart"></div>
 
           <div class="tasks-box">
+            <div class="t-title">🧹 Poziom mapy</div>
+            <div id="mapLevelInfo" style="font-size:11px;color:#CBD6FF;line-height:1.5;"></div>
+          </div>
+
+          <div class="tasks-box">
             <div class="t-title">🎯 Cele tej mapy</div>
             <div id="goalsListStart"></div>
           </div>
@@ -311,6 +316,7 @@
       <h1>BAZA! 🚪</h1>
       <div class="banner" id="recordBanner">🏆 NOWY REKORD JEDNEJ WYPRAWY!</div>
       <div class="banner" id="levelBanner" style="background:var(--xp);">⭐ Awans na wyższy poziom!</div>
+      <div class="banner" id="mapLevelBanner" style="background:var(--combo);"></div>
       <div class="result-amount" id="resultAmount">0,00 zł</div>
       <p class="result-tier" id="resultTier"></p>
       <div class="tasks-box">
@@ -981,7 +987,7 @@
     totalEarned:0, gamesPlayed:0, grynaPoints:0, bestScore:0,
     energy:3, lastEnergyTs: Date.now(),
     streak:0, lastPlayDate:'', wallet:0, mapsOwned:['osiedle'], lastMapId:'osiedle',
-    mapProgress:{}, upgrades:{}
+    mapProgress:{}, upgrades:{}, mapLevels:{}
   };
   function xpToNext(level){ return 80+(level-1)*40; }
   function energyMax(){ let m=3; if(profile.level>=5) m=4; if(profile.level>=10) m=5; return m; }
@@ -1135,7 +1141,7 @@
 
       let starsHtml='';
       if(owned){
-        starsHtml = '<div class="stars">';
+        starsHtml = '<div class="stars">Lv.'+mapLevel(m.id)+'/'+MAP_LEVEL_MAX+' &nbsp; ';
         for(let i=0;i<goals.length;i++) starsHtml += (i<got?'★':'☆');
         starsHtml += '</div>';
       }
@@ -1179,6 +1185,20 @@
       row.appendChild(div);
     });
     renderGoalsList('goalsListStart', currentMapId);
+    renderMapLevelInfo();
+  }
+  function renderMapLevelInfo(){
+    const box = document.getElementById('mapLevelInfo');
+    if(!box) return;
+    const lvl = mapLevel(currentMapId);
+    const cap = backpackCap();
+    const map = MAPS.find(m=>m.id===currentMapId);
+    if(lvl >= MAP_LEVEL_MAX){
+      box.innerHTML = '<b style="color:var(--gold);">'+(map?map.name:'')+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+' (max)</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>. Ta mapa jest w pełni rozwinięta.';
+    } else {
+      const nextCap = LEVEL_CAPS[lvl];
+      box.innerHTML = '<b style="color:var(--gold);">'+(map?map.name:'')+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+'</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>.<br>Opróżnij <b>WSZYSTKIE</b> kosze i wróć z łupem, żeby awansować na poziom '+(lvl+1)+' (limit wzrośnie do '+fmt(nextCap)+').';
+    }
   }
 
   /* =========================================================
@@ -1318,9 +1338,13 @@
   // statystyki bieżącej wyprawy — na ich podstawie oceniane są cele mapy
   let run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
 
-  // Realny limit na jedną wyprawę — "pojemność plecaka". Z zapasem ponad
-  // najwyższy cel mapy (12 zł na festynie), ale nie bez końca.
-  const MAX_RUN_LOOT = 35;
+  // Pojemność plecaka rośnie z poziomem KAŻDEJ mapy (1-5), nie jest już
+  // stała. Żeby awansować poziom na danej mapie: trzeba w jednej wyprawie
+  // opróżnić WSZYSTKIE kosze i wrócić z łupem (patrz onExtract).
+  const LEVEL_CAPS = [10, 16, 22, 28, 35]; // limit zł na wyprawę dla poziomu 1..5
+  const MAP_LEVEL_MAX = LEVEL_CAPS.length;
+  function mapLevel(mapId){ return (profile.mapLevels && profile.mapLevels[mapId]) || 1; }
+  function backpackCap(){ return LEVEL_CAPS[mapLevel(currentMapId)-1]; }
   const TYPES = [
     { key:'bottle', value:0.5, r:14, color:'#1E88E5', dark:'#125A97' },
     { key:'can',    value:0.5, r:13, color:'#C9D1D6', dark:'#8B949B' },
@@ -1475,14 +1499,14 @@
 
   function collect(it){
     it.popped=true;
-    if(loot>=MAX_RUN_LOOT && it.type.value>0){
+    if(loot>=backpackCap() && it.type.value>0){
       addFloatText(it.x,it.y,'🎒 Plecak pełny!','#FF9B7A');
       updateHUD(); return;
     }
     if(it.type.value>0){
       comboTimer=1.1;
       combo=Math.min(6, combo+1);
-      const gain=Math.min(it.type.value, MAX_RUN_LOOT-loot);
+      const gain=Math.min(it.type.value, backpackCap()-loot);
       loot+=gain; daily.items+=1;
       if(combo>daily.comboMax) daily.comboMax=combo;
       if(combo>run.comboMax) run.comboMax=combo;
@@ -1529,7 +1553,7 @@
       addFloatText(bin.x, bin.y-10, 'Pusto... 😕', '#E0A9A9');
       updateHUD(); return;
     }
-    if(loot>=MAX_RUN_LOOT){
+    if(loot>=backpackCap()){
       addFloatText(bin.x, bin.y-10, '🎒 Plecak pełny!', '#FF9B7A');
       updateHUD(); return;
     }
@@ -1537,7 +1561,7 @@
     comboTimer=1.1; combo=Math.min(6, combo+pieces);
     if(combo>daily.comboMax) daily.comboMax=combo;
     if(combo>run.comboMax) run.comboMax=combo;
-    const gain = Math.min(0.5*pieces, MAX_RUN_LOOT-loot);
+    const gain = Math.min(0.5*pieces, backpackCap()-loot);
     loot+=gain; daily.items+=pieces;
     Sfx.bottle();
     addFloatText(bin.x, bin.y-10, '+'+fmt(gain), '#9FB3F0');
@@ -1554,7 +1578,6 @@
   }
   function attemptBinTap(){
     if(state!=='playing' || !activeBinTarget) return;
-    if(loot>=MAX_RUN_LOOT){ showToast('🎒 Plecak pełny — wracaj do bazy!'); return; }
     const bin=activeBinTarget;
     bin.tapsDone+=1; bin.shakeTimer=0.18;
     tut.tappedBin = true;
@@ -1651,7 +1674,8 @@
     // Teren się wyczerpuje: gdy wszystkie kosze przeszukane, przedmioty
     // przestają się pojawiać — trzeba wracać do bazy zamiast farmić w kółko.
     const allBinsDone = bins.length>0 && bins.every(b=>b.searched);
-    const backpackFull = loot>=MAX_RUN_LOOT;
+    const backpackFull = loot>=backpackCap();
+    if(allBinsDone) run.allCleared = true;
     if(allBinsDone && !run.cleanedNotified){
       run.cleanedNotified = true;
       showToast('🧹 Teren wyczyszczony — wracaj do bazy!');
@@ -2232,6 +2256,15 @@
     leveledThisRound = addXP(Math.round(banked*8)+5);
     evaluateGoals(banked);
 
+    // Poziom TEJ mapy rośnie tylko gdy w tej wyprawie opróżniono WSZYSTKIE
+    // kosze i udało się wrócić z łupem — to steruje tempem zarabiania:
+    // pierwsze poziomy pierwszych map dają mało, ostatnie poziomy dają dużo.
+    let mapLeveledUp = false;
+    if(run.allCleared && mapLevel(currentMapId) < MAP_LEVEL_MAX){
+      profile.mapLevels[currentMapId] = mapLevel(currentMapId) + 1;
+      mapLeveledUp = true;
+    }
+
     await saveDaily(); await saveProfile();
     checkTasks();
     refreshProfileUI();
@@ -2241,6 +2274,13 @@
     document.getElementById('resultTier').textContent = tierMessage(banked);
     document.getElementById('recordBanner').classList.toggle('show', isNewBest);
     document.getElementById('levelBanner').classList.toggle('show', leveledThisRound);
+    const mapLvlBanner = document.getElementById('mapLevelBanner');
+    if(mapLeveledUp){
+      mapLvlBanner.textContent = '🧹 Poziom mapy: '+mapLevel(currentMapId)+'/'+MAP_LEVEL_MAX+'! Nowy limit łupu: '+fmt(backpackCap());
+      mapLvlBanner.classList.add('show');
+    } else {
+      mapLvlBanner.classList.remove('show');
+    }
     document.getElementById('rewardDoubleBtn').disabled=false;
     document.getElementById('rewardDoubleBtn').textContent='🎬 Obejrzyj reklamę → podwój ten łup';
     doubleUsedThisRound=false;
