@@ -57,10 +57,70 @@
   .card .sub, .sub{font-size:12px;font-weight:600;color:var(--ink);margin:0 0 12px;line-height:1.5;}
 
   /* --- Menu jako pełnoekranowa aplikacja z dolnym paskiem zakładek --- */
-  #startOverlay{padding:0;align-items:stretch;background:linear-gradient(180deg, var(--bg-sky-a), var(--bg-sky-b));overflow:hidden;}
+  #startOverlay{padding:0;align-items:stretch;overflow:hidden;background:
+     repeating-linear-gradient(45deg, rgba(255,255,255,0.06) 0 14px, rgba(255,255,255,0) 14px 28px),
+     radial-gradient(circle at 50% 8%, rgba(255,255,255,0.28), rgba(255,255,255,0) 55%),
+     linear-gradient(180deg, var(--bg-sky-a), var(--bg-sky-b));}
   .menu-app{display:flex;flex-direction:column;width:100%;height:100%;max-width:480px;margin:0 auto;color:var(--ink);}
-  .menu-scroll{flex:1;overflow-y:auto;padding:calc(52px + env(safe-area-inset-top)) 16px 12px;-webkit-overflow-scrolling:touch;}
-  .menu-title{font-family:'Fredoka',sans-serif;font-weight:700;font-size:24px;color:#fff;text-align:center;margin:4px 0 12px;text-shadow:-2px 0 0 var(--ink),2px 0 0 var(--ink),0 -2px 0 var(--ink),0 2px 0 var(--ink),3px 3px 0 rgba(0,0,0,0.25);letter-spacing:0.5px;}
+  /* --- Górny pasek HUD: pełnej szerokości, niebieski --- */
+  .menu-topbar{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:calc(50px + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,#2E9BE0,#1E7DBF);border-bottom:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
+  .avatar-tile{position:relative;width:50px;height:50px;flex-shrink:0;border-radius:14px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .avatar-tile .av{font-size:26px;line-height:1;}
+  .top-chip{flex:1;min-width:0;display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#1668A8,#10537F);border:2.5px solid var(--ink);box-shadow:inset 0 2px 4px rgba(0,0,0,0.3);border-radius:16px;padding:7px 10px;}
+  .top-chip .tc-ic{font-size:16px;line-height:1;flex-shrink:0;}
+  .top-chip .tc-v{font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .burger{flex-shrink:0;width:38px;height:38px;border-radius:11px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:2.5px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.25);color:var(--ink);font-size:17px;cursor:pointer;padding:0;}
+
+  /* --- Baner postępu gracza (jak pasek wydarzenia) --- */
+  .event-banner{flex-shrink:0;display:flex;align-items:center;gap:9px;margin:10px 14px 0;padding:7px 10px;border-radius:18px;background:linear-gradient(180deg,#FF8AC4,#E0459B);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.25);}
+  .eb-badge{flex-shrink:0;width:38px;height:38px;border-radius:11px;background:linear-gradient(180deg,#A96BE8,#7B3FC4);border:2.5px solid var(--ink);color:#fff;font-family:'Fredoka',sans-serif;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;text-shadow:0 1px 2px rgba(0,0,0,0.45);}
+  .eb-body{flex:1;min-width:0;}
+  .eb-title{font-family:'Fredoka',sans-serif;font-weight:700;font-size:11px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.35);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;}
+  .eb-bar{position:relative;height:16px;border-radius:9px;background:rgba(0,0,0,0.32);border:2px solid var(--ink);overflow:hidden;}
+  .eb-fill{height:100%;background:linear-gradient(180deg,#FFE59A,var(--gold));transition:width .4s ease;}
+  .eb-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;font-size:9.5px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.6);}
+  .eb-gift{flex-shrink:0;font-size:23px;}
+
+  .menu-scroll{flex:1;overflow-y:auto;padding:10px 14px 12px;-webkit-overflow-scrolling:touch;}
+
+  /* --- Dolny rząd akcji: przycisk poboczny + wielki GRAJ --- */
+  .cta-row{display:flex;align-items:stretch;gap:9px;margin-bottom:8px;}
+  .cta-side{flex-shrink:0;width:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:linear-gradient(180deg,#B07BEA,#8B45D0);border:3px solid #5E2A94;border-radius:18px;box-shadow:0 6px 0 #5E2A94;color:#fff;font-family:'Fredoka',sans-serif;font-weight:700;font-size:13px;line-height:1.1;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,0.35);padding:10px 4px;}
+  .cta-side:active{transform:translateY(4px);box-shadow:0 2px 0 #5E2A94;}
+  .cta-row .play-cta{flex:1;margin-bottom:0;}
+  .play-cta{font-size:26px !important;padding:16px 20px !important;letter-spacing:1px;}
+
+  /* --- Scena z karuzelą map i bocznymi kolumnami przycisków --- */
+  .stage{position:relative;padding:6px 0 2px;margin-bottom:10px;}
+  .side-rail{position:absolute;top:4px;display:flex;flex-direction:column;gap:12px;z-index:3;}
+  .side-rail.left{left:0;}
+  .side-rail.right{right:0;}
+  .rail-btn{position:relative;width:48px;background:none;border:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .rail-btn .ic{width:48px;height:48px;border-radius:50%;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;font-size:21px;transition:transform .12s ease;}
+  .rail-btn:active .ic{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,0.22);}
+  .rail-btn.on .ic{background:linear-gradient(180deg,#FFE59A,var(--gold));border-color:var(--gold-dark);}
+  .rail-lbl{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:800;color:#fff;text-shadow:-1.2px 0 0 var(--ink),1.2px 0 0 var(--ink),0 -1.2px 0 var(--ink),0 1.2px 0 var(--ink);}
+
+  .map-stage{display:flex;align-items:center;justify-content:center;gap:4px;padding:0 54px;}
+  .map-nav{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.22);color:var(--ink);font-family:'Fredoka',sans-serif;font-weight:700;font-size:20px;line-height:0;cursor:pointer;padding:0;}
+  .map-nav:disabled{opacity:0.35;cursor:default;}
+  .map-card{flex:1;min-width:0;background:linear-gradient(180deg,#FFFFFF,#FFF6DE);border:4px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 rgba(0,0,0,0.2);padding:9px 9px 11px;text-align:center;}
+  .map-scene{position:relative;width:100%;aspect-ratio:220/140;border-radius:14px;overflow:hidden;border:3px solid var(--ink);margin-bottom:7px;background:#cfe8f7;}
+  .map-scene svg{display:block;width:100%;height:100%;}
+  .map-scene.locked svg{filter:grayscale(0.75) brightness(0.72);}
+  .scene-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;text-shadow:0 3px 6px rgba(0,0,0,0.5);}
+  .map-card .mc-name{font-family:'Fredoka',sans-serif;font-weight:700;font-size:17px;color:var(--ink);}
+  .map-card .mc-lvl{font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;color:var(--gold-dark);margin-top:2px;}
+  .map-card .mc-note{font-size:10px;color:#8A6A3A;margin-top:5px;line-height:1.4;font-weight:600;}
+  .map-card .mc-max{font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;color:var(--green);margin-top:3px;}
+  .map-dots{display:flex;justify-content:center;gap:6px;margin-top:9px;}
+  .map-dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.55);border:2px solid var(--ink);}
+  .map-dots .dot.on{background:var(--gold);width:20px;border-radius:5px;}
+
+  .info-panel{background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:10px 12px;margin-bottom:10px;text-align:left;box-shadow:0 3px 0 rgba(0,0,0,0.12);}
+  .info-panel .t-title{font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;color:var(--gold-dark);margin-bottom:6px;}
+  .energy-strip{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:8px 12px;margin-bottom:10px;box-shadow:0 3px 0 rgba(0,0,0,0.12);}
+  .energy-strip .energy-row{margin-bottom:0;}
   .tab-panel{display:block;}
   .tab-panel.hidden{display:none;}
   .bottom-tabbar{position:relative;flex-shrink:0;display:flex;background:var(--panel);border-top:3px solid var(--ink);box-shadow:0 -4px 14px rgba(0,0,0,0.18);padding:24px 6px 8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
@@ -70,17 +130,12 @@
   .tab-btn.active .ic{background:linear-gradient(180deg,#FFE59A,var(--gold));border-color:var(--gold-dark);transform:scale(1.12) translateY(-3px);box-shadow:0 6px 0 var(--gold-dark), 0 9px 14px rgba(0,0,0,0.25);}
   .tab-badge{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 3px;border-radius:9px;background:var(--danger);border:2.5px solid #fff;display:none;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;font-family:'Fredoka',sans-serif;}
   .tab-badge.show{display:flex;}
-  .profile-strip{display:flex;align-items:center;gap:10px;background:var(--panel);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.15);border-radius:16px;padding:8px 12px;margin-bottom:10px;text-align:left;}
-  .profile-strip .avatar{font-size:24px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--panel-3);border:2.5px solid var(--ink);border-radius:50%;flex-shrink:0;}
-  .profile-strip .info{flex:1;min-width:0;}
-  .profile-strip .nick{font-family:'Fredoka',sans-serif;font-size:13px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .profile-strip .lvl{font-size:10px;color:#8A6A3A;}
+  .tab-btn.center .ic{width:62px;height:62px;font-size:28px;margin-top:-42px;background:linear-gradient(180deg,#FFE59A,var(--gold));border-color:var(--gold-dark);box-shadow:0 6px 0 var(--gold-dark), 0 9px 14px rgba(0,0,0,0.25);}
+  .tab-btn.center.active .ic{transform:scale(1.06) translateY(-3px);}
+  .tab-btn.center{font-size:10.5px;}
   .xpbar-track{background:rgba(0,0,0,0.18);border-radius:8px;height:8px;overflow:hidden;margin-top:4px;border:1.5px solid rgba(0,0,0,0.25);}
   .xpbar-fill{background:linear-gradient(180deg,#6FC4FF,var(--xp));height:100%;border-radius:8px;transition:width .4s ease;}
 
-  .wallet-box{background:var(--panel-2);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.12);border-radius:16px;padding:12px;margin-bottom:12px;}
-  .wallet-box .lbl{font-size:10px;color:#8A6A3A;text-transform:uppercase;letter-spacing:.04em;font-weight:700;}
-  .wallet-box .val{font-family:'Fredoka',sans-serif;font-weight:700;font-size:28px;color:var(--gold-dark);}
 
   .energy-box{background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:10px 12px;margin-bottom:12px;text-align:left;}
   .energy-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
@@ -89,16 +144,6 @@
   .energy-note{font-size:10px;color:#8A6A3A;font-weight:600;}
   .energy-note.warn{color:#D2551F;}
 
-  .map-list{margin-bottom:12px;}
-  .map-row{display:flex;justify-content:space-between;align-items:center;background:var(--panel-2);border-radius:16px;padding:12px 14px;margin-bottom:8px;cursor:pointer;border:2.5px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.1);}
-  .map-row.selected{border-color:var(--gold-dark);background:var(--panel-3);box-shadow:0 3px 0 rgba(184,120,0,0.25);}
-  .map-row .mi{font-size:20px;margin-right:10px;}
-  .map-row .mn{font-family:'Fredoka',sans-serif;font-size:13px;flex:1;text-align:left;color:var(--ink);}
-  .map-row .status{font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;flex-shrink:0;}
-  .map-row .status.owned{color:var(--green);}
-  .map-row .status.buy{color:var(--gold-dark);}
-  .map-row .status.locked{color:#C25A5A;}
-  .map-row .stars{font-size:11px;color:var(--gold-dark);letter-spacing:2px;margin-top:2px;font-weight:700;}
 
   .shop-row{display:flex;align-items:center;background:var(--panel-2);border-radius:14px;padding:9px 11px;margin-bottom:6px;cursor:pointer;border:2px solid var(--ink);}
   .shop-row:active{transform:scale(0.99);}
@@ -209,55 +254,75 @@
 
   <div class="overlay" id="startOverlay">
     <div class="menu-app">
-      <div class="menu-scroll" id="menuScrollEl">
-        <h1 class="menu-title">ŁOWCA KAUCJI</h1>
+      <div class="menu-topbar">
+        <div class="avatar-tile" id="profileStripStart" role="button" tabindex="0">
+          <span class="av" id="avatarDisplayStart">🧢</span>
+        </div>
+        <div class="top-chip"><span class="tc-ic">🔥</span><span class="tc-v" id="streakChipVal">0</span></div>
+        <div class="top-chip"><span class="tc-ic">🪙</span><span class="tc-v" id="walletVal">0,00 zł</span></div>
+        <button class="burger" id="burgerBtn">☰</button>
+      </div>
 
-        <div class="profile-strip" id="profileStripStart" role="button" tabindex="0" style="cursor:pointer;">
-          <div class="avatar" id="avatarDisplayStart">🧢</div>
-          <div class="info">
-            <div class="nick" id="nickDisplayStart">Łowca</div>
-            <div class="lvl"><span id="lvlDisplayStart">Poziom 1</span></div>
-            <div class="xpbar-track"><div class="xpbar-fill" id="xpBarStart" style="width:0%"></div></div>
+      <div class="event-banner" id="eventBanner">
+        <div class="eb-badge" id="lvlDisplayStart">1</div>
+        <div class="eb-body">
+          <div class="eb-title" id="nickDisplayStart">Łowca</div>
+          <div class="eb-bar">
+            <div class="eb-fill" id="xpBarStart" style="width:0%"></div>
+            <span class="eb-val" id="xpValText">0 / 80 XP</span>
           </div>
-          <div style="font-size:18px;color:#7C86B8;flex-shrink:0;">⚙️</div>
         </div>
+        <div class="eb-gift">🎁</div>
+      </div>
 
-        <div class="wallet-box">
-          <div class="lbl">Zgromadzona kaucja</div>
-          <div class="val" id="walletVal">0,00 zł</div>
-        </div>
+      <div class="menu-scroll" id="menuScrollEl">
 
         <!-- ZAKŁADKA: GRAJ -->
         <div class="tab-panel" id="tabGraj">
-          <p class="sub">Zacznij na własnym osiedlu, potem ruszaj w miasto. Zbieraj, unikaj wzroku, wracaj do 🚪 zanim Cię namierzą.</p>
+          <div class="stage">
+            <div class="side-rail left">
+              <button class="rail-btn" data-panel="panelGoals"><span class="ic">🎯</span><span class="rail-lbl">Cele</span></button>
+              <button class="rail-btn" data-panel="panelLevel"><span class="ic">🧹</span><span class="rail-lbl">Poziom</span></button>
+            </div>
+            <div class="side-rail right">
+              <button class="rail-btn" id="railTasks"><span class="ic">📋</span><span class="rail-lbl">Zadania</span></button>
+              <button class="rail-btn" id="railShare"><span class="ic">📢</span><span class="rail-lbl">Podziel</span></button>
+            </div>
 
-          <div class="energy-box">
-            <div class="energy-row" id="heartsStart"></div>
-            <div class="energy-note" id="energyNoteStart">3/3 gry dziś dostępne</div>
+            <div class="map-stage">
+              <button class="map-nav" id="mapPrev">‹</button>
+              <div class="map-card" id="mapCard"></div>
+              <button class="map-nav" id="mapNext">›</button>
+            </div>
+            <div class="map-dots" id="mapDots"></div>
           </div>
 
-          <div class="map-list" id="mapsRowStart"></div>
+          <div class="info-panel hidden" id="panelGoals">
+            <div class="t-title">🎯 Cele tej mapy</div>
+            <div id="goalsListStart"></div>
+            <div class="legend">
+              <div class="item"><div class="swatch" style="background:#1E88E5"></div>0,50 zł<br>butelka</div>
+              <div class="item"><div class="swatch" style="background:#C9D1D6"></div>0,50 zł<br>puszka</div>
+              <div class="item"><div class="swatch" style="background:#3FBF7F"></div>0,50 zł<br>plastik</div>
+              <div class="item"><div class="swatch" style="background:transparent;font-size:16px;">🗑️</div>?<br>kosz</div>
+            </div>
+          </div>
 
-          <div class="tasks-box">
+          <div class="info-panel hidden" id="panelLevel">
             <div class="t-title">🧹 Poziom mapy</div>
             <div id="mapLevelInfo" style="font-size:11px;color:#5C4522;line-height:1.5;"></div>
           </div>
 
-          <div class="tasks-box">
-            <div class="t-title">🎯 Cele tej mapy</div>
-            <div id="goalsListStart"></div>
+          <div class="energy-strip">
+            <div class="energy-row" id="heartsStart"></div>
+            <div class="energy-note" id="energyNoteStart">3/3 gry dziś dostępne</div>
           </div>
 
-          <div class="legend">
-            <div class="item"><div class="swatch" style="background:#1E88E5"></div>0,50 zł<br>butelka</div>
-            <div class="item"><div class="swatch" style="background:#C9D1D6"></div>0,50 zł<br>puszka</div>
-            <div class="item"><div class="swatch" style="background:#3FBF7F"></div>0,50 zł<br>plastik</div>
-            <div class="item"><div class="swatch" style="background:transparent;font-size:16px;">🗑️</div>?<br>kosz (może być pusto)</div>
+          <div class="cta-row">
+            <button class="cta-side" id="mapSwitchBtn"><span>ZMIEŃ</span><span>MAPĘ</span></button>
+            <button class="primary play-cta" id="startBtn">GRAJ</button>
           </div>
-
-          <button class="primary" id="startBtn">START</button>
           <button class="secondary reward" id="energyAdBtnStart">🎬 Obejrzyj reklamę → +1 gra teraz</button>
-          <div class="footnote">Ruch: przytrzymaj / przeciągnij (mysz lub palec), albo strzałki / WASD. Przy koszu: stukaj (klik / spacja) kilka razy — ale to hałasuje.</div>
         </div>
 
         <!-- ZAKŁADKA: SKLEP -->
@@ -294,18 +359,22 @@
             <div class="stat-box"><div class="n" id="statPoints">0</div><div class="l">pkt w kodach</div></div>
             <div class="stat-box"><div class="n" id="statStreak">0</div><div class="l">dni z rzędu</div></div>
           </div>
+        </div>
 
+        <!-- ZAKŁADKA: ZADANIA -->
+        <div class="tab-panel hidden" id="tabZadania">
           <div class="tasks-box">
-            <div class="t-title">Zadania dnia</div>
+            <div class="t-title">📋 Zadania dnia</div>
             <div id="taskListModal"></div>
           </div>
         </div>
       </div>
 
       <div class="bottom-tabbar">
-        <button class="tab-btn active" data-tab="graj"><span class="ic">🎮</span>Graj</button>
         <button class="tab-btn" data-tab="sklep"><span class="ic">🛒<span class="tab-badge" id="badgeSklep"></span></span>Sklep</button>
         <button class="tab-btn" data-tab="kupony"><span class="ic">🎟️<span class="tab-badge" id="badgeKupony"></span></span>Kupony</button>
+        <button class="tab-btn center active" data-tab="graj"><span class="ic">🏠</span>Graj</button>
+        <button class="tab-btn" data-tab="zadania"><span class="ic">📋<span class="tab-badge" id="badgeZadania"></span></span>Zadania</button>
         <button class="tab-btn" data-tab="profil"><span class="ic">👤</span>Profil</button>
       </div>
     </div>
@@ -651,6 +720,105 @@
     { id:'row',      name:'Rów przy drodze',    icon:'🌳', cost:26, sky:['#FFD873','#FF9F4A'], grass:['#5B8C3E','#3E6A2E'] },
     { id:'blok',     name:'Blok nocą',          icon:'🌃', cost:42, sky:['#2B2F4A','#171A2E'], grass:['#33405A','#222A3D'] }
   ];
+  /* =========================================================
+     ILUSTRACJE MAP — rysowane wektorowo (SVG), bez plików graficznych.
+     Każda mapa dostaje własną scenkę w kolorach tej mapy, żeby karta
+     w menu pokazywała, dokąd się wybierasz, zamiast samej ikonki.
+     ========================================================= */
+  function mapSceneSVG(mapId){
+    const m = MAPS.find(x=>x.id===mapId) || MAPS[0];
+    const [s1,s2] = m.sky, [g1,g2] = m.grass;
+    const ink = '#3A240C';
+    const gid = 'sky_'+mapId, gg = 'gr_'+mapId;
+    let props = '';
+
+    if(mapId==='osiedle'){
+      props += `<g stroke="${ink}" stroke-width="2.5" stroke-linejoin="round">
+        <rect x="18" y="38" width="46" height="52" rx="3" fill="#E8C98A"/>
+        <rect x="74" y="26" width="52" height="64" rx="3" fill="#F2DCA8"/>
+        <rect x="136" y="44" width="44" height="46" rx="3" fill="#E0BC7C"/></g>
+        <g fill="#7FC4E8" stroke="${ink}" stroke-width="1.6">
+        <rect x="26" y="46" width="10" height="10" rx="1.5"/><rect x="44" y="46" width="10" height="10" rx="1.5"/>
+        <rect x="26" y="64" width="10" height="10" rx="1.5"/><rect x="44" y="64" width="10" height="10" rx="1.5"/>
+        <rect x="84" y="36" width="11" height="11" rx="1.5"/><rect x="104" y="36" width="11" height="11" rx="1.5"/>
+        <rect x="84" y="56" width="11" height="11" rx="1.5"/><rect x="104" y="56" width="11" height="11" rx="1.5"/>
+        <rect x="144" y="54" width="10" height="10" rx="1.5"/><rect x="162" y="54" width="10" height="10" rx="1.5"/></g>`;
+    } else if(mapId==='miasto'){
+      props += `<g stroke="${ink}" stroke-width="2.5" stroke-linejoin="round">
+        <rect x="10" y="20" width="34" height="70" rx="3" fill="#9FB8CC"/>
+        <rect x="52" y="34" width="30" height="56" rx="3" fill="#BDD2E0"/>
+        <rect x="90" y="14" width="38" height="76" rx="3" fill="#8FA9BE"/>
+        <rect x="136" y="30" width="32" height="60" rx="3" fill="#B0C6D6"/>
+        <rect x="174" y="44" width="26" height="46" rx="3" fill="#9FB8CC"/></g>
+        <g fill="#FFE9A8" stroke="${ink}" stroke-width="1.4">
+        <rect x="17" y="28" width="8" height="9" rx="1"/><rect x="31" y="28" width="8" height="9" rx="1"/>
+        <rect x="17" y="46" width="8" height="9" rx="1"/><rect x="31" y="46" width="8" height="9" rx="1"/>
+        <rect x="98" y="22" width="9" height="10" rx="1"/><rect x="113" y="22" width="9" height="10" rx="1"/>
+        <rect x="98" y="42" width="9" height="10" rx="1"/><rect x="113" y="42" width="9" height="10" rx="1"/></g>
+        <g stroke="${ink}" stroke-width="2.5"><line x1="186" y1="92" x2="186" y2="52"/></g>
+        <circle cx="186" cy="48" r="7" fill="#FFD86B" stroke="${ink}" stroke-width="2.5"/>`;
+    } else if(mapId==='festyn'){
+      props += `<g stroke="${ink}" stroke-width="2.5" stroke-linejoin="round">
+        <path d="M30 90 L58 44 L86 90 Z" fill="#FF6B6B"/>
+        <path d="M58 44 L58 90" stroke="#FFF" stroke-width="9"/>
+        <path d="M30 90 L58 44 L86 90 Z" fill="none"/>
+        <path d="M112 90 L140 50 L168 90 Z" fill="#FFD166"/>
+        <path d="M140 50 L140 90" stroke="#FF6B6B" stroke-width="9"/>
+        <path d="M112 90 L140 50 L168 90 Z" fill="none"/></g>
+        <g stroke="${ink}" stroke-width="2"><path d="M6 26 Q60 42 110 24 Q160 8 208 26" fill="none"/></g>
+        <g stroke="${ink}" stroke-width="1.6">
+        <path d="M28 32 l7 11 l7 -12 z" fill="#FF6B6B"/><path d="M62 36 l7 11 l7 -12 z" fill="#4ECDC4"/>
+        <path d="M98 28 l7 11 l7 -12 z" fill="#FFD166"/><path d="M136 20 l7 11 l7 -12 z" fill="#FF6B6B"/>
+        <path d="M172 24 l7 11 l7 -12 z" fill="#4ECDC4"/></g>`;
+    } else if(mapId==='row'){
+      props += `<path d="M74 90 L92 20 L126 20 L152 90 Z" fill="#6E6E73" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round"/>
+        <g stroke="#FFF6DE" stroke-width="3.5" stroke-dasharray="7 9"><line x1="110" y1="24" x2="114" y2="88"/></g>
+        <g stroke="${ink}" stroke-width="2.5">
+        <circle cx="36" cy="72" r="17" fill="#5FA845"/><circle cx="56" cy="78" r="13" fill="#4E9138"/>
+        <circle cx="180" cy="70" r="16" fill="#5FA845"/><circle cx="163" cy="79" r="12" fill="#4E9138"/></g>
+        <g stroke="${ink}" stroke-width="2"><line x1="66" y1="56" x2="66" y2="86"/><line x1="60" y1="58" x2="72" y2="58"/></g>`;
+    } else { // blok — noc
+      props += `<g fill="#FFF6DE"><circle cx="176" cy="26" r="11"/></g>
+        <circle cx="171" cy="23" r="10" fill="${s1}"/>
+        <g fill="#FFF6DE" opacity="0.9">
+        <circle cx="24" cy="20" r="1.8"/><circle cx="52" cy="14" r="1.4"/><circle cx="84" cy="24" r="1.6"/>
+        <circle cx="118" cy="12" r="1.5"/><circle cx="146" cy="30" r="1.3"/><circle cx="40" cy="36" r="1.2"/></g>
+        <g stroke="${ink}" stroke-width="2.5" stroke-linejoin="round">
+        <rect x="16" y="40" width="48" height="50" rx="3" fill="#2E3654"/>
+        <rect x="76" y="28" width="54" height="62" rx="3" fill="#3A4466"/>
+        <rect x="142" y="46" width="46" height="44" rx="3" fill="#2E3654"/></g>
+        <g fill="#FFD86B" stroke="${ink}" stroke-width="1.4">
+        <rect x="24" y="48" width="9" height="10" rx="1"/><rect x="46" y="48" width="9" height="10" rx="1"/>
+        <rect x="24" y="66" width="9" height="10" rx="1"/>
+        <rect x="86" y="38" width="10" height="11" rx="1"/><rect x="108" y="38" width="10" height="11" rx="1"/>
+        <rect x="108" y="58" width="10" height="11" rx="1"/>
+        <rect x="150" y="56" width="9" height="10" rx="1"/><rect x="172" y="56" width="9" height="10" rx="1"/></g>`;
+    }
+
+    // kosze i butelka — wspólne dla każdej mapy, żeby było wiadomo o co w grze chodzi
+    const bin = (x,y,sc)=>`<g transform="translate(${x},${y}) scale(${sc})" stroke="${ink}" stroke-width="2.5" stroke-linejoin="round">
+      <path d="M-9 -10 L9 -10 L7 12 L-7 12 Z" fill="#6F7D66"/>
+      <rect x="-11" y="-14" width="22" height="5" rx="2" fill="#8A9A80"/></g>`;
+    const bottle = (x,y,sc)=>`<g transform="translate(${x},${y}) scale(${sc})" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round">
+      <path d="M-4 10 L-4 -2 L-2 -7 L-2 -11 L2 -11 L2 -7 L4 -2 L4 10 Z" fill="#3FA9F5"/></g>`;
+
+    return `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${s1}"/><stop offset="100%" stop-color="${s2}"/>
+        </linearGradient>
+        <linearGradient id="${gg}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${g1}"/><stop offset="100%" stop-color="${g2}"/>
+        </linearGradient>
+      </defs>
+      <rect width="220" height="140" fill="url(#${gid})"/>
+      ${mapId!=='blok' && mapId!=='miasto' ? '<circle cx="30" cy="24" r="13" fill="#FFF0B0" opacity="0.95"/>' : ''}
+      ${mapId!=='blok' ? '<g fill="#FFFFFF" opacity="0.75"><ellipse cx="150" cy="22" rx="20" ry="9"/><ellipse cx="166" cy="26" rx="14" ry="7"/></g>' : ''}
+      ${props}
+      <path d="M0 88 Q55 82 110 88 Q165 94 220 86 L220 140 L0 140 Z" fill="url(#${gg})" stroke="${ink}" stroke-width="2.5"/>
+      ${bin(46,108,1.25)}${bin(150,112,1.05)}${bottle(104,116,1.15)}
+    </svg>`;
+  }
   const MAP_WEIGHTS = {
     osiedle:  { bottle:32, can:32, plastic:16, trash:16 },
     miasto:   { bottle:28, can:32, plastic:16, trash:20 },
@@ -932,6 +1100,12 @@
       bS.textContent = affordable>9 ? '9+' : (affordable||'');
       bS.classList.toggle('show', affordable>0);
     }
+    const bZ = document.getElementById('badgeZadania');
+    if(bZ){
+      const left = TASK_DEFS.filter(d=>!daily.claimed[d.id]).length;
+      bZ.textContent = left>9 ? '9+' : (left||'');
+      bZ.classList.toggle('show', left>0);
+    }
   }
   /* ---------------------------------------------------------
      ODBIÓR KODU — automatyczny, przez server.js + Supabase.
@@ -1068,9 +1242,7 @@
       }
     }
     document.getElementById('energyHudVal').textContent = profile.energy+'/'+max;
-    const startBtn=document.getElementById('startBtn');
-    if(profile.energy<=0){ startBtn.disabled=true; startBtn.textContent='BRAK ENERGII'; }
-    else { startBtn.disabled=false; startBtn.textContent='START'; }
+    updatePlayButton();
   }
   setInterval(regenTick, 1000);
 
@@ -1146,8 +1318,10 @@
   function refreshProfileUI(){
     document.getElementById('avatarDisplayStart').textContent = profile.avatar;
     document.getElementById('nickDisplayStart').textContent = profile.nick;
-    document.getElementById('lvlDisplayStart').textContent = 'Poziom '+profile.level;
+    document.getElementById('lvlDisplayStart').textContent = profile.level;
     document.getElementById('xpBarStart').style.width = Math.round(100*profile.xp/xpToNext(profile.level))+'%';
+    document.getElementById('xpValText').textContent = profile.xp+' / '+xpToNext(profile.level)+' XP';
+    document.getElementById('streakChipVal').textContent = profile.streak||0;
     document.getElementById('walletVal').textContent = fmt(profile.wallet);
 
     document.getElementById('avatarDisplayModal').textContent = profile.avatar;
@@ -1161,77 +1335,106 @@
 
     renderEnergy();
   }
+  let stageIdx = 0;
+  function stageMap(){ return MAPS[Math.max(0,Math.min(MAPS.length-1,stageIdx))]; }
+  function updatePlayButton(){
+    const btn = document.getElementById('startBtn');
+    if(!btn) return;
+    const m = stageMap();
+    const owned = profile.mapsOwned.includes(m.id);
+    btn.classList.remove('buy-mode');
+    if(!owned){
+      if(!mapUnlockable(m.id)){ btn.disabled=true; btn.textContent='🔒 ZABLOKOWANE'; }
+      else { btn.disabled=false; btn.textContent='🔓 KUP ZA '+m.cost+' ZŁ'; btn.classList.add('buy-mode'); }
+      return;
+    }
+    if(profile.energy<=0){ btn.disabled=true; btn.textContent='BRAK ENERGII'; }
+    else { btn.disabled=false; btn.textContent='GRAJ'; }
+  }
   function renderMapSelector(){
-    const row = document.getElementById('mapsRowStart');
-    row.innerHTML='';
-    MAPS.forEach((m,idx)=>{
-      const owned = profile.mapsOwned.includes(m.id);
-      const goals = MAP_GOALS[m.id] || [];
-      const got = starCount(m.id);
-      const canUnlock = mapUnlockable(m.id);
-      const div = document.createElement('div');
-      div.className = 'map-row'+(m.id===currentMapId?' selected':'');
-
-      let starsHtml='';
+    // karuzela: jedna mapa naraz, strzałki po bokach
+    const idx = MAPS.findIndex(m=>m.id===currentMapId);
+    if(!renderMapSelector._touched){ stageIdx = idx>=0?idx:0; renderMapSelector._touched=true; }
+    const m = stageMap();
+    const owned = profile.mapsOwned.includes(m.id);
+    const canUnlock = mapUnlockable(m.id);
+    const card = document.getElementById('mapCard');
+    if(card){
+      let body = '<div class="map-scene'+(owned?'':' locked')+'">'+mapSceneSVG(m.id)+(owned?'':'<span class="scene-lock">🔒</span>')+'</div>'
+               + '<div class="mc-name">'+m.name+'</div>';
       if(owned){
-        starsHtml = '<div class="stars">Lv.'+mapLevel(m.id)+'/'+MAP_LEVEL_MAX+' &nbsp; ';
-        for(let i=0;i<goals.length;i++) starsHtml += (i<got?'★':'☆');
-        starsHtml += '</div>';
-      }
-      let statusHtml;
-      if(owned){
-        statusHtml = (mapLevel(m.id) >= MAP_LEVEL_MAX)
-          ? '<span class="status owned">🏅 W pełni rozwinięta</span>'
-          : '<span class="status owned">'+got+'/'+goals.length+' ★</span>';
+        body += '<div class="mc-lvl">Poziom '+mapLevel(m.id)+'/'+MAP_LEVEL_MAX+'</div>';
+        if(mapLevel(m.id) >= MAP_LEVEL_MAX) body += '<div class="mc-max">🏅 W pełni rozwinięta</div>';
+        else body += '<div class="mc-note">Limit łupu: '+fmt(backpackCapFor(m.id))+'</div>';
       } else if(!canUnlock){
-        statusHtml = '<span class="status locked">🔒</span>';
-      } else if(profile.wallet>=m.cost){
-        statusHtml = '<span class="status buy">Kup: '+m.cost+' zł</span>';
+        const prev = MAPS[MAPS.findIndex(x=>x.id===m.id)-1];
+        body += '<div class="mc-note">🔒 Najpierw awansuj na poziom 2<br>na mapie: '+(prev?prev.name:'')+'</div>';
       } else {
-        statusHtml = '<span class="status locked">'+m.cost+' zł</span>';
+        body += '<div class="mc-note">Odblokuj tę mapę za '+fmt(m.cost)+'<br>Masz: '+fmt(profile.wallet)+'</div>';
       }
+      card.innerHTML = body;
+    }
+    const dots = document.getElementById('mapDots');
+    if(dots){
+      dots.innerHTML='';
+      MAPS.forEach((_,i)=>{
+        const d=document.createElement('span');
+        d.className='dot'+(i===stageIdx?' on':'');
+        dots.appendChild(d);
+      });
+    }
+    const prevBtn=document.getElementById('mapPrev'), nextBtn=document.getElementById('mapNext');
+    if(prevBtn) prevBtn.disabled = stageIdx<=0;
+    if(nextBtn) nextBtn.disabled = stageIdx>=MAPS.length-1;
 
-      div.innerHTML =
-        '<span class="mi">'+m.icon+'</span>'+
-        '<span class="mn">'+m.name+starsHtml+'</span>'+
-        statusHtml;
-
-      div.onclick = ()=>{
-        if(owned){
-          Sfx.click(); haptic('light');
-          currentMapId=m.id; profile.lastMapId=m.id; saveProfile();
-          renderMapSelector(); renderGoalsList('goalsListStart', currentMapId);
-        } else if(!canUnlock){
-          showToast('Najpierw zdobądź 2 gwiazdki na: '+MAPS[idx-1].name);
-        } else if(profile.wallet>=m.cost){
-          Sfx.buy(); hapticNotify('success');
-          profile.wallet -= m.cost; profile.mapsOwned.push(m.id);
-          currentMapId=m.id; profile.lastMapId=m.id;
-          saveProfile();
-          showToast('🗺️ Odblokowano: '+m.name+'!');
-          grynaPlusEvent('map_unlocked', { mapId:m.id, cost:m.cost, profileNick:profile.nick });
-          renderMapSelector(); refreshProfileUI(); renderGoalsList('goalsListStart', currentMapId);
-        } else {
-          showToast('Za mało kaucji: masz '+fmt(profile.wallet)+', trzeba '+fmt(m.cost));
-        }
-      };
-      row.appendChild(div);
-    });
-    renderGoalsList('goalsListStart', currentMapId);
+    // oglądanie posiadanej mapy = wybranie jej do gry
+    if(owned && currentMapId!==m.id){
+      currentMapId=m.id; profile.lastMapId=m.id; saveProfile();
+    }
+    renderGoalsList('goalsListStart', m.id);
     renderMapLevelInfo();
+    updatePlayButton();
     updateTabBadges();
+  }
+  function moveStage(delta){
+    const next = stageIdx + delta;
+    if(next<0 || next>=MAPS.length) return;
+    stageIdx = next;
+    Sfx.click(); haptic('light');
+    renderMapSelector();
+  }
+  function buyStageMap(){
+    const m = stageMap();
+    if(profile.mapsOwned.includes(m.id)) return false;
+    if(!mapUnlockable(m.id)){
+      const prev = MAPS[MAPS.findIndex(x=>x.id===m.id)-1];
+      showToast('Najpierw awansuj na poziom 2 na: '+(prev?prev.name:''));
+      return true;
+    }
+    if(profile.wallet < m.cost){
+      showToast('Za mało kaucji: masz '+fmt(profile.wallet)+', trzeba '+fmt(m.cost));
+      return true;
+    }
+    Sfx.buy(); hapticNotify('success');
+    profile.wallet -= m.cost; profile.mapsOwned.push(m.id);
+    currentMapId=m.id; profile.lastMapId=m.id;
+    saveProfile();
+    showToast('🗺️ Odblokowano: '+m.name+'!');
+    grynaPlusEvent('map_unlocked', { mapId:m.id, cost:m.cost, profileNick:profile.nick });
+    renderMapSelector(); refreshProfileUI();
+    return true;
   }
   function renderMapLevelInfo(){
     const box = document.getElementById('mapLevelInfo');
     if(!box) return;
-    const lvl = mapLevel(currentMapId);
-    const cap = backpackCap();
-    const map = MAPS.find(m=>m.id===currentMapId);
+    const map = stageMap();
+    const lvl = mapLevel(map.id);
+    const cap = backpackCapFor(map.id);
     if(lvl >= MAP_LEVEL_MAX){
-      box.innerHTML = '<b style="color:var(--gold);">'+(map?map.name:'')+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+' (max)</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>. Ta mapa jest w pełni rozwinięta.';
+      box.innerHTML = '<b style="color:var(--gold-dark);">'+map.name+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+' (max)</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>. Ta mapa jest w pełni rozwinięta.';
     } else {
-      const nextCap = levelCapsFor(currentMapId)[lvl];
-      box.innerHTML = '<b style="color:var(--gold);">'+(map?map.name:'')+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+'</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>.<br>Opróżnij <b>WSZYSTKIE</b> kosze i wróć z łupem, żeby awansować na poziom '+(lvl+1)+' (limit wzrośnie do '+fmt(nextCap)+').';
+      const nextCap = levelCapsFor(map.id)[lvl];
+      box.innerHTML = '<b style="color:var(--gold-dark);">'+map.name+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+'</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>.<br>Opróżnij <b>WSZYSTKIE</b> kosze i wróć z łupem, żeby awansować na poziom '+(lvl+1)+' (limit wzrośnie do '+fmt(nextCap)+').';
     }
   }
 
@@ -1312,7 +1515,7 @@
     }
   });
 
-  const TAB_IDS = ['graj','sklep','kupony','profil'];
+  const TAB_IDS = ['graj','sklep','kupony','zadania','profil'];
   function switchTab(name){
     TAB_IDS.forEach(id=>{
       document.getElementById('tab'+id.charAt(0).toUpperCase()+id.slice(1)).classList.toggle('hidden', id!==name);
@@ -1324,6 +1527,7 @@
     if(name==='graj'){ renderMapSelector(); }
     else if(name==='sklep'){ renderShop(); }
     else if(name==='kupony'){ renderPayouts(); renderCoupons(); }
+    else if(name==='zadania'){ renderTasks(); }
     else if(name==='profil'){ renderTasks(); renderCoupons(); }
     document.getElementById('startOverlay').classList.remove('hidden');
     document.getElementById('menuScrollEl') && (document.getElementById('menuScrollEl').scrollTop = 0);
@@ -1388,7 +1592,8 @@
   const MAP_LEVEL_MAX = 5;
   function mapLevel(mapId){ return (profile.mapLevels && profile.mapLevels[mapId]) || 1; }
   function levelCapsFor(mapId){ return MAP_LEVEL_CAPS[mapId] || MAP_LEVEL_CAPS.osiedle; }
-  function backpackCap(){ return levelCapsFor(currentMapId)[mapLevel(currentMapId)-1]; }
+  function backpackCapFor(mapId){ return levelCapsFor(mapId)[mapLevel(mapId)-1]; }
+  function backpackCap(){ return backpackCapFor(currentMapId); }
   const TYPES = [
     { key:'bottle', value:0.5, r:14, color:'#1E88E5', dark:'#125A97' },
     { key:'can',    value:0.5, r:13, color:'#C9D1D6', dark:'#8B949B' },
@@ -2262,7 +2467,7 @@
   function mapUnlockable(mapId){
     const idx = MAPS.findIndex(m=>m.id===mapId);
     if(idx<=0) return true;
-    return starCount(MAPS[idx-1].id) >= 2;
+    return mapLevel(MAPS[idx-1].id) >= 2;
   }
   function evaluateGoals(banked){
     const goals = MAP_GOALS[currentMapId] || [];
@@ -2383,15 +2588,43 @@
     const shouldAd = roundsPlayed>0 && roundsPlayed % AD_CONFIG.showInterstitialEveryNRounds === 0;
     if(shouldAd) Ads.showInterstitial(()=>proceed()); else proceed();
   }
-  document.getElementById('startBtn').addEventListener('click', attemptStart);
+  document.getElementById('startBtn').addEventListener('click', ()=>{
+    if(buyStageMap()) return; // mapa nieposiadana → przycisk kupuje zamiast startować
+    attemptStart();
+  });
+  document.getElementById('mapPrev').addEventListener('click', ()=> moveStage(-1));
+  document.getElementById('mapNext').addEventListener('click', ()=> moveStage(1));
+  document.querySelectorAll('.rail-btn[data-panel]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const panel = document.getElementById(btn.dataset.panel);
+      if(!panel) return;
+      Sfx.click(); haptic('light');
+      const willShow = panel.classList.contains('hidden');
+      // tylko jeden panel naraz
+      document.querySelectorAll('.info-panel').forEach(p=>p.classList.add('hidden'));
+      document.querySelectorAll('.rail-btn[data-panel]').forEach(b=>b.classList.remove('on'));
+      if(willShow){ panel.classList.remove('hidden'); btn.classList.add('on'); }
+    });
+  });
+  document.getElementById('railTasks').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('zadania'); });
+  document.getElementById('railShare').addEventListener('click', ()=>{ Sfx.click(); doShare(); });
+  document.getElementById('burgerBtn').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('profil'); });
+  document.getElementById('mapSwitchBtn').addEventListener('click', ()=>{
+    // przeskocz na kolejną mapę (z zawijaniem na początek)
+    stageIdx = (stageIdx + 1) % MAPS.length;
+    Sfx.click(); haptic('light');
+    renderMapSelector();
+  });
   document.getElementById('againBtn').addEventListener('click', attemptStart);
   document.getElementById('menuBtnEnd').addEventListener('click', goToMenu);
 
   // PODMIEŃ na link do swojego bota/mini-appki
   const GAME_LINK = 'https://t.me/TWOJ_BOT/gra';
-  document.getElementById('shareBtn').addEventListener('click', ()=>{
+  function doShare(){
     const mapName = (MAPS.find(m=>m.id===currentMapId)||{}).name || '';
-    const txt = 'Zebrałem '+fmt(lastBankedAmount)+' kaucji na mapie "'+mapName+'" w Łowcy Kaucji! Pobijesz?';
+    const txt = lastBankedAmount>0
+      ? 'Zebrałem '+fmt(lastBankedAmount)+' kaucji na mapie "'+mapName+'" w Łowcy Kaucji! Pobijesz?'
+      : 'Gram w Łowcę Kaucji — zbieram butelki i puszki. Dołączysz?';
     haptic('light');
     if(TG && TG.openTelegramLink){
       TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(GAME_LINK)+'&text='+encodeURIComponent(txt));
@@ -2399,7 +2632,8 @@
       try{ navigator.clipboard.writeText(txt+' '+GAME_LINK); showToast('Skopiowano do schowka'); }
       catch(e){ showToast(txt); }
     }
-  });
+  }
+  document.getElementById('shareBtn').addEventListener('click', doShare);
 
   function wireEnergyAdButton(id){
     const btn=document.getElementById(id);
