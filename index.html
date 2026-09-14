@@ -681,18 +681,37 @@
 
   const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
   let W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
+  // Świat jest WIĘKSZY niż ekran — kamera jedzie za graczem. Dzięki temu
+  // nie widać całej mapy naraz (jest co odkrywać), a wielkość ekranu
+  // przestaje dawać przewagę: na telefonie i na tablecie widać tyle samo.
+  let WORLD_W=0, WORLD_H=0;
+  const cam = { x:0, y:0 };
+  function updateCamera(dt, snap){
+    const targetX = Math.max(0, Math.min(WORLD_W-W, player.x - W/2));
+    const targetY = Math.max(0, Math.min(WORLD_H-H, player.y - H*0.58));
+    if(snap){ cam.x=targetX; cam.y=targetY; return; }
+    const k = Math.min(1, dt*6.5); // płynne dociąganie, bez szarpania
+    cam.x += (targetX-cam.x)*k;
+    cam.y += (targetY-cam.y)*k;
+  }
   let grassBlades=[], stars=[];
   function generateEnvironment(){
     const grassTop=108;
     grassBlades = [];
-    const count = Math.min(220, Math.floor(W/11));
+    const count = Math.min(220, Math.floor(WORLD_W/11));
     for(let i=0;i<count;i++){
-      grassBlades.push({ x:Math.random()*W, y:grassTop+Math.random()*(H-grassTop), h:6+Math.random()*11, tilt:(Math.random()-0.5)*0.7, light:Math.random()<0.5 });
+      grassBlades.push({ x:Math.random()*WORLD_W, y:grassTop+Math.random()*(WORLD_H-grassTop), h:6+Math.random()*11, tilt:(Math.random()-0.5)*0.7, light:Math.random()<0.5 });
     }
     stars = [];
-    for(let i=0;i<44;i++){ stars.push({ x:Math.random()*W, y:20+Math.random()*90, r:0.6+Math.random()*1.4, tw:Math.random()*Math.PI*2 }); }
+    for(let i=0;i<44;i++){ stars.push({ x:Math.random()*WORLD_W, y:20+Math.random()*90, r:0.6+Math.random()*1.4, tw:Math.random()*Math.PI*2 }); }
   }
-  function resize(){ W=canvas.clientWidth=window.innerWidth; H=canvas.clientHeight=window.innerHeight; canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0); generateEnvironment(); }
+  function resize(){
+    W=canvas.clientWidth=window.innerWidth; H=canvas.clientHeight=window.innerHeight;
+    canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+    WORLD_W = Math.round(W*1.45);
+    WORLD_H = Math.round(H*2.0);
+    generateEnvironment();
+  }
   window.addEventListener('resize', resize); resize();
 
   function shade(hex, percent){
@@ -826,18 +845,21 @@
     row:      { bottle:34, can:34, plastic:16, trash:14 },
     blok:     { bottle:30, can:28, plastic:14, trash:22 }
   };
+  // Liczby dobrane pod ŚWIAT WIĘKSZY NIŻ EKRAN (ok. 2,9x powierzchni):
+  // przy starych wartościach mapa byłaby pusta, a cel "opróżnij wszystkie
+  // kosze" oznaczałby długi marsz po pustkowiu.
   const BIN_CONFIG = {
-    osiedle:  { count:7, emptyChance:0.28 },
-    miasto:   { count:9, emptyChance:0.35 },
-    festyn:   { count:8, emptyChance:0.20 },
-    row:      { count:7, emptyChance:0.35 },
-    blok:     { count:8, emptyChance:0.40 }
+    osiedle:  { count:12, emptyChance:0.28 },
+    miasto:   { count:15, emptyChance:0.35 },
+    festyn:   { count:13, emptyChance:0.20 },
+    row:      { count:12, emptyChance:0.35 },
+    blok:     { count:13, emptyChance:0.40 }
   };
   const MAP_HAZARDS = {
-    osiedle:  { npcCount:1, vision:85,  chase:80,  wander:38, emojis:['👵'] },
-    miasto:   { npcCount:4, vision:78,  chase:110, wander:70, emojis:['🚶','🚶‍♀️','🧑','👨'] },
-    festyn:   { npcCount:5, vision:68,  chase:130, wander:75, emojis:['🚶','🚶‍♀️','🧑','👩'] },
-    blok:     { npcCount:1, vision:135, chase:150, wander:55, emojis:['👮'] }
+    osiedle:  { npcCount:3, vision:85,  chase:80,  wander:38, emojis:['👵'] },
+    miasto:   { npcCount:9, vision:78,  chase:110, wander:70, emojis:['🚶','🚶‍♀️','🧑','👨'] },
+    festyn:   { npcCount:11, vision:68,  chase:130, wander:75, emojis:['🚶','🚶‍♀️','🧑','👩'] },
+    blok:     { npcCount:3, vision:135, chase:150, wander:55, emojis:['👮'] }
   };
   let currentMapId = 'osiedle';
 
@@ -1583,11 +1605,11 @@
   // JEDNO pełne wyczyszczenie (kosze + to, co zbierzesz po drodze z ziemi)
   // z zapasem, a nie "na styk" — inaczej nigdy nie dałoby się awansować.
   const MAP_LEVEL_CAPS = {
-    osiedle: [12, 17, 22, 28, 34],
-    miasto:  [14, 19, 25, 31, 37],
-    festyn:  [15, 20, 26, 32, 38],
-    row:     [11, 16, 21, 27, 33],
-    blok:    [12, 17, 23, 29, 35]
+    osiedle: [20, 27, 34, 42, 50],
+    miasto:  [23, 31, 39, 48, 57],
+    festyn:  [24, 32, 40, 49, 58],
+    row:     [18, 24, 31, 38, 46],
+    blok:    [18, 24, 31, 38, 46]
   };
   const MAP_LEVEL_MAX = 5;
   function mapLevel(mapId){ return (profile.mapLevels && profile.mapLevels[mapId]) || 1; }
@@ -1612,13 +1634,13 @@
     bushes=[]; cars=[];
     if(currentMapId==='row'){
       const roadHalf=83; // połowa jezdni + pobocze
-      for(let i=0;i<9;i++){
+      for(let i=0;i<18;i++){
         const isLeft = Math.random()>0.5;
         const bx = isLeft
-          ? W/2 - roadHalf - 28 - Math.random()*55
-          : W/2 + roadHalf + 28 + Math.random()*55;
-        const by = 150+Math.random()*(H-280);
-        bushes.push({ x:Math.max(34,Math.min(W-34,bx)), y:by, r:30+Math.random()*10 });
+          ? WORLD_W/2 - roadHalf - 28 - Math.random()*55
+          : WORLD_W/2 + roadHalf + 28 + Math.random()*55;
+        const by = 150+Math.random()*(WORLD_H-280);
+        bushes.push({ x:Math.max(34,Math.min(WORLD_W-34,bx)), y:by, r:30+Math.random()*10 });
       }
     }
   }
@@ -1630,8 +1652,9 @@
     carSpawnTimer=1.5;
     doubleUsedThisRound=false; leveledThisRound=false;
     run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
-    player.x=W/2; player.y=H-90; player.heat=0; player.noiseRadius=0; player.hidden=false;
-    exitZone = { x:W/2-65, y:210, w:130, h:100 };
+    player.x=WORLD_W/2; player.y=WORLD_H-90; player.heat=0; player.noiseRadius=0; player.hidden=false;
+    exitZone = { x:WORLD_W/2-65, y:60, w:130, h:100 };
+    updateCamera(0, true);
     generateMapObjects();
     for(let i=0;i<6;i++) spawnItem(true);
     spawnBins();
@@ -1654,7 +1677,7 @@
         if(tooCloseToExit(x,y)) y += exitZone.h+50;
       } else {
         let tries=0;
-        do{ x=margin+Math.random()*(W-margin*2); y=150+Math.random()*(H-260); tries++; }
+        do{ x=margin+Math.random()*(WORLD_W-margin*2); y=150+Math.random()*(WORLD_H-260); tries++; }
         while((bins.some(bn=>Math.hypot(bn.x-x,bn.y-y)<70) || tooCloseToExit(x,y)) && tries<25);
       }
       bins.push({ x,y, searched:false, empty:false, tapsNeeded:tapsNeededBase()+Math.floor(Math.random()*3), tapsDone:0, shakeTimer:0, bob:Math.random()*Math.PI*2 });
@@ -1662,14 +1685,14 @@
   }
   function spawnItem(initial){
     const margin=50, t=pickType();
-    let x = margin+Math.random()*(W-margin*2);
-    let y = 130+Math.random()*(H-230);
+    let x = margin+Math.random()*(WORLD_W-margin*2);
+    let y = 130+Math.random()*(WORLD_H-230);
     if(currentMapId==='row'){
       // butelki leżą w rowie, nie na asfalcie
       const roadHalf=95;
-      const leftMax = Math.max(margin, W/2-roadHalf);
-      const rightMin = Math.min(W-margin, W/2+roadHalf);
-      x = Math.random()<0.5 ? margin+Math.random()*(leftMax-margin) : rightMin+Math.random()*(W-margin-rightMin);
+      const leftMax = Math.max(margin, WORLD_W/2-roadHalf);
+      const rightMin = Math.min(WORLD_W-margin, WORLD_W/2+roadHalf);
+      x = Math.random()<0.5 ? margin+Math.random()*(leftMax-margin) : rightMin+Math.random()*(WORLD_W-margin-rightMin);
     }
     if(tooCloseToExit(x,y)) y = exitZone.y+exitZone.h+30+Math.random()*40;
     const it={ type:t, x, y, born:elapsedSinceStart, life:6+Math.random()*4, bob:Math.random()*Math.PI*2, popped:false };
@@ -1728,8 +1751,8 @@
         player.x+=nx*joySpeed*ratio*dt; player.y+=ny*joySpeed*ratio*dt;
       }
     }
-    player.x=Math.max(player.r+6,Math.min(W-player.r-6,player.x));
-    player.y=Math.max(225,Math.min(H-player.r-16,player.y));
+    player.x=Math.max(player.r+6,Math.min(WORLD_W-player.r-6,player.x));
+    player.y=Math.max(player.r+6,Math.min(WORLD_H-player.r-16,player.y));
     player.moving = Math.hypot(player.x-px, player.y-py) > 0.4;
     if(player.moving) tut.hasMoved = true;
   }
@@ -1787,12 +1810,12 @@
 
   function updateDog(dt){
     if(currentMapId!=='osiedle'){ dog=null; return; }
-    if(!dog) dog={ x:Math.random()*W, y:150+Math.random()*(H-250), wanderT:Math.random()*Math.PI*2 };
+    if(!dog) dog={ x:Math.random()*WORLD_W, y:150+Math.random()*(WORLD_H-250), wanderT:Math.random()*Math.PI*2 };
     dog.wanderT += dt*1.5;
     dog.x += Math.sin(dog.wanderT)*60*dt;
     dog.y += Math.cos(dog.wanderT*0.7)*40*dt;
-    dog.x = Math.max(40,Math.min(W-40,dog.x));
-    dog.y = Math.max(140,Math.min(H-40,dog.y));
+    dog.x = Math.max(40,Math.min(WORLD_W-40,dog.x));
+    dog.y = Math.max(140,Math.min(WORLD_H-40,dog.y));
     const dx=player.x-dog.x, dy=player.y-dog.y;
     if(Math.hypot(dx,dy) < player.r+18 && (Date.now()-(dog.lastHit||0))>1500){
       dog.lastHit=Date.now(); combo=1; comboTimer=0;
@@ -1802,9 +1825,9 @@
   }
   function updateConfetti(dt){
     if(currentMapId!=='festyn'){ confettiParticles=[]; return; }
-    if(Math.random()<0.3) confettiParticles.push({ x:Math.random()*W, y:-10, vy:60+Math.random()*40, vx:(Math.random()-0.5)*30, color:['#FF6FA5','#FFD700','#5FC7E0','#3FBF7F'][Math.floor(Math.random()*4)], rot:Math.random()*Math.PI });
+    if(Math.random()<0.3) confettiParticles.push({ x:Math.random()*WORLD_W, y:-10, vy:60+Math.random()*40, vx:(Math.random()-0.5)*30, color:['#FF6FA5','#FFD700','#5FC7E0','#3FBF7F'][Math.floor(Math.random()*4)], rot:Math.random()*Math.PI });
     confettiParticles.forEach(p=>{ p.y+=p.vy*dt; p.x+=p.vx*dt; p.rot+=dt*2; });
-    confettiParticles=confettiParticles.filter(p=>p.y<H+20);
+    confettiParticles=confettiParticles.filter(p=>p.y<WORLD_H+20);
   }
 
   function awardBinLoot(bin){
@@ -1861,7 +1884,7 @@
     npcSpawnTimer -= dt;
     if(npcs.length < cfg.npcCount && npcSpawnTimer<=0){
       npcSpawnTimer = 1+Math.random()*2;
-      npcs.push({ x:Math.random()*W, y:150+Math.random()*(H-260), vx:(Math.random()<0.5?-1:1)*cfg.wander, vy:(Math.random()<0.5?-1:1)*cfg.wander, vision:cfg.vision, alert:false, emoji:cfg.emojis[Math.floor(Math.random()*cfg.emojis.length)] });
+      npcs.push({ x:Math.random()*WORLD_W, y:150+Math.random()*(WORLD_H-260), vx:(Math.random()<0.5?-1:1)*cfg.wander, vy:(Math.random()<0.5?-1:1)*cfg.wander, vision:cfg.vision, alert:false, emoji:cfg.emojis[Math.floor(Math.random()*cfg.emojis.length)] });
     }
     let detected=false;
     npcs.forEach(n=>{
@@ -1874,8 +1897,8 @@
         detected=true;
       } else {
         n.x+=n.vx*dt; n.y+=n.vy*dt;
-        if(n.x<20||n.x>W-20) n.vx*=-1;
-        if(n.y<130||n.y>H-30) n.vy*=-1;
+        if(n.x<20||n.x>WORLD_W-20) n.vx*=-1;
+        if(n.y<130||n.y>WORLD_H-30) n.vy*=-1;
       }
     });
     return detected;
@@ -1887,12 +1910,12 @@
       carSpawnTimer = 2.3+Math.random()*2.2;
       const goingDown = Math.random()<0.5;
       // prawy pas jedzie w dół, lewy w górę — jak w realu
-      const laneX = goingDown ? W/2+38 : W/2-38;
+      const laneX = goingDown ? WORLD_W/2+38 : WORLD_W/2-38;
       const speed = 250+Math.random()*90;
-      cars.push({ x:laneX, y: goingDown ? -90 : H+90, vy: goingDown ? speed : -speed, down:goingDown });
+      cars.push({ x:laneX, y: goingDown ? -90 : WORLD_H+90, vy: goingDown ? speed : -speed, down:goingDown });
     }
     cars.forEach(c=> c.y += c.vy*dt);
-    cars = cars.filter(c=> c.y < H+340 && c.y > -340);
+    cars = cars.filter(c=> c.y < WORLD_H+340 && c.y > -340);
     if(player.hidden) return false;
     let detected=false;
     cars.forEach(c=>{
@@ -1911,6 +1934,7 @@
     elapsedSinceStart+=dt;
     if(comboTimer>0){ comboTimer-=dt; if(comboTimer<=0){ combo=1; updateHUD(); } }
     updatePlayer(dt);
+    updateCamera(dt);
     updateBushHide();
     updateDog(dt);
     updateConfetti(dt);
@@ -2115,13 +2139,13 @@
   }
   function drawBackground(){
     const map = MAPS.find(m=>m.id===currentMapId) || MAPS[0];
-    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,map.sky[0]); g.addColorStop(1,map.sky[1]);
-    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    const g=ctx.createLinearGradient(0,0,0,WORLD_H); g.addColorStop(0,map.sky[0]); g.addColorStop(1,map.sky[1]);
+    ctx.fillStyle=g; ctx.fillRect(0,0,WORLD_W,WORLD_H);
     drawSkyGlow(map);
     drawMapDecor(map);
     const grassTop=108;
-    const gg=ctx.createLinearGradient(0,grassTop,0,H); gg.addColorStop(0,map.grass[0]); gg.addColorStop(1,map.grass[1]);
-    ctx.fillStyle=gg; ctx.fillRect(0,grassTop,W,H-grassTop);
+    const gg=ctx.createLinearGradient(0,grassTop,0,WORLD_H); gg.addColorStop(0,map.grass[0]); gg.addColorStop(1,map.grass[1]);
+    ctx.fillStyle=gg; ctx.fillRect(0,grassTop,WORLD_W,WORLD_H-grassTop);
     drawGrassBlades();
   }
   function drawExitZone(){
@@ -2140,19 +2164,19 @@
   }
   function drawRoad(){
     if(currentMapId!=='row') return;
-    const roadW=150, rx=W/2-roadW/2;
+    const roadW=150, rx=WORLD_W/2-roadW/2;
     const g=ctx.createLinearGradient(rx,0,rx+roadW,0);
     g.addColorStop(0,'#3A3F44'); g.addColorStop(0.5,'#4A5057'); g.addColorStop(1,'#3A3F44');
-    ctx.fillStyle=g; ctx.fillRect(rx,0,roadW,H);
+    ctx.fillStyle=g; ctx.fillRect(rx,0,roadW,WORLD_H);
     // pobocze
     ctx.fillStyle='rgba(120,110,85,0.55)';
-    ctx.fillRect(rx-8,0,8,H); ctx.fillRect(rx+roadW,0,8,H);
+    ctx.fillRect(rx-8,0,8,WORLD_H); ctx.fillRect(rx+roadW,0,8,WORLD_H);
     // linie krawędziowe
     ctx.fillStyle='rgba(255,255,255,0.4)';
-    ctx.fillRect(rx+5,0,3,H); ctx.fillRect(rx+roadW-8,0,3,H);
+    ctx.fillRect(rx+5,0,3,WORLD_H); ctx.fillRect(rx+roadW-8,0,3,WORLD_H);
     // przerywana linia środkowa
     ctx.fillStyle='rgba(255,255,255,0.65)';
-    for(let y=-((elapsedSinceStart*70)%90); y<H; y+=90){ ctx.fillRect(W/2-3,y,6,44); }
+    for(let y=-((elapsedSinceStart*70)%90); y<WORLD_H; y+=90){ ctx.fillRect(WORLD_W/2-3,y,6,44); }
   }
   function drawBushes(){
     if(currentMapId!=='row') return;
@@ -2374,14 +2398,70 @@
   }
   function drawFlashlight(){
     if(currentMapId!=='blok') return;
+    const px = player.x - cam.x, py = player.y - cam.y; // pozycja gracza na ekranie
     ctx.save();
     ctx.fillStyle='rgba(5,6,12,0.86)'; ctx.fillRect(0,0,W,H);
     ctx.globalCompositeOperation='destination-out';
-    const grad=ctx.createRadialGradient(player.x,player.y,20,player.x,player.y,150);
+    const grad=ctx.createRadialGradient(px,py,20,px,py,150);
     grad.addColorStop(0,'rgba(255,255,255,1)'); grad.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(player.x,player.y,150,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(px,py,150,0,Math.PI*2); ctx.fill();
     ctx.globalCompositeOperation='source-over';
     ctx.restore();
+  }
+  function drawExitArrow(){
+    if(state!=='playing') return;
+    const ex = exitZone.x+exitZone.w/2, ey = exitZone.y+exitZone.h/2;
+    const sx = ex-cam.x, sy = ey-cam.y;
+    if(sx>10 && sx<W-10 && sy>10 && sy<H-10) return; // wyjście widać, strzałka zbędna
+    const cx=W/2, cy=H/2;
+    const ang=Math.atan2(sy-cy, sx-cx);
+    const rx=W/2-46, ry=H/2-92;
+    const ax=cx+Math.cos(ang)*rx, ay=cy+Math.sin(ang)*ry;
+    ctx.save();
+    ctx.translate(ax,ay); ctx.rotate(ang);
+    ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(-10,-11); ctx.lineTo(-5,0); ctx.lineTo(-10,11); ctx.closePath();
+    ctx.fillStyle='#FFB800'; ctx.strokeStyle='rgba(58,36,12,0.9)'; ctx.lineWidth=2.5;
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.font="800 10px 'Fredoka',sans-serif"; ctx.textAlign='center';
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(58,36,12,0.85)';
+    ctx.strokeText('WYJŚCIE', ax, ay+24); ctx.fillStyle='#FFB800'; ctx.fillText('WYJŚCIE', ax, ay+24);
+    ctx.restore();
+  }
+  function drawMinimap(){
+    if(state!=='playing') return;
+    const mw=62, mh=Math.round(mw*(WORLD_H/WORLD_W));
+    const mx=W-mw-14, my=H-mh-16;
+    const sx=mw/WORLD_W, sy=mh/WORLD_H;
+    ctx.save();
+    ctx.globalAlpha=0.9;
+    roundRectAt(mx,my,mw,mh,7);
+    ctx.fillStyle='rgba(255,246,222,0.78)'; ctx.fill();
+    ctx.strokeStyle='rgba(58,36,12,0.85)'; ctx.lineWidth=2.5; ctx.stroke();
+    // kosze: pełne = jeszcze nieprzeszukane
+    bins.forEach(b=>{
+      ctx.fillStyle = b.searched ? 'rgba(90,70,40,0.35)' : '#6F7D66';
+      ctx.fillRect(mx+b.x*sx-1.5, my+b.y*sy-1.5, 3, 3);
+    });
+    // wyjście
+    ctx.fillStyle='#FFB800';
+    ctx.fillRect(mx+exitZone.x*sx, my+exitZone.y*sy, Math.max(4,exitZone.w*sx), Math.max(3,exitZone.h*sy));
+    // gracz
+    ctx.beginPath(); ctx.arc(mx+player.x*sx, my+player.y*sy, 2.6, 0, Math.PI*2);
+    ctx.fillStyle='#1E88E5'; ctx.fill();
+    ctx.strokeStyle='rgba(58,36,12,0.9)'; ctx.lineWidth=1.2; ctx.stroke();
+    // wycinek widoczny na ekranie
+    ctx.strokeStyle='rgba(58,36,12,0.45)'; ctx.lineWidth=1;
+    ctx.strokeRect(mx+cam.x*sx, my+cam.y*sy, W*sx, H*sy);
+    ctx.restore();
+  }
+  function roundRectAt(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
   }
   function drawJoystick(){
     if(!joy.active) return;
@@ -2397,6 +2477,9 @@
     ctx.restore();
   }
   function draw(){
+    // --- świat: wszystko przesunięte o pozycję kamery ---
+    ctx.save();
+    ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
     drawBackground();
     drawRoad();
     drawExitZone();
@@ -2411,8 +2494,12 @@
     drawPlayer();
     drawNPCs();
     drawParticles();
+    ctx.restore();
+    // --- ekran: efekty i sterowanie nie jeżdżą razem ze światem ---
     drawFlashlight();
     drawVignette();
+    drawExitArrow();
+    drawMinimap();
     drawJoystick();
   }
 
@@ -2650,7 +2737,7 @@
   wireEnergyAdButton('energyAdBtnStart');
 
   (async function boot(){
-    player.x=W/2; player.y=H-90;
+    player.x=WORLD_W/2; player.y=WORLD_H-90;
     initTelegram();
     if(isDesktopTelegram()){
       document.getElementById('startOverlay').classList.add('hidden');
