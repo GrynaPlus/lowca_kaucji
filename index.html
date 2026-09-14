@@ -685,10 +685,34 @@
   // nie widać całej mapy naraz (jest co odkrywać), a wielkość ekranu
   // przestaje dawać przewagę: na telefonie i na tablecie widać tyle samo.
   let WORLD_W=0, WORLD_H=0;
-  const cam = { x:0, y:0 };
+  /* =========================================================
+     WIDOK 2.5D — kamera patrzy na świat pod kątem.
+     Oś Y świata jest na ekranie ściśnięta o VIEW_TILT, a obiekty
+     dostają wysokość: widać ich górną płaszczyznę i ścianę od
+     strony kamery. Rysujemy je od najdalszego do najbliższego,
+     więc to, co bliżej, zasłania to, co dalej.
+
+     Logika gry dalej chodzi po płaskich współrzędnych świata —
+     zmienia się tylko sposób, w jaki świat trafia na ekran.
+     Jedna zasada trzyma to w kupie: WSZYSTKIE odległości, zasięgi
+     i prędkości zadajemy w pikselach EKRANU, a do świata przelicza
+     je VIEW_UNTILT. Dzięki temu przechylenie kamery nie rusza
+     balansu — wyprawa wygląda i mierzy się tak samo jak wcześniej.
+     ========================================================= */
+  const VIEW_TILT = 0.66;            // ile zostaje z pionu po przechyleniu
+  const VIEW_UNTILT = 1/VIEW_TILT;   // ekran -> świat w osi Y
+  const HORIZON = 108;               // linia horyzontu, w pikselach ekranu
+  const INK = 'rgba(30,20,8,0.85)';  // wspólny kontur brył
+  function projY(y){ return y*VIEW_TILT; }        // świat -> ekran
+  function unprojY(sy){ return sy*VIEW_UNTILT; }  // ekran -> świat
+  // Dystans „taki, jak go widać" — świat jest w pionie rozciągnięty,
+  // więc zasięgi liczymy po spłaszczonej osi Y. Okrąg narysowany
+  // wokół sąsiada pokrywa się wtedy dokładnie z tym, co liczy kod.
+  function viewDist(ax,ay,bx,by){ return Math.hypot(ax-bx,(ay-by)*VIEW_TILT); }
+  const cam = { x:0, y:0 };          // cam.y jest już w pikselach ekranu
   function updateCamera(dt, snap){
     const targetX = Math.max(0, Math.min(WORLD_W-W, player.x - W/2));
-    const targetY = Math.max(0, Math.min(WORLD_H-H, player.y - H*0.58));
+    const targetY = Math.max(0, Math.min(projY(WORLD_H)-H, projY(player.y) - H*0.58));
     if(snap){ cam.x=targetX; cam.y=targetY; return; }
     const k = Math.min(1, dt*6.5); // płynne dociąganie, bez szarpania
     cam.x += (targetX-cam.x)*k;
@@ -696,20 +720,23 @@
   }
   let grassBlades=[], stars=[];
   function generateEnvironment(){
-    const grassTop=108;
+    const grassTop=unprojY(HORIZON);
     grassBlades = [];
-    const count = Math.min(220, Math.floor(WORLD_W/11));
+    const count = Math.min(260, Math.floor(WORLD_W/11));
     for(let i=0;i<count;i++){
       grassBlades.push({ x:Math.random()*WORLD_W, y:grassTop+Math.random()*(WORLD_H-grassTop), h:6+Math.random()*11, tilt:(Math.random()-0.5)*0.7, light:Math.random()<0.5 });
     }
+    // gwiazdy wiszą nad horyzontem — trzymamy je w pikselach ekranu
     stars = [];
-    for(let i=0;i<44;i++){ stars.push({ x:Math.random()*WORLD_W, y:20+Math.random()*90, r:0.6+Math.random()*1.4, tw:Math.random()*Math.PI*2 }); }
+    for(let i=0;i<44;i++){ stars.push({ x:Math.random()*WORLD_W, y:20+Math.random()*80, r:0.6+Math.random()*1.4, tw:Math.random()*Math.PI*2 }); }
   }
   function resize(){
     W=canvas.clientWidth=window.innerWidth; H=canvas.clientHeight=window.innerHeight;
     canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
     WORLD_W = Math.round(W*1.45);
-    WORLD_H = Math.round(H*2.0);
+    // dwa ekrany w pionie LICZONE PO PRZECHYLENIU: świat musi być
+    // o tyle wyższy, o ile kamera go spłaszcza
+    WORLD_H = Math.round(H*2.0*VIEW_UNTILT);
     generateEnvironment();
   }
   window.addEventListener('resize', resize); resize();
@@ -720,11 +747,45 @@
     r=Math.max(0,Math.min(255,r)); g=Math.max(0,Math.min(255,g)); b=Math.max(0,Math.min(255,b));
     return '#'+(0x1000000+(r<<16)+(g<<8)+b).toString(16).slice(1);
   }
-  function drawSoftShadow(r, yOff){
-    const cy = yOff!==undefined ? yOff : r*0.9;
-    const grad = ctx.createRadialGradient(0,cy,1,0,cy,r*0.95);
-    grad.addColorStop(0,'rgba(0,0,0,0.32)'); grad.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=grad; ctx.beginPath(); ctx.ellipse(0,cy,r*0.95,r*0.34,0,0,Math.PI*2); ctx.fill();
+  // Cienie padają na ziemię, a nie na stojące obok bryły — dlatego
+  // rysujemy je osobnym przebiegiem, zanim postawimy cokolwiek.
+  // Słońce świeci zza lewego ramienia, więc cień idzie w prawo i w dół,
+  // a im wyższy obiekt, tym dalej cień ucieka.
+  const SUN_DX = 0.40, SUN_DY = 0.24;
+  function groundShadow(x, sy, r, hgt, alpha){
+    hgt = hgt||0; alpha = alpha===undefined?0.30:alpha;
+    const cx = x + hgt*SUN_DX, cy = sy + hgt*SUN_DY;
+    const grad = ctx.createRadialGradient(cx,cy,1,cx,cy,r);
+    grad.addColorStop(0,'rgba(0,0,0,'+alpha+')'); grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grad; ctx.beginPath(); ctx.ellipse(cx,cy,r,Math.max(2,r*VIEW_TILT*0.62),0,0,Math.PI*2); ctx.fill();
+  }
+  /* Bryła: podstawa (x,y,w,h) w świecie, wysokość hgt w pikselach ekranu.
+     Przy przechyleniu bez obrotu widać dokładnie dwie ściany — górną
+     płaszczyznę i tę od strony kamery; boczne mają zerową szerokość. */
+  function drawSolid(x,y,w,h,hgt,topCol,sideCol,r){
+    const y0=projY(y), y1=projY(y+h), depth=Math.max(5,y1-y0);
+    r = (r===undefined?6:r);
+    const rTop = Math.max(0, Math.min(r, depth/2, w/2));
+    const rSide = Math.max(0, Math.min(r, hgt/2, w/2));
+    const sg=ctx.createLinearGradient(0,y1-hgt,0,y1);
+    sg.addColorStop(0, sideCol); sg.addColorStop(1, shade(sideCol,-18));
+    ctx.fillStyle=sg; roundRectAt(x, y1-hgt, w, hgt, rSide); ctx.fill();
+    ctx.strokeStyle=INK; ctx.lineWidth=2.2; ctx.stroke();
+    const tg=ctx.createLinearGradient(0,y0-hgt,0,y1-hgt);
+    tg.addColorStop(0, shade(topCol,16)); tg.addColorStop(1, topCol);
+    ctx.fillStyle=tg; roundRectAt(x, y0-hgt, w, depth, rTop); ctx.fill();
+    ctx.strokeStyle=INK; ctx.lineWidth=2.2; ctx.stroke();
+    return { y0:y0, y1:y1, depth:depth };
+  }
+  /* Kolejka głębi — bryły lądują tu w dowolnej kolejności, a na końcu
+     klatki wychodzą posortowane od najdalszej do najbliższej. Bez tego
+     gracz stojący przed kontenerem chowałby się za nim. */
+  let depthQueue=[];
+  function queueDepth(y, fn){ depthQueue.push({ y:y, fn:fn }); }
+  function flushDepth(){
+    depthQueue.sort((a,b)=>a.y-b.y);
+    for(let i=0;i<depthQueue.length;i++) depthQueue[i].fn();
+    depthQueue.length=0;
   }
 
   function fmt(v){ return v.toFixed(2).replace('.',',')+' zł'; }
@@ -1639,7 +1700,7 @@
         const bx = isLeft
           ? WORLD_W/2 - roadHalf - 28 - Math.random()*55
           : WORLD_W/2 + roadHalf + 28 + Math.random()*55;
-        const by = 150+Math.random()*(WORLD_H-280);
+        const by = unprojY(150)+Math.random()*(WORLD_H-unprojY(280));
         bushes.push({ x:Math.max(34,Math.min(WORLD_W-34,bx)), y:by, r:30+Math.random()*10 });
       }
     }
@@ -1652,8 +1713,8 @@
     carSpawnTimer=1.5;
     doubleUsedThisRound=false; leveledThisRound=false;
     run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
-    player.x=WORLD_W/2; player.y=WORLD_H-90; player.heat=0; player.noiseRadius=0; player.hidden=false;
-    exitZone = { x:WORLD_W/2-65, y:60, w:130, h:100 };
+    player.x=WORLD_W/2; player.y=WORLD_H-unprojY(90); player.heat=0; player.noiseRadius=0; player.hidden=false;
+    exitZone = { x:WORLD_W/2-65, y:unprojY(60), w:130, h:unprojY(100) };
     updateCamera(0, true);
     generateMapObjects();
     generateObstacles();
@@ -1663,7 +1724,8 @@
   }
   function tooCloseToExit(x,y,pad){
     pad = pad===undefined?26:pad;
-    return x>exitZone.x-pad && x<exitZone.x+exitZone.w+pad && y>exitZone.y-pad && y<exitZone.y+exitZone.h+pad;
+    const padY = unprojY(pad); // margines podany w pikselach ekranu
+    return x>exitZone.x-pad && x<exitZone.x+exitZone.w+pad && y>exitZone.y-padY && y<exitZone.y+exitZone.h+padY;
   }
   function spawnBins(){
     const cfg = BIN_CONFIG[currentMapId] || BIN_CONFIG.row;
@@ -1674,12 +1736,12 @@
         let tries=0, b;
         do{ b = bushes[Math.floor(Math.random()*bushes.length)]; tries++; }
         while(tooCloseToExit(b.x,b.y,50) && tries<10);
-        x = b.x + (Math.random()-0.5)*26; y = b.y + (Math.random()-0.5)*26;
-        if(tooCloseToExit(x,y)) y += exitZone.h+50;
+        x = b.x + (Math.random()-0.5)*26; y = b.y + (Math.random()-0.5)*unprojY(26);
+        if(tooCloseToExit(x,y)) y += exitZone.h+unprojY(50);
       } else {
         let tries=0;
-        do{ x=margin+Math.random()*(WORLD_W-margin*2); y=150+Math.random()*(WORLD_H-260); tries++; }
-        while((bins.some(bn=>Math.hypot(bn.x-x,bn.y-y)<70) || tooCloseToExit(x,y) || pointInObstacle(x,y,22)) && tries<25);
+        do{ x=margin+Math.random()*(WORLD_W-margin*2); y=unprojY(150)+Math.random()*(WORLD_H-unprojY(260)); tries++; }
+        while((bins.some(bn=>viewDist(bn.x,bn.y,x,y)<70) || tooCloseToExit(x,y) || pointInObstacle(x,y,22)) && tries<25);
       }
       bins.push({ x,y, searched:false, empty:false, tapsNeeded:tapsNeededBase()+Math.floor(Math.random()*3), tapsDone:0, shakeTimer:0, bob:Math.random()*Math.PI*2 });
     }
@@ -1687,7 +1749,7 @@
   function spawnItem(initial){
     const margin=50, t=pickType();
     let x = margin+Math.random()*(WORLD_W-margin*2);
-    let y = 130+Math.random()*(WORLD_H-230);
+    let y = unprojY(130)+Math.random()*(WORLD_H-unprojY(230));
     if(currentMapId==='row'){
       // butelki leżą w rowie, nie na asfalcie
       const roadHalf=95;
@@ -1695,13 +1757,15 @@
       const rightMin = Math.min(WORLD_W-margin, WORLD_W/2+roadHalf);
       x = Math.random()<0.5 ? margin+Math.random()*(leftMax-margin) : rightMin+Math.random()*(WORLD_W-margin-rightMin);
     }
-    if(tooCloseToExit(x,y)) y = exitZone.y+exitZone.h+30+Math.random()*40;
+    if(tooCloseToExit(x,y)) y = exitZone.y+exitZone.h+unprojY(30+Math.random()*40);
     if(pointInObstacle(x,y,18)){ x = Math.max(margin, Math.min(WORLD_W-margin, x+70)); }
     const it={ type:t, x, y, born:elapsedSinceStart, life:6+Math.random()*4, bob:Math.random()*Math.PI*2, popped:false };
-    if(!initial){ const dx=it.x-player.x, dy=it.y-player.y; if(Math.hypot(dx,dy)<80){ it.x = player.x + (dx>=0?1:-1)*140; } }
+    if(!initial){ const dx=it.x-player.x; if(viewDist(it.x,it.y,player.x,player.y)<80){ it.x = player.x + (dx>=0?1:-1)*140; } }
     items.push(it);
   }
-  function addFloatText(x,y,text,color){ particles.push({x,y,text,color,life:1,vy:-0.55}); }
+  // (x,y) to punkt na ziemi — napis unosi się nad nim o stałą wysokość
+  // mierzoną na ekranie, więc nie ginie w rysunku kosza czy butelki
+  function addFloatText(x,y,text,color){ particles.push({x,y:y-unprojY(34),text,color,life:1,vy:-0.55}); }
 
   function setPointer(cx,cy){ const r=canvas.getBoundingClientRect(); pointer.x=cx-r.left; pointer.y=cy-r.top; }
   let pointerDownInfo=null;
@@ -1744,14 +1808,16 @@
     if(keys['arrowright']||keys['d']) dx+=1;
     const speed=playerSpeed();
     let mx=0, my=0;
-    if(dx!==0||dy!==0){ const len=Math.hypot(dx,dy); mx=(dx/len)*speed*dt; my=(dy/len)*speed*dt; }
+    // prędkość zadana jest w pikselach ekranu: w pionie trzeba pokonać
+    // więcej świata, żeby przesunąć się o tyle samo na ekranie
+    if(dx!==0||dy!==0){ const len=Math.hypot(dx,dy); mx=(dx/len)*speed*dt; my=(dy/len)*speed*dt*VIEW_UNTILT; }
     else if(joy.active){
       const len=Math.hypot(joy.dx,joy.dy);
       if(len>JOY_DEADZONE){
         const nx=joy.dx/len, ny=joy.dy/len;
         const ratio=Math.min(1,(len-JOY_DEADZONE)/(JOY_MAX-JOY_DEADZONE)); // im dalej od środka, tym szybciej
         const joySpeed=speed*0.8; // odrobinę wolniej niż klawiatura — łatwiej o precyzję
-        mx=nx*joySpeed*ratio*dt; my=ny*joySpeed*ratio*dt;
+        mx=nx*joySpeed*ratio*dt; my=ny*joySpeed*ratio*dt*VIEW_UNTILT;
       }
     }
     // ruch osobno w poziomie i pionie: gdy jedna oś jest zablokowana murem,
@@ -1759,13 +1825,13 @@
     if(mx!==0 && !pointInObstacle(player.x+mx, player.y, player.r-2)) player.x+=mx;
     if(my!==0 && !pointInObstacle(player.x, player.y+my, player.r-2)) player.y+=my;
     player.x=Math.max(player.r+6,Math.min(WORLD_W-player.r-6,player.x));
-    player.y=Math.max(player.r+6,Math.min(WORLD_H-player.r-16,player.y));
-    player.moving = Math.hypot(player.x-px, player.y-py) > 0.4;
+    player.y=Math.max(unprojY(player.r+6),Math.min(WORLD_H-unprojY(player.r+16),player.y));
+    player.moving = viewDist(player.x,player.y,px,py) > 0.4;
     if(player.moving) tut.hasMoved = true;
   }
   function updateBushHide(){
     if(currentMapId!=='row'){ player.hidden=false; return; }
-    player.hidden = bushes.some(b=> Math.hypot(player.x-b.x,player.y-b.y) < b.r);
+    player.hidden = bushes.some(b=> viewDist(player.x,player.y,b.x,b.y) < b.r);
   }
 
   function updateHUD(){
@@ -1817,14 +1883,13 @@
 
   function updateDog(dt){
     if(currentMapId!=='osiedle'){ dog=null; return; }
-    if(!dog) dog={ x:Math.random()*WORLD_W, y:150+Math.random()*(WORLD_H-250), wanderT:Math.random()*Math.PI*2 };
+    if(!dog) dog={ x:Math.random()*WORLD_W, y:unprojY(150)+Math.random()*(WORLD_H-unprojY(250)), wanderT:Math.random()*Math.PI*2 };
     dog.wanderT += dt*1.5;
     dog.x += Math.sin(dog.wanderT)*60*dt;
-    dog.y += Math.cos(dog.wanderT*0.7)*40*dt;
+    dog.y += Math.cos(dog.wanderT*0.7)*40*dt*VIEW_UNTILT;
     dog.x = Math.max(40,Math.min(WORLD_W-40,dog.x));
-    dog.y = Math.max(140,Math.min(WORLD_H-40,dog.y));
-    const dx=player.x-dog.x, dy=player.y-dog.y;
-    if(Math.hypot(dx,dy) < player.r+18 && (Date.now()-(dog.lastHit||0))>1500){
+    dog.y = Math.max(unprojY(140),Math.min(WORLD_H-unprojY(40),dog.y));
+    if(viewDist(player.x,player.y,dog.x,dog.y) < player.r+18 && (Date.now()-(dog.lastHit||0))>1500){
       dog.lastHit=Date.now(); combo=1; comboTimer=0;
       addFloatText(dog.x,dog.y,'Hau! combo stracone','#FF8A8A');
       updateHUD();
@@ -1832,7 +1897,7 @@
   }
   function updateConfetti(dt){
     if(currentMapId!=='festyn'){ confettiParticles=[]; return; }
-    if(Math.random()<0.3) confettiParticles.push({ x:Math.random()*WORLD_W, y:-10, vy:60+Math.random()*40, vx:(Math.random()-0.5)*30, color:['#FF6FA5','#FFD700','#5FC7E0','#3FBF7F'][Math.floor(Math.random()*4)], rot:Math.random()*Math.PI });
+    if(Math.random()<0.3) confettiParticles.push({ x:Math.random()*WORLD_W, y:-10, vy:(60+Math.random()*40)*VIEW_UNTILT, vx:(Math.random()-0.5)*30, color:['#FF6FA5','#FFD700','#5FC7E0','#3FBF7F'][Math.floor(Math.random()*4)], rot:Math.random()*Math.PI });
     confettiParticles.forEach(p=>{ p.y+=p.vy*dt; p.x+=p.vx*dt; p.rot+=dt*2; });
     confettiParticles=confettiParticles.filter(p=>p.y<WORLD_H+20);
   }
@@ -1843,11 +1908,11 @@
     if(Math.random() < cfg.emptyChance){
       bin.empty=true; combo=1; comboTimer=0;
       Sfx.empty();
-      addFloatText(bin.x, bin.y-10, 'Pusto... 😕', '#E0A9A9');
+      addFloatText(bin.x, bin.y, 'Pusto... 😕', '#E0A9A9');
       updateHUD(); return;
     }
     if(loot>=backpackCap()){
-      addFloatText(bin.x, bin.y-10, '🎒 Plecak pełny!', '#FF9B7A');
+      addFloatText(bin.x, bin.y, '🎒 Plecak pełny!', '#FF9B7A');
       updateHUD(); return;
     }
     const pieces = 1+Math.floor(Math.random()*3) + cartBonus();
@@ -1857,7 +1922,7 @@
     const gain = Math.min(0.5*pieces, backpackCap()-loot);
     loot+=gain; daily.items+=pieces;
     Sfx.bottle();
-    addFloatText(bin.x, bin.y-10, '+'+fmt(gain), '#FFF3C4');
+    addFloatText(bin.x, bin.y, '+'+fmt(gain), '#FFF3C4');
     updateHUD();
   }
   function updateBins(dt){
@@ -1865,7 +1930,7 @@
     bins.forEach(bin=>{
       if(bin.shakeTimer>0) bin.shakeTimer=Math.max(0,bin.shakeTimer-dt);
       if(bin.searched) return;
-      const d=Math.hypot(player.x-bin.x, player.y-bin.y);
+      const d=viewDist(player.x,player.y,bin.x,bin.y);
       if(d<bestDist){ activeBinTarget=bin; bestDist=d; }
     });
   }
@@ -1892,20 +1957,24 @@
      trasy, a nie bieganie w kółko wokół promienia wzroku.
      ========================================================= */
   let obstacles = [];
+  // h = wysokość bryły w pikselach ekranu. Nie wpływa na rozgrywkę
+  // (blokuje podstawa), ale decyduje, jak mocno obiekt „wystaje" —
+  // dlatego kontener zasłania widok mocniej niż murek.
   const OBSTACLE_STYLES = {
-    hedge:     { top:'#5FA845', side:'#3E7A2C', label:'żywopłot' },
-    wall:      { top:'#C9B18A', side:'#9A8460', label:'murek' },
-    container: { top:'#6F7D9B', side:'#4B5670', label:'kontener' },
-    car:       { top:'#D9534F', side:'#9E3936', label:'auto' },
-    stall:     { top:'#FFD166', side:'#C79A2E', label:'stragan' }
+    hedge:     { top:'#6FBE50', side:'#3E7A2C', h:34, label:'żywopłot' },
+    wall:      { top:'#D3BB94', side:'#9A8460', h:30, label:'murek' },
+    container: { top:'#7E8DAD', side:'#4B5670', h:44, label:'kontener' },
+    car:       { top:'#E4635F', side:'#9E3936', h:34, label:'auto' },
+    stall:     { top:'#FFD166', side:'#C79A2E', h:46, label:'stragan' }
   };
   function rectsOverlap(a,b){
     return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
   }
   function pointInObstacle(x,y,pad){
     pad = pad||0;
+    const padY = unprojY(pad); // promień podany na ekranie, świat jest wyższy
     for(const o of obstacles){
-      if(x > o.x-pad && x < o.x+o.w+pad && y > o.y-pad && y < o.y+o.h+pad) return o;
+      if(x > o.x-pad && x < o.x+o.w+pad && y > o.y-padY && y < o.y+o.h+padY) return o;
     }
     return null;
   }
@@ -1942,45 +2011,94 @@
       row:     ['hedge','car'],
       blok:    ['wall','container','car']
     }[currentMapId] || ['wall'];
-    const count = Math.round((WORLD_W*WORLD_H)/95000); // gęstość niezależna od ekranu
+    // gęstość liczona po POWIERZCHNI EKRANU, nie po wysokości świata —
+    // inaczej przechylenie kamery samo z siebie dosypałoby przeszkód
+    const count = Math.round((WORLD_W*projY(WORLD_H))/95000);
     let guard=0;
     while(obstacles.length<count && guard<count*40){
       guard++;
       const kind = kinds[Math.floor(Math.random()*kinds.length)];
       const horiz = Math.random()<0.5;
+      // wymiary zadane tak, jak mają wyglądać na ekranie
       const long = 70+Math.random()*90;
       const thick = 22+Math.random()*12;
-      const w = horiz? long : thick, h = horiz? thick : long;
+      const w = horiz? long : thick;
+      const h = unprojY(horiz? thick : long);
       const x = 30+Math.random()*(WORLD_W-60-w);
-      const y = 170+Math.random()*(WORLD_H-330-h);
+      const y = unprojY(170)+Math.random()*(WORLD_H-unprojY(330)-h);
       const cand = { x,y,w,h,kind };
       // nie zastawiaj wyjścia ani startu gracza
-      if(rectsOverlap(cand,{x:exitZone.x-45,y:exitZone.y-45,w:exitZone.w+90,h:exitZone.h+90})) continue;
-      if(rectsOverlap(cand,{x:WORLD_W/2-90,y:WORLD_H-190,w:180,h:180})) continue;
+      if(rectsOverlap(cand,{x:exitZone.x-45,y:exitZone.y-unprojY(45),w:exitZone.w+90,h:exitZone.h+unprojY(90)})) continue;
+      if(rectsOverlap(cand,{x:WORLD_W/2-90,y:WORLD_H-unprojY(190),w:180,h:unprojY(190)})) continue;
       // na "Rowie" nie stawiaj nic na jezdni
       if(currentMapId==='row' && rectsOverlap(cand,{x:WORLD_W/2-100,y:0,w:200,h:WORLD_H})) continue;
-      if(obstacles.some(o=>rectsOverlap(cand,{x:o.x-26,y:o.y-26,w:o.w+52,h:o.h+52}))) continue;
+      if(obstacles.some(o=>rectsOverlap(cand,{x:o.x-26,y:o.y-unprojY(26),w:o.w+52,h:o.h+unprojY(52)}))) continue;
       obstacles.push(cand);
     }
   }
-  function drawObstacles(){
-    const lift = 13; // pozorna wysokość — daje wrażenie bryły, nie naklejki
-    obstacles.forEach(o=>{
-      const st = OBSTACLE_STYLES[o.kind] || OBSTACLE_STYLES.wall;
-      ctx.save();
-      // cień na ziemi
-      ctx.fillStyle='rgba(0,0,0,0.20)';
-      roundRectAt(o.x+4, o.y+6, o.w, o.h, 6); ctx.fill();
-      // ściana frontowa
-      ctx.fillStyle=st.side;
-      roundRectAt(o.x, o.y+o.h-lift, o.w, lift+6, 5); ctx.fill();
-      ctx.strokeStyle='rgba(30,20,8,0.85)'; ctx.lineWidth=2.4; ctx.stroke();
-      // górna płaszczyzna
-      ctx.fillStyle=st.top;
-      roundRectAt(o.x, o.y-lift, o.w, o.h, 6); ctx.fill();
-      ctx.strokeStyle='rgba(30,20,8,0.85)'; ctx.lineWidth=2.4; ctx.stroke();
-      ctx.restore();
-    });
+  function drawObstacle(o){
+    const st = OBSTACLE_STYLES[o.kind] || OBSTACLE_STYLES.wall;
+    ctx.save();
+    const g = drawSolid(o.x, o.y, o.w, o.h, st.h, st.top, st.side, 6);
+    const topY = g.y0 - st.h;
+    // faktura górnej płaszczyzny
+    ctx.save();
+    roundRectAt(o.x, topY, o.w, g.depth, Math.min(6,g.depth/2)); ctx.clip();
+    if(o.kind==='hedge'){
+      ctx.fillStyle='rgba(255,255,255,0.16)';
+      for(let i=4;i<o.w;i+=11){ ctx.beginPath(); ctx.ellipse(o.x+i, topY+g.depth*0.42, 5, 3.2, 0, 0, Math.PI*2); ctx.fill(); }
+    } else if(o.kind==='stall'){
+      for(let i=0;i<o.w;i+=16){
+        ctx.fillStyle = ((i/16)|0)%2 ? 'rgba(214,72,72,0.42)' : 'rgba(255,255,255,0.34)';
+        ctx.fillRect(o.x+i, topY, 8, g.depth);
+      }
+    } else if(o.kind==='car'){
+      ctx.fillStyle='rgba(20,24,28,0.45)';
+      roundRectAt(o.x+o.w*0.22, topY+g.depth*0.18, o.w*0.56, Math.max(3,g.depth*0.64), 3); ctx.fill();
+    } else if(o.kind==='wall'){
+      // cegły na wierzchu — bez nich długi murek jest tylko beżową plamą
+      ctx.strokeStyle='rgba(0,0,0,0.13)'; ctx.lineWidth=1.2;
+      if(o.w>o.h*VIEW_TILT){
+        for(let i=13;i<o.w;i+=26){ ctx.beginPath(); ctx.moveTo(o.x+i,topY); ctx.lineTo(o.x+i,topY+g.depth); ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(o.x,topY+g.depth/2); ctx.lineTo(o.x+o.w,topY+g.depth/2); ctx.stroke();
+      } else {
+        for(let i=13;i<g.depth;i+=26){ ctx.beginPath(); ctx.moveTo(o.x,topY+i); ctx.lineTo(o.x+o.w,topY+i); ctx.stroke(); }
+        ctx.beginPath(); ctx.moveTo(o.x+o.w/2,topY); ctx.lineTo(o.x+o.w/2,topY+g.depth); ctx.stroke();
+      }
+    } else if(o.kind==='container'){
+      ctx.strokeStyle='rgba(0,0,0,0.16)'; ctx.lineWidth=1.4;
+      ctx.beginPath(); roundRectAt(o.x+4, topY+3, Math.max(4,o.w-8), Math.max(3,g.depth-6), 3); ctx.stroke();
+    }
+    // światło pada z góry-lewej: dalsza krawędź wierzchu jest jaśniejsza
+    const edge=ctx.createLinearGradient(0,topY,0,topY+g.depth);
+    edge.addColorStop(0,'rgba(255,255,255,0.16)'); edge.addColorStop(0.5,'rgba(255,255,255,0)');
+    edge.addColorStop(1,'rgba(0,0,0,0.12)');
+    ctx.fillStyle=edge; ctx.fillRect(o.x, topY, o.w, g.depth);
+    ctx.restore();
+    // faktura ściany od strony kamery
+    ctx.save();
+    roundRectAt(o.x, g.y1-st.h, o.w, st.h, Math.min(6,st.h/2)); ctx.clip();
+    if(o.kind==='wall'){
+      ctx.strokeStyle='rgba(0,0,0,0.16)'; ctx.lineWidth=1.3;
+      for(let yy=g.y1-st.h+9; yy<g.y1; yy+=9){ ctx.beginPath(); ctx.moveTo(o.x,yy); ctx.lineTo(o.x+o.w,yy); ctx.stroke(); }
+      for(let i=12;i<o.w;i+=24){ ctx.beginPath(); ctx.moveTo(o.x+i, g.y1-st.h); ctx.lineTo(o.x+i, g.y1); ctx.stroke(); }
+    } else if(o.kind==='container'){
+      ctx.strokeStyle='rgba(0,0,0,0.26)'; ctx.lineWidth=1.5;
+      for(let i=8;i<o.w;i+=12){ ctx.beginPath(); ctx.moveTo(o.x+i, g.y1-st.h); ctx.lineTo(o.x+i, g.y1); ctx.stroke(); }
+    } else if(o.kind==='car'){
+      ctx.fillStyle='rgba(255,255,255,0.18)';
+      ctx.fillRect(o.x+3, g.y1-st.h+4, Math.max(6,o.w-6), 3);
+      ctx.fillStyle='rgba(20,24,28,0.5)';
+      ctx.fillRect(o.x+4, g.y1-6, 9, 6); ctx.fillRect(o.x+o.w-13, g.y1-6, 9, 6);
+    } else if(o.kind==='hedge'){
+      ctx.fillStyle='rgba(0,0,0,0.12)';
+      for(let i=2;i<o.w;i+=9){ ctx.beginPath(); ctx.ellipse(o.x+i, g.y1-st.h*0.45, 4.5, 5.5, 0, 0, Math.PI*2); ctx.fill(); }
+    } else if(o.kind==='stall'){
+      ctx.fillStyle='rgba(0,0,0,0.18)';
+      ctx.fillRect(o.x+2, g.y1-st.h*0.42, Math.max(4,o.w-4), st.h*0.42);
+    }
+    ctx.restore();
+    ctx.restore();
   }
   function updateNPCs(dt){
     const cfg = MAP_HAZARDS[currentMapId];
@@ -1988,11 +2106,11 @@
     npcSpawnTimer -= dt;
     if(npcs.length < cfg.npcCount && npcSpawnTimer<=0){
       npcSpawnTimer = 1+Math.random()*2;
-      npcs.push({ x:Math.random()*WORLD_W, y:150+Math.random()*(WORLD_H-260), vx:(Math.random()<0.5?-1:1)*cfg.wander, vy:(Math.random()<0.5?-1:1)*cfg.wander, vision:cfg.vision, alert:false, emoji:cfg.emojis[Math.floor(Math.random()*cfg.emojis.length)] });
+      npcs.push({ x:Math.random()*WORLD_W, y:unprojY(150)+Math.random()*(WORLD_H-unprojY(260)), vx:(Math.random()<0.5?-1:1)*cfg.wander, vy:(Math.random()<0.5?-1:1)*cfg.wander*VIEW_UNTILT, vision:cfg.vision, alert:false, emoji:cfg.emojis[Math.floor(Math.random()*cfg.emojis.length)] });
     }
     let detected=false;
     npcs.forEach(n=>{
-      const d=Math.hypot(player.x-n.x, player.y-n.y);
+      const d=viewDist(player.x,player.y,n.x,n.y);
       // wzrok nie przechodzi przez przeszkody, ale HAŁAS owszem —
       // dlatego stukanie w kosz za murkiem i tak może Cię zdradzić.
       const seen = d < n.vision && hasLineOfSight(n.x, n.y, player.x, player.y);
@@ -2000,8 +2118,8 @@
       if(seen || heard) n.alert=true;
       else if(d > n.vision*1.6) n.alert=false;
       if(n.alert){
-        const dx=player.x-n.x, dy=player.y-n.y, dist=Math.hypot(dx,dy)||1;
-        const nx=n.x+(dx/dist)*cfg.chase*dt, ny=n.y+(dy/dist)*cfg.chase*dt;
+        const dx=player.x-n.x, dy=(player.y-n.y)*VIEW_TILT, dist=Math.hypot(dx,dy)||1;
+        const nx=n.x+(dx/dist)*cfg.chase*dt, ny=n.y+(dy/dist)*cfg.chase*dt*VIEW_UNTILT;
         // sąsiad też nie przenika przez mury — obchodzi je
         if(!pointInObstacle(nx, n.y, 8)) n.x=nx;
         if(!pointInObstacle(n.x, ny, 8)) n.y=ny;
@@ -2011,7 +2129,7 @@
         if(pointInObstacle(nx, n.y, 8)) n.vx*=-1; else n.x=nx;
         if(pointInObstacle(n.x, ny, 8)) n.vy*=-1; else n.y=ny;
         if(n.x<20||n.x>WORLD_W-20) n.vx*=-1;
-        if(n.y<130||n.y>WORLD_H-30) n.vy*=-1;
+        if(n.y<unprojY(130)||n.y>WORLD_H-unprojY(30)) n.vy*=-1;
       }
     });
     return detected;
@@ -2024,16 +2142,16 @@
       const goingDown = Math.random()<0.5;
       // prawy pas jedzie w dół, lewy w górę — jak w realu
       const laneX = goingDown ? WORLD_W/2+38 : WORLD_W/2-38;
-      const speed = 250+Math.random()*90;
-      cars.push({ x:laneX, y: goingDown ? -90 : WORLD_H+90, vy: goingDown ? speed : -speed, down:goingDown });
+      const speed = (250+Math.random()*90)*VIEW_UNTILT;
+      cars.push({ x:laneX, y: goingDown ? -unprojY(90) : WORLD_H+unprojY(90), vy: goingDown ? speed : -speed, down:goingDown });
     }
     cars.forEach(c=> c.y += c.vy*dt);
-    cars = cars.filter(c=> c.y < WORLD_H+340 && c.y > -340);
+    cars = cars.filter(c=> c.y < WORLD_H+unprojY(340) && c.y > -unprojY(340));
     if(player.hidden) return false;
     let detected=false;
     cars.forEach(c=>{
       // snop świateł leci w kierunku jazdy
-      const rel = c.down ? (player.y-c.y) : (c.y-player.y);
+      const rel = projY(c.down ? (player.y-c.y) : (c.y-player.y)); // długość snopu mierzona na ekranie
       if(rel>0 && rel<320){
         const spread = 18+(rel/320)*150;
         if(Math.abs(player.x-c.x) < spread) detected=true;
@@ -2087,9 +2205,9 @@
     }
     const spawnRate=Math.max(0.35, 0.85-elapsedSinceStart*0.008);
     if(!allBinsDone && !backpackFull && spawnTimer<=0 && items.length<14){ spawnItem(false); spawnTimer=spawnRate; }
-    for(const it of items){ if(it.popped) continue; const dx=player.x-it.x, dy=player.y-it.y; if(Math.hypot(dx,dy)<player.r+it.type.r-4) collect(it); }
+    for(const it of items){ if(it.popped) continue; if(viewDist(player.x,player.y,it.x,it.y)<player.r+it.type.r-4) collect(it); }
     items=items.filter(it=>!it.popped && (elapsedSinceStart-it.born)<it.life);
-    particles.forEach(p=>{ p.y+=p.vy; p.life-=dt*0.9; });
+    particles.forEach(p=>{ p.y+=p.vy*VIEW_UNTILT; p.life-=dt*0.9; });
     particles=particles.filter(p=>p.life>0);
 
     updateHUD();
@@ -2155,7 +2273,7 @@
 
   function drawSkyGlow(map){
     if(map.id==='blok'){
-      const mx=W*0.82, my=50;
+      const mx=WORLD_W*0.82, my=50;
       const glow=ctx.createRadialGradient(mx,my,0,mx,my,75);
       glow.addColorStop(0,'rgba(255,255,240,0.32)'); glow.addColorStop(1,'rgba(255,255,240,0)');
       ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(mx,my,75,0,Math.PI*2); ctx.fill();
@@ -2164,7 +2282,7 @@
       ctx.fillStyle=moonGrad; ctx.beginPath(); ctx.arc(mx,my,17,0,Math.PI*2); ctx.fill();
       stars.forEach(s=>{ const a=0.35+0.55*Math.abs(Math.sin(elapsedSinceStart*2+s.tw)); ctx.globalAlpha=a; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1; });
     } else {
-      const sx=W*0.85, sy=40;
+      const sx=WORLD_W*0.85, sy=40;
       const glow=ctx.createRadialGradient(sx,sy,0,sx,sy,95);
       glow.addColorStop(0,'rgba(255,250,215,0.55)'); glow.addColorStop(1,'rgba(255,250,215,0)');
       ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(sx,sy,95,0,Math.PI*2); ctx.fill();
@@ -2172,8 +2290,8 @@
   }
   function drawMapDecor(map){
     if(map.id==='blok'){
-      for(let i=0;i<5;i++){
-        const bx=i*(W/5)+10;
+      for(let i=0;i<6;i++){
+        const bx=i*(WORLD_W/6)+10;
         const g=ctx.createLinearGradient(bx,20,bx,110);
         g.addColorStop(0,'rgba(35,40,62,0.75)'); g.addColorStop(1,'rgba(18,21,36,0.85)');
         ctx.fillStyle=g; ctx.fillRect(bx,20,70,90);
@@ -2182,8 +2300,8 @@
       }
     } else if(map.id==='festyn'){
       const colors=['#FF6FA5','#FFD700','#5FC7E0'];
-      for(let i=0;i<5;i++){
-        const bx=(i*W/5)+20;
+      for(let i=0;i<6;i++){
+        const bx=(i*WORLD_W/6)+20;
         const g=ctx.createLinearGradient(bx,55,bx+60,95);
         g.addColorStop(0,colors[i%3]); g.addColorStop(1,'rgba(255,255,255,0.35)');
         ctx.fillStyle=g; ctx.globalAlpha=0.55;
@@ -2192,8 +2310,8 @@
       }
     } else if(map.id==='osiedle'){
       // bloki z wielkiej płyty + wiata śmietnikowa
-      for(let i=0;i<4;i++){
-        const bx=i*(W/4)+8, bw=W/4-22;
+      for(let i=0;i<5;i++){
+        const bx=i*(WORLD_W/5)+8, bw=WORLD_W/5-22;
         const g=ctx.createLinearGradient(bx,18,bx,110);
         g.addColorStop(0,'#C8BFA8'); g.addColorStop(1,'#9A907C');
         ctx.fillStyle=g; ctx.fillRect(bx,18,bw,92);
@@ -2206,13 +2324,13 @@
         for(let wy=0;wy<3;wy++){ if(Math.sin(i*5+wy*4+elapsedSinceStart*0.25)>0.45) ctx.fillRect(bx+10+((wy%2)*26), 30+wy*26, 15, 17); }
       }
       // wiata na śmietniki
-      ctx.fillStyle='rgba(70,74,64,0.45)'; ctx.fillRect(W*0.42,74,W*0.17,34);
-      ctx.strokeStyle='rgba(150,155,140,0.6)'; ctx.lineWidth=3; ctx.strokeRect(W*0.42,74,W*0.17,34);
+      ctx.fillStyle='rgba(70,74,64,0.45)'; ctx.fillRect(WORLD_W*0.42,74,WORLD_W*0.13,34);
+      ctx.strokeStyle='rgba(150,155,140,0.6)'; ctx.lineWidth=3; ctx.strokeRect(WORLD_W*0.42,74,WORLD_W*0.13,34);
     } else if(map.id==='miasto'){
       // pierzeja kamienic z witrynami
       const facades=['#B4746A','#8E9C86','#A79A72','#7D8A9C','#9C7F8E'];
-      for(let i=0;i<6;i++){
-        const bx=i*(W/6), bw=W/6-6;
+      for(let i=0;i<8;i++){
+        const bx=i*(WORLD_W/8), bw=WORLD_W/8-6;
         const g=ctx.createLinearGradient(bx,14,bx,110);
         g.addColorStop(0, facades[i%facades.length]); g.addColorStop(1, shade(facades[i%facades.length],-22));
         ctx.fillStyle=g; ctx.fillRect(bx,14,bw,96);
@@ -2223,12 +2341,14 @@
         ctx.fillStyle='rgba(60,60,70,0.5)'; ctx.fillRect(bx+6,80,bw-12,5);
       }
       // chodnik z płyt
+      // kostka chodnikowa leży na ziemi, więc rysujemy ją już po rzucie
       ctx.fillStyle='rgba(255,255,255,0.06)';
-      for(let x=0;x<W;x+=44){ ctx.fillRect(x,110,2,H-110); }
-      for(let y=110;y<H;y+=44){ ctx.fillRect(0,y,W,2); }
+      const groundBottom=projY(WORLD_H);
+      for(let x=0;x<WORLD_W;x+=44){ ctx.fillRect(x,HORIZON,2,groundBottom-HORIZON); }
+      for(let y=HORIZON;y<groundBottom;y+=30){ ctx.fillRect(0,y,WORLD_W,2); }
     } else {
-      for(let i=0;i<5;i++){
-        const bx=(i*W/5+Math.sin(i*13)*30)%(W+80)-40;
+      for(let i=0;i<7;i++){
+        const bx=(i*WORLD_W/7+Math.sin(i*13)*30)%(WORLD_W+80)-40;
         const g=ctx.createRadialGradient(bx,92,4,bx,92,44);
         g.addColorStop(0,'rgba(94,140,66,0.35)'); g.addColorStop(1,'rgba(60,96,42,0.18)');
         ctx.fillStyle=g; ctx.beginPath(); ctx.ellipse(bx,92,42,24,0,0,Math.PI*2); ctx.fill();
@@ -2238,7 +2358,7 @@
   function drawGrassBlades(){
     if(currentMapId==='miasto') return; // deptak ma kostkę, nie trawę
     grassBlades.forEach(b=>{
-      ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.tilt);
+      ctx.save(); ctx.translate(b.x,projY(b.y)); ctx.rotate(b.tilt);
       ctx.strokeStyle = b.light ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.16)';
       ctx.lineWidth=1.6; ctx.lineCap='round';
       ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(2,-b.h*0.6,0,-b.h); ctx.stroke();
@@ -2252,92 +2372,105 @@
   }
   function drawBackground(){
     const map = MAPS.find(m=>m.id===currentMapId) || MAPS[0];
-    const g=ctx.createLinearGradient(0,0,0,WORLD_H); g.addColorStop(0,map.sky[0]); g.addColorStop(1,map.sky[1]);
-    ctx.fillStyle=g; ctx.fillRect(0,0,WORLD_W,WORLD_H);
+    // wszystko poniżej jest już w pikselach ekranu — ziemia sięga projY(WORLD_H)
+    const bottom=projY(WORLD_H);
+    const g=ctx.createLinearGradient(0,0,0,bottom); g.addColorStop(0,map.sky[0]); g.addColorStop(1,map.sky[1]);
+    ctx.fillStyle=g; ctx.fillRect(0,0,WORLD_W,bottom);
     drawSkyGlow(map);
     drawMapDecor(map);
-    const grassTop=108;
-    const gg=ctx.createLinearGradient(0,grassTop,0,WORLD_H); gg.addColorStop(0,map.grass[0]); gg.addColorStop(1,map.grass[1]);
-    ctx.fillStyle=gg; ctx.fillRect(0,grassTop,WORLD_W,WORLD_H-grassTop);
+    const gg=ctx.createLinearGradient(0,HORIZON,0,bottom); gg.addColorStop(0,map.grass[0]); gg.addColorStop(1,map.grass[1]);
+    ctx.fillStyle=gg; ctx.fillRect(0,HORIZON,WORLD_W,bottom-HORIZON);
+    // miękkie przejście przy horyzoncie — ziemia „ucieka" w dal
+    const haze=ctx.createLinearGradient(0,HORIZON,0,HORIZON+70);
+    haze.addColorStop(0,'rgba(255,255,255,0.20)'); haze.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=haze; ctx.fillRect(0,HORIZON,WORLD_W,70);
     drawGrassBlades();
   }
   function drawExitZone(){
     ctx.save();
     const pulse = 0.5+0.5*Math.sin(elapsedSinceStart*3);
+    const y0=projY(exitZone.y), y1=projY(exitZone.y+exitZone.h);
+    // pole leży na ziemi, więc jest spłaszczone razem z nią
     ctx.fillStyle = 'rgba(255,184,0,'+(0.16+0.10*pulse)+')';
-    ctx.fillRect(exitZone.x, exitZone.y, exitZone.w, exitZone.h);
+    ctx.fillRect(exitZone.x, y0, exitZone.w, y1-y0);
     ctx.strokeStyle='rgba(184,120,0,0.8)'; ctx.lineWidth=3; ctx.setLineDash([7,5]);
-    ctx.strokeRect(exitZone.x, exitZone.y, exitZone.w, exitZone.h);
+    ctx.strokeRect(exitZone.x, y0, exitZone.w, y1-y0);
     ctx.setLineDash([]);
+    // napis stoi pionowo nad polem — inaczej ginąłby w perspektywie
     ctx.font="800 13px 'Fredoka', sans-serif"; ctx.textAlign='center';
     ctx.lineWidth=3.5; ctx.strokeStyle='rgba(74,46,16,0.85)';
-    ctx.strokeText('🚪 WYJŚCIE', exitZone.x+exitZone.w/2, exitZone.y+exitZone.h-10);
-    ctx.fillStyle='#FFB800'; ctx.fillText('🚪 WYJŚCIE', exitZone.x+exitZone.w/2, exitZone.y+exitZone.h-10);
+    ctx.strokeText('🚪 WYJŚCIE', exitZone.x+exitZone.w/2, y1-8);
+    ctx.fillStyle='#FFB800'; ctx.fillText('🚪 WYJŚCIE', exitZone.x+exitZone.w/2, y1-8);
     ctx.restore();
   }
   function drawRoad(){
     if(currentMapId!=='row') return;
-    const roadW=150, rx=WORLD_W/2-roadW/2;
+    const roadW=150, rx=WORLD_W/2-roadW/2, bottom=projY(WORLD_H);
     const g=ctx.createLinearGradient(rx,0,rx+roadW,0);
     g.addColorStop(0,'#3A3F44'); g.addColorStop(0.5,'#4A5057'); g.addColorStop(1,'#3A3F44');
-    ctx.fillStyle=g; ctx.fillRect(rx,0,roadW,WORLD_H);
+    ctx.fillStyle=g; ctx.fillRect(rx,0,roadW,bottom);
     // pobocze
     ctx.fillStyle='rgba(120,110,85,0.55)';
-    ctx.fillRect(rx-8,0,8,WORLD_H); ctx.fillRect(rx+roadW,0,8,WORLD_H);
+    ctx.fillRect(rx-8,0,8,bottom); ctx.fillRect(rx+roadW,0,8,bottom);
     // linie krawędziowe
     ctx.fillStyle='rgba(255,255,255,0.4)';
-    ctx.fillRect(rx+5,0,3,WORLD_H); ctx.fillRect(rx+roadW-8,0,3,WORLD_H);
-    // przerywana linia środkowa
+    ctx.fillRect(rx+5,0,3,bottom); ctx.fillRect(rx+roadW-8,0,3,bottom);
+    // przerywana linia środkowa — odstępy mierzone na ekranie
     ctx.fillStyle='rgba(255,255,255,0.65)';
-    for(let y=-((elapsedSinceStart*70)%90); y<WORLD_H; y+=90){ ctx.fillRect(WORLD_W/2-3,y,6,44); }
+    for(let y=-((elapsedSinceStart*70)%90); y<bottom; y+=90){ ctx.fillRect(WORLD_W/2-3,y,6,44); }
   }
-  function drawBushes(){
-    if(currentMapId!=='row') return;
-    bushes.forEach(b=>{
-      ctx.save(); ctx.translate(b.x,b.y);
-      drawSoftShadow(b.r*0.9, b.r*0.7);
-      const g=ctx.createRadialGradient(-6,-6,2,0,0,b.r);
-      g.addColorStop(0, shade('#2E6B4A',20)); g.addColorStop(1,'#1B4A32');
-      ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
-      ctx.beginPath(); ctx.arc(-b.r*0.3,-b.r*0.3,b.r*0.5,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.08)'; ctx.fill();
-      ctx.restore();
-    });
+  function drawBush(b){
+    ctx.save(); ctx.translate(b.x, projY(b.y));
+    // kopuła uniesiona nad podstawą — krzak ma objętość, nie jest plamą
+    const lift = b.r*0.42;
+    const g=ctx.createRadialGradient(-b.r*0.3,-lift-b.r*0.35,2,0,-lift,b.r*1.1);
+    g.addColorStop(0, shade('#2E6B4A',26)); g.addColorStop(1,'#16402B');
+    ctx.beginPath(); ctx.ellipse(0,-lift,b.r,b.r*0.92,0,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+    ctx.strokeStyle='rgba(16,40,26,0.5)'; ctx.lineWidth=1.6; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(-b.r*0.28,-lift-b.r*0.3,b.r*0.42,b.r*0.34,0,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.10)'; ctx.fill();
+    ctx.restore();
   }
-  function drawCars(){
+  function drawCarBeams(){
     if(currentMapId!=='row') return;
     cars.forEach(c=>{
-      const dir = c.down ? 1 : -1;
-      const grad=ctx.createLinearGradient(c.x,c.y,c.x,c.y+320*dir);
+      const dir = c.down ? 1 : -1, cy = projY(c.y);
+      const grad=ctx.createLinearGradient(c.x,cy,c.x,cy+320*dir);
       grad.addColorStop(0,'rgba(253,224,71,0.55)'); grad.addColorStop(1,'rgba(253,224,71,0)');
       ctx.fillStyle=grad;
       ctx.beginPath();
-      ctx.moveTo(c.x-18, c.y+15*dir);
-      ctx.lineTo(c.x-160, c.y+320*dir);
-      ctx.lineTo(c.x+160, c.y+320*dir);
-      ctx.lineTo(c.x+18, c.y+15*dir);
+      ctx.moveTo(c.x-18, cy+15*dir);
+      ctx.lineTo(c.x-160, cy+320*dir);
+      ctx.lineTo(c.x+160, cy+320*dir);
+      ctx.lineTo(c.x+18, cy+15*dir);
       ctx.closePath(); ctx.fill();
-      ctx.save(); ctx.translate(c.x,c.y);
-      drawSoftShadow(22,14);
-      const bodyGrad=ctx.createLinearGradient(-18,-26,18,26);
-      bodyGrad.addColorStop(0, c.down?'#E24B4B':'#4B7BE2'); bodyGrad.addColorStop(1, c.down?'#8E1F1F':'#1F3F8E');
-      roundRect(-18,-26,36,52,8); ctx.fillStyle=bodyGrad; ctx.fill();
-      ctx.fillStyle='rgba(20,24,28,0.6)'; roundRect(-13,-14,26,16,4); ctx.fill();
-      // reflektory z przodu (zależnie od kierunku)
-      ctx.fillStyle='#FDE047';
-      const fy = c.down ? -25 : 18;
-      ctx.fillRect(-14,fy,10,7); ctx.fillRect(4,fy,10,7);
-      // tylne światła
-      ctx.fillStyle='rgba(220,50,50,0.85)';
-      const by = c.down ? 19 : -26;
-      ctx.fillRect(-14,by,10,6); ctx.fillRect(4,by,10,6);
-      ctx.restore();
     });
+  }
+  function drawCar(c){
+    const CAR_H=22;                       // wysokość nadwozia na ekranie
+    const half=unprojY(26);               // pół długości auta w świecie
+    const top = c.down?'#E4635F':'#5C8BEE', side = c.down?'#8E1F1F':'#1F3F8E';
+    const g = drawSolid(c.x-18, c.y-half, 36, half*2, CAR_H, top, side, 8);
+    ctx.save();
+    // szyba na dachu
+    ctx.fillStyle='rgba(20,24,28,0.55)';
+    roundRectAt(c.x-13, g.y0-CAR_H+9, 26, Math.max(6,(g.depth)*0.34), 4); ctx.fill();
+    // reflektory: z przodu auta, czyli od strony, w którą jedzie
+    const headY = c.down ? g.y1-CAR_H : g.y0-CAR_H;
+    ctx.fillStyle='#FDE047';
+    ctx.fillRect(c.x-14, headY+ (c.down?CAR_H-9:2), 10, 7);
+    ctx.fillRect(c.x+4,  headY+ (c.down?CAR_H-9:2), 10, 7);
+    ctx.fillStyle='rgba(220,50,50,0.85)';
+    const tailY = c.down ? g.y0-CAR_H+2 : g.y1-CAR_H+CAR_H-8;
+    ctx.fillRect(c.x-14, tailY, 10, 6); ctx.fillRect(c.x+4, tailY, 10, 6);
+    ctx.restore();
   }
   function drawNoiseAura(){
     if(player.noiseRadius<=0) return;
-    const g=ctx.createRadialGradient(player.x,player.y,0,player.x,player.y,player.noiseRadius);
+    const py=projY(player.y);
+    const g=ctx.createRadialGradient(player.x,py,0,player.x,py,player.noiseRadius);
     g.addColorStop(0,'rgba(255,93,58,0.26)'); g.addColorStop(1,'rgba(255,93,58,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(player.x,player.y,player.noiseRadius,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(player.x,py,player.noiseRadius,0,Math.PI*2); ctx.fill();
   }
 
   function drawBottleShape(type){
@@ -2395,8 +2528,7 @@
     const bob=Math.sin((elapsedSinceStart+it.bob)*3.2)*3;
     const age=elapsedSinceStart-it.born;
     let alpha=1; if(age<0.25) alpha=age/0.25; else if(it.life-age<0.6) alpha=Math.max(0,(it.life-age)/0.6);
-    ctx.save(); ctx.globalAlpha=alpha; ctx.translate(it.x,it.y+bob);
-    drawSoftShadow(it.type.r);
+    ctx.save(); ctx.globalAlpha=alpha; ctx.translate(it.x,projY(it.y)-14-bob);
     if(it.type.key==='trash'){ drawTrashShape(it.type); }
     else if(it.type.key==='can'){ drawCanShape(it.type); }
     else { drawBottleShape(it.type); }
@@ -2404,15 +2536,14 @@
   }
   function drawDog(){
     if(!dog) return;
-    ctx.save(); ctx.translate(dog.x,dog.y); drawSoftShadow(16,12); ctx.font='26px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🐕',0,0); ctx.restore();
+    ctx.save(); ctx.translate(dog.x,projY(dog.y)); ctx.font='26px serif'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('🐕',0,4); ctx.restore();
   }
   function drawConfetti(){
-    confettiParticles.forEach(p=>{ ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.color; ctx.fillRect(-3,-5,6,10); ctx.restore(); });
+    confettiParticles.forEach(p=>{ ctx.save(); ctx.translate(p.x,projY(p.y)); ctx.rotate(p.rot); ctx.fillStyle=p.color; ctx.fillRect(-3,-5,6,10); ctx.restore(); });
   }
   function drawPlayer(){
-    ctx.save(); ctx.translate(player.x,player.y);
+    ctx.save(); ctx.translate(player.x,projY(player.y)-24);
     ctx.globalAlpha = player.hidden ? 0.4 : 1;
-    drawSoftShadow(player.r+5, player.r*0.85);
     const swing = player.moving ? Math.sin(elapsedSinceStart*11)*5 : 0;
     ctx.fillStyle='#233F30';
     roundRect(-9,15+Math.max(0,-swing)*0.25,7,10,3); ctx.fill();
@@ -2437,15 +2568,15 @@
     ctx.restore();
   }
   function drawParticles(){
-    particles.forEach(p=>{ ctx.save(); ctx.globalAlpha=Math.max(0,p.life); ctx.font="800 15px 'Fredoka', sans-serif"; ctx.textAlign='center'; ctx.lineWidth=3.5; ctx.strokeStyle='rgba(74,46,16,0.85)'; ctx.strokeText(p.text,p.x,p.y); ctx.fillStyle=p.color; ctx.fillText(p.text,p.x,p.y); ctx.restore(); });
+    particles.forEach(p=>{ const py=projY(p.y); ctx.save(); ctx.globalAlpha=Math.max(0,p.life); ctx.font="800 15px 'Fredoka', sans-serif"; ctx.textAlign='center'; ctx.lineWidth=3.5; ctx.strokeStyle='rgba(74,46,16,0.85)'; ctx.strokeText(p.text,p.x,py); ctx.fillStyle=p.color; ctx.fillText(p.text,p.x,py); ctx.restore(); });
   }
-  function drawBins(){
-    bins.forEach(bin=>{
+  function drawBin(bin){
+    {
       const bob = bin.searched ? 0 : Math.sin((elapsedSinceStart+bin.bob)*2)*2;
       const jitter = bin.shakeTimer>0 ? (Math.random()-0.5)*5*(bin.shakeTimer/0.18) : 0;
       const isActive = bin===activeBinTarget && !bin.searched;
-      ctx.save(); ctx.translate(bin.x+jitter, bin.y+bob);
-      drawSoftShadow(22, 20);
+      // kosz stoi na ziemi: podstawa w projY(bin.y), reszta rośnie w górę
+      ctx.save(); ctx.translate(bin.x+jitter, projY(bin.y)-20+bob);
       ctx.globalAlpha = bin.searched ? 0.55 : 1;
       const bodyGrad = ctx.createLinearGradient(-14,-10,14,20);
       bodyGrad.addColorStop(0, bin.searched && bin.empty ? '#8B8F86' : shade('#5C6B5A',10));
@@ -2481,50 +2612,60 @@
         }
       }
       ctx.restore();
-    });
+    }
   }
   function drawNoiseRings(){
     noiseRings.forEach(r=>{
       const p=1-(r.life/0.5);
       ctx.save(); ctx.globalAlpha=Math.max(0,1-p);
       ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(r.x,r.y,10+p*55,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(r.x,projY(r.y),10+p*55,0,Math.PI*2); ctx.stroke();
       ctx.restore();
     });
   }
-  function drawNPCs(){
+  // Poświata zasięgu to okrąg o promieniu n.vision liczonym NA EKRANIE —
+  // dokładnie ten sam, którym mierzy viewDist w updateNPCs.
+  function drawNpcVision(){
     npcs.forEach(n=>{
-      ctx.beginPath(); ctx.arc(n.x,n.y,n.vision,0,Math.PI*2);
-      ctx.fillStyle = n.alert ? 'rgba(255,93,58,0.12)' : 'rgba(255,215,0,0.06)';
-      ctx.fill();
-      ctx.save(); ctx.translate(n.x,n.y);
-      const facingLeft = n.alert ? (player.x<n.x) : (n.vx<0);
-      ctx.font='24px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      if(facingLeft) ctx.scale(-1,1);
-      ctx.fillText(n.emoji,0,0);
-      ctx.restore();
-      if(n.alert){
-        ctx.save(); ctx.font='16px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('❗', n.x, n.y-22); ctx.restore();
-      }
+      const ny=projY(n.y);
+      const g=ctx.createRadialGradient(n.x,ny,n.vision*0.45,n.x,ny,n.vision);
+      if(n.alert){ g.addColorStop(0,'rgba(255,93,58,0.16)'); g.addColorStop(1,'rgba(255,93,58,0.02)'); }
+      else { g.addColorStop(0,'rgba(255,215,0,0.09)'); g.addColorStop(1,'rgba(255,215,0,0.01)'); }
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,ny,n.vision,0,Math.PI*2); ctx.fill();
     });
+  }
+  function drawNPC(n){
+    const ny=projY(n.y);
+    ctx.save(); ctx.translate(n.x,ny);
+    const facingLeft = n.alert ? (player.x<n.x) : (n.vx<0);
+    ctx.font='24px serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    if(facingLeft) ctx.scale(-1,1);
+    ctx.fillText(n.emoji,0,6);
+    ctx.restore();
+    if(n.alert){
+      ctx.save(); ctx.font='16px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('❗', n.x, ny-32); ctx.restore();
+    }
   }
   function drawFlashlight(){
     if(currentMapId!=='blok') return;
-    const px = player.x - cam.x, py = player.y - cam.y; // pozycja gracza na ekranie
+    const px = player.x - cam.x, py = projY(player.y) - cam.y - 12; // pozycja gracza na ekranie
+    // Ciemność to JEDEN gradient kładziony na wierzch, przezroczysty w
+    // środku snopu. Wcześniej był tu 'destination-out', który wycinał
+    // dziurę w całym płótnie — w snopie latarki widać było tło strony,
+    // a nie grę (gracz znikał razem z resztą świata).
     ctx.save();
-    ctx.fillStyle='rgba(5,6,12,0.86)'; ctx.fillRect(0,0,W,H);
-    ctx.globalCompositeOperation='destination-out';
-    const grad=ctx.createRadialGradient(px,py,20,px,py,150);
-    grad.addColorStop(0,'rgba(255,255,255,1)'); grad.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(px,py,150,0,Math.PI*2); ctx.fill();
-    ctx.globalCompositeOperation='source-over';
+    const grad=ctx.createRadialGradient(px,py,22,px,py,158);
+    grad.addColorStop(0,'rgba(5,6,12,0)');
+    grad.addColorStop(0.62,'rgba(5,6,12,0.42)');
+    grad.addColorStop(1,'rgba(5,6,12,0.88)');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
     ctx.restore();
   }
   function drawExitArrow(){
     if(state!=='playing') return;
     const ex = exitZone.x+exitZone.w/2, ey = exitZone.y+exitZone.h/2;
-    const sx = ex-cam.x, sy = ey-cam.y;
+    const sx = ex-cam.x, sy = projY(ey)-cam.y;
     if(sx>10 && sx<W-10 && sy>10 && sy<H-10) return; // wyjście widać, strzałka zbędna
     const cx=W/2, cy=H/2;
     const ang=Math.atan2(sy-cy, sx-cx);
@@ -2544,9 +2685,11 @@
   }
   function drawMinimap(){
     if(state!=='playing') return;
-    const mw=62, mh=Math.round(mw*(WORLD_H/WORLD_W));
+    // minimapa pokazuje świat tak, jak go widać — czyli już po rzucie
+    const worldPH=projY(WORLD_H);
+    const mw=62, mh=Math.round(mw*(worldPH/WORLD_W));
     const mx=W-mw-14, my=H-mh-16;
-    const sx=mw/WORLD_W, sy=mh/WORLD_H;
+    const sx=mw/WORLD_W, sy=mh/worldPH;
     ctx.save();
     ctx.globalAlpha=0.9;
     roundRectAt(mx,my,mw,mh,7);
@@ -2555,13 +2698,13 @@
     // kosze: pełne = jeszcze nieprzeszukane
     bins.forEach(b=>{
       ctx.fillStyle = b.searched ? 'rgba(90,70,40,0.35)' : '#6F7D66';
-      ctx.fillRect(mx+b.x*sx-1.5, my+b.y*sy-1.5, 3, 3);
+      ctx.fillRect(mx+b.x*sx-1.5, my+projY(b.y)*sy-1.5, 3, 3);
     });
     // wyjście
     ctx.fillStyle='#FFB800';
-    ctx.fillRect(mx+exitZone.x*sx, my+exitZone.y*sy, Math.max(4,exitZone.w*sx), Math.max(3,exitZone.h*sy));
+    ctx.fillRect(mx+exitZone.x*sx, my+projY(exitZone.y)*sy, Math.max(4,exitZone.w*sx), Math.max(3,projY(exitZone.h)*sy));
     // gracz
-    ctx.beginPath(); ctx.arc(mx+player.x*sx, my+player.y*sy, 2.6, 0, Math.PI*2);
+    ctx.beginPath(); ctx.arc(mx+player.x*sx, my+projY(player.y)*sy, 2.6, 0, Math.PI*2);
     ctx.fillStyle='#1E88E5'; ctx.fill();
     ctx.strokeStyle='rgba(58,36,12,0.9)'; ctx.lineWidth=1.2; ctx.stroke();
     // wycinek widoczny na ekranie
@@ -2589,24 +2732,49 @@
     ctx.strokeStyle='rgba(31,58,46,0.6)'; ctx.lineWidth=1.5; ctx.stroke();
     ctx.restore();
   }
+  // Cienie rysujemy jednym przebiegiem PRZED bryłami — inaczej cień
+  // bliższego obiektu kładłby się na tym, co stoi za nim.
+  function drawGroundShadows(){
+    obstacles.forEach(o=>{
+      const st=OBSTACLE_STYLES[o.kind]||OBSTACLE_STYLES.wall;
+      const y0=projY(o.y), y1=projY(o.y+o.h);
+      ctx.fillStyle='rgba(0,0,0,0.22)';
+      roundRectAt(o.x+st.h*SUN_DX, y0+st.h*SUN_DY, o.w, Math.max(5,y1-y0), 6); ctx.fill();
+    });
+    if(currentMapId==='row') bushes.forEach(b=> groundShadow(b.x, projY(b.y), b.r*1.05, b.r*0.85, 0.26));
+    bins.forEach(b=> groundShadow(b.x, projY(b.y), 20, 22, 0.30));
+    items.forEach(it=> groundShadow(it.x, projY(it.y), it.type.r*1.1, 6, 0.24));
+    npcs.forEach(n=> groundShadow(n.x, projY(n.y), 15, 22, 0.28));
+    if(currentMapId==='row') cars.forEach(c=> groundShadow(c.x, projY(c.y), 26, 22, 0.30));
+    if(dog) groundShadow(dog.x, projY(dog.y), 15, 14, 0.26);
+    groundShadow(player.x, projY(player.y), player.r+6, 26, player.hidden?0.16:0.32);
+  }
   function draw(){
     // --- świat: wszystko przesunięte o pozycję kamery ---
     ctx.save();
     ctx.translate(-Math.round(cam.x), -Math.round(cam.y));
+    // 1. ziemia i to, co jest na nią namalowane
     drawBackground();
     drawRoad();
     drawExitZone();
-    drawBushes();
-    drawObstacles();
-    drawBins();
-    drawNoiseRings();
+    drawGroundShadows();
+    drawNpcVision();
     drawNoiseAura();
-    items.forEach(drawItem);
-    drawDog();
+    drawNoiseRings();
+    drawCarBeams();
+    // 2. bryły — od najdalszej do najbliższej, żeby to, co bliżej,
+    //    zasłaniało to, co dalej
+    if(currentMapId==='row') bushes.forEach(b=> queueDepth(b.y, function(){ drawBush(b); }));
+    obstacles.forEach(o=> queueDepth(o.y+o.h, function(){ drawObstacle(o); }));
+    bins.forEach(b=> queueDepth(b.y, function(){ drawBin(b); }));
+    items.forEach(it=> queueDepth(it.y, function(){ drawItem(it); }));
+    npcs.forEach(n=> queueDepth(n.y, function(){ drawNPC(n); }));
+    if(currentMapId==='row') cars.forEach(c=> queueDepth(c.y, function(){ drawCar(c); }));
+    if(dog) queueDepth(dog.y, drawDog);
+    queueDepth(player.y, drawPlayer);
+    flushDepth();
+    // 3. nad światem — konfetti leci z góry, napisy mają być zawsze widoczne
     drawConfetti();
-    drawCars();
-    drawPlayer();
-    drawNPCs();
     drawParticles();
     ctx.restore();
     // --- ekran: efekty i sterowanie nie jeżdżą razem ze światem ---
