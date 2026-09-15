@@ -2,6 +2,12 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
+<!-- WebView Telegrama potrafi trzymać starą kopię pliku nawet po restarcie
+     bota. To nie zastąpi wyczyszczenia pamięci podręcznej, ale zniechęca
+     przeglądarkę do podawania nieświeżej wersji. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Łowca Kaucji</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -229,6 +235,7 @@
   .avatar-opt{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;background:var(--panel-2);border:2.5px solid var(--ink);border-radius:12px;padding:0;cursor:pointer;}
   .avatar-opt.selected{border-color:var(--gold-dark);background:var(--panel-3);box-shadow:0 3px 0 rgba(184,120,0,0.3);}
   input.nick-input{width:100%;font-family:'Fredoka',sans-serif;font-size:15px;background:#fff;border:2.5px solid var(--ink);border-radius:10px;color:var(--ink);padding:9px 12px;margin-bottom:14px;text-align:center;}
+  .build-stamp{margin-top:12px;text-align:center;font-family:'Inter',sans-serif;font-size:10px;font-weight:600;color:#A88F63;letter-spacing:.03em;}
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
   .stat-box{background:var(--panel-2);border:2px solid var(--ink);border-radius:10px;padding:8px;text-align:center;}
   .stat-box .n{font-family:'Fredoka',sans-serif;font-weight:700;font-size:16px;color:var(--gold-dark);}
@@ -395,6 +402,7 @@
             <div class="stat-box"><div class="n" id="statPoints">0</div><div class="l">pkt w kodach</div></div>
             <div class="stat-box"><div class="n" id="statStreak">0</div><div class="l">dni z rzędu</div></div>
           </div>
+          <div class="build-stamp" id="buildStamp"></div>
         </div>
 
         <!-- ZAKŁADKA: ZADANIA -->
@@ -1040,6 +1048,10 @@
     row:      { npcCount:3, vision:96, chase:115, wander:60, lane:true, emojis:['🚶','🚶‍♀️','🧑','🧓'] },
     blok:     { npcCount:3, vision:135, chase:150, wander:55, emojis:['👮'] }
   };
+  // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
+  // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
+  // a nie brak wdrożenia.
+  const APP_VERSION = '2026-09-15 · 8';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -1537,6 +1549,8 @@
   }
 
   function refreshProfileUI(){
+    const stamp = document.getElementById('buildStamp');
+    if(stamp) stamp.textContent = 'wersja ' + APP_VERSION;
     document.getElementById('avatarDisplayStart').textContent = profile.avatar;
     document.getElementById('nickDisplayStart').textContent = profile.nick;
     document.getElementById('lvlDisplayStart').textContent = profile.level;
