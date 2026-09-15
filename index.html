@@ -96,24 +96,18 @@
   .eb-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Fredoka',sans-serif;font-weight:700;font-size:9.5px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.6);}
   .eb-gift{flex-shrink:0;font-size:23px;}
 
-  .menu-scroll{flex:1;min-height:0;overflow-y:auto;padding:10px 14px 12px;-webkit-overflow-scrolling:touch;}
+  /* zapas na dole: wypukłe „Główna" wystaje ponad pasek zakładek i bez
+     tego przykrywałoby ostatnią linijkę przewijanej treści */
+  .menu-scroll{flex:1;min-height:0;overflow-y:auto;padding:10px 14px 34px;-webkit-overflow-scrolling:touch;}
   /* przypięty rząd akcji — zawsze widoczny nad paskiem zakładek */
-  /* Rząd akcji i pasek zakładek to jeden moduł na dole, nie dwa osobne
-     elementy na sobie — dlatego wspólne tło i tylko JEDNA górna krawędź. */
-  .cta-dock{flex-shrink:0;padding:12px 14px 4px;background:var(--panel);border-top:3px solid var(--ink);box-shadow:0 -4px 14px rgba(0,0,0,0.14);}
-  .cta-dock.hidden{display:none;}
-  .cta-dock.hidden + .bottom-tabbar{border-top:3px solid var(--ink);}
+
 
   /* --- Dolny rząd akcji: przycisk poboczny + wielki GRAJ --- */
-  /* zapas na dole, żeby wypukły przycisk „Główna" nie wchodził na GRAJ */
-  .cta-row{display:flex;align-items:stretch;gap:10px;margin-bottom:22px;}
-  /* ta sama kremowa rodzina co przyciski przy karuzeli map */
-  .cta-side{flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 rgba(0,0,0,0.22);color:var(--ink);cursor:pointer;padding:8px 4px;}
-  .cta-side .ic{font-size:22px;line-height:1;}
-  .cta-side .lbl{font-family:'Inter',sans-serif;font-size:9px;font-weight:800;letter-spacing:.04em;color:#8A6A3A;}
-  .cta-side:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,0.22);}
-  .cta-row .play-cta{flex:1;margin-bottom:0;}
-  .play-cta{font-size:26px !important;padding:16px 20px !important;letter-spacing:1px;}
+  /* GRAJ siedzi w karcie mapy — przy nazwie, poziomie i limicie łupu,
+     czyli przy tym, czego dotyczy. Dół ekranu zostaje dla samych zakładek. */
+  .play-cta{font-size:23px !important;padding:12px 16px !important;letter-spacing:1px;margin:11px 0 8px !important;}
+  /* „KUP ZA 14 ZŁ" jest dłuższe niż „GRAJ" — w wąskiej karcie musi zejść z rozmiaru */
+  .play-cta.buy-mode, .play-cta:disabled{font-size:17px !important;letter-spacing:0;padding:13px 10px !important;white-space:nowrap;}
 
   /* --- Scena z karuzelą map i bocznymi kolumnami przycisków --- */
   .stage{position:relative;padding:6px 0 2px;margin-bottom:10px;}
@@ -126,10 +120,11 @@
   .rail-btn.on .ic{background:linear-gradient(180deg,#FFE59A,var(--gold));border-color:var(--gold-dark);}
   .rail-lbl{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:800;color:#fff;text-shadow:-1.2px 0 0 var(--ink),1.2px 0 0 var(--ink),0 -1.2px 0 var(--ink),0 1.2px 0 var(--ink);}
 
-  .map-stage{display:flex;align-items:center;justify-content:center;gap:4px;padding:0 54px;}
+  .map-stage{padding:0 54px;}
+  .map-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:9px;}
   .map-nav{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.22);color:var(--ink);font-family:'Fredoka',sans-serif;font-weight:700;font-size:20px;line-height:0;cursor:pointer;padding:0;}
   .map-nav:disabled{opacity:0.35;cursor:default;}
-  .map-card{flex:1;min-width:0;background:linear-gradient(180deg,#FFFFFF,#FFF6DE);border:4px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 rgba(0,0,0,0.2);padding:9px 9px 11px;text-align:center;}
+  .map-card{width:100%;background:linear-gradient(180deg,#FFFFFF,#FFF6DE);border:4px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 rgba(0,0,0,0.2);padding:9px 9px 11px;text-align:center;}
   .map-scene{position:relative;width:100%;aspect-ratio:220/140;border-radius:14px;overflow:hidden;border:3px solid var(--ink);margin-bottom:7px;background:#cfe8f7;}
   .map-scene svg{display:block;width:100%;height:100%;}
   .map-scene.locked svg{filter:grayscale(0.75) brightness(0.72);}
@@ -138,7 +133,7 @@
   .map-card .mc-lvl{font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;color:var(--gold-dark);margin-top:2px;}
   .map-card .mc-note{font-size:10px;color:#8A6A3A;margin-top:5px;line-height:1.4;font-weight:600;}
   .map-card .mc-max{font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;color:var(--green);margin-top:3px;}
-  .map-dots{display:flex;justify-content:center;gap:6px;margin-top:9px;}
+  .map-dots{display:flex;justify-content:center;gap:6px;}
   .map-dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.55);border:2px solid var(--ink);}
   .map-dots .dot.on{background:var(--gold);width:20px;border-radius:5px;}
 
@@ -148,7 +143,7 @@
   .energy-strip .energy-row{margin-bottom:0;}
   .tab-panel{display:block;}
   .tab-panel.hidden{display:none;}
-  .bottom-tabbar{position:relative;flex-shrink:0;display:flex;background:var(--panel);padding:24px 6px 8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
+  .bottom-tabbar{position:relative;flex-shrink:0;display:flex;background:var(--panel);border-top:3px solid var(--ink);box-shadow:0 -4px 14px rgba(0,0,0,0.18);padding:24px 6px 8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
   .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;background:none;border:none;color:#B89B6C;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:700;padding:0;cursor:pointer;position:relative;}
   .tab-btn .ic{position:relative;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.22);margin-top:-32px;margin-bottom:2px;transition:transform .15s cubic-bezier(.34,1.56,.64,1), background .15s ease, box-shadow .15s ease;}
   .tab-btn.active{color:var(--gold-dark);}
@@ -326,11 +321,20 @@
             </div>
 
             <div class="map-stage">
+              <div class="map-card" id="mapCard">
+                <!-- renderMapSelector nadpisuje wnętrze karty, więc przycisk
+                     jest tu tylko na start; potem wędruje z powrotem przez
+                     appendChild, żeby nie zgubić podpiętego zdarzenia -->
+                <button class="primary play-cta" id="startBtn">GRAJ</button>
+              </div>
+            </div>
+            <!-- strzałki w rzędzie z kropkami: karta dostaje przez to o ~90 px
+                 więcej szerokości i dłuższe napisy przestają się łamać -->
+            <div class="map-pager">
               <button class="map-nav" id="mapPrev">‹</button>
-              <div class="map-card" id="mapCard"></div>
+              <div class="map-dots" id="mapDots"></div>
               <button class="map-nav" id="mapNext">›</button>
             </div>
-            <div class="map-dots" id="mapDots"></div>
           </div>
 
           <div class="info-panel hidden" id="panelGoals">
@@ -399,16 +403,6 @@
             <div class="t-title">📋 Zadania dnia</div>
             <div id="taskListModal"></div>
           </div>
-        </div>
-      </div>
-
-      <!-- Rząd akcji siedzi POZA .menu-scroll, bo wewnątrz zjeżdżał pod
-           pasek zakładek i na niższych ekranach GRAJ w ogóle nie było
-           widać — trzeba było przewinąć panel, żeby zacząć grę. -->
-      <div class="cta-dock" id="ctaDock">
-        <div class="cta-row">
-          <button class="cta-side" id="mapSwitchBtn"><span class="ic">🗺️</span><span class="lbl">MAPA</span></button>
-          <button class="primary play-cta" id="startBtn">GRAJ</button>
         </div>
       </div>
 
@@ -1543,6 +1537,9 @@
     if(profile.energy<=0){ btn.disabled=true; btn.textContent='BRAK ENERGII'; }
     else { btn.disabled=false; btn.textContent='GRAJ'; }
   }
+  // Trzymamy referencję do przycisku GRAJ: renderMapSelector nadpisuje
+  // innerHTML karty, a przenoszony element zachowuje podpięte zdarzenie.
+  const playBtnEl = document.getElementById('startBtn');
   function renderMapSelector(){
     // karuzela: jedna mapa naraz, strzałki po bokach
     const idx = MAPS.findIndex(m=>m.id===currentMapId);
@@ -1562,9 +1559,10 @@
         const prev = MAPS[MAPS.findIndex(x=>x.id===m.id)-1];
         body += '<div class="mc-note">🔒 Najpierw awansuj na poziom 2<br>na mapie: '+(prev?prev.name:'')+'</div>';
       } else {
-        body += '<div class="mc-note">Odblokuj tę mapę za '+fmt(m.cost)+'<br>Masz: '+fmt(profile.wallet)+'</div>';
+        body += '<div class="mc-note">Odblokuj za '+fmt(m.cost)+' &middot; masz '+fmt(profile.wallet)+'</div>';
       }
       card.innerHTML = body;
+      if(playBtnEl) card.appendChild(playBtnEl); // wraca po nadpisaniu wnętrza
     }
     const dots = document.getElementById('mapDots');
     if(dots){
@@ -1721,9 +1719,6 @@
     else if(name==='kupony'){ renderPayouts(); renderCoupons(); }
     else if(name==='zadania'){ renderTasks(); }
     else if(name==='profil'){ renderTasks(); renderCoupons(); }
-    // GRAJ ma sens tylko na zakładce z mapami
-    const dock = document.getElementById('ctaDock');
-    if(dock) dock.classList.toggle('hidden', name!=='graj');
     document.getElementById('startOverlay').classList.remove('hidden');
     document.getElementById('menuScrollEl') && (document.getElementById('menuScrollEl').scrollTop = 0);
     updateTabBadges();
@@ -3218,12 +3213,6 @@
   document.getElementById('railTasks').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('zadania'); });
   document.getElementById('railShare').addEventListener('click', ()=>{ Sfx.click(); doShare(); });
   document.getElementById('burgerBtn').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('profil'); });
-  document.getElementById('mapSwitchBtn').addEventListener('click', ()=>{
-    // przeskocz na kolejną mapę (z zawijaniem na początek)
-    stageIdx = (stageIdx + 1) % MAPS.length;
-    Sfx.click(); haptic('light');
-    renderMapSelector();
-  });
   document.getElementById('againBtn').addEventListener('click', attemptStart);
   document.getElementById('menuBtnEnd').addEventListener('click', goToMenu);
 
