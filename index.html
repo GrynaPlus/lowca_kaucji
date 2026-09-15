@@ -235,6 +235,12 @@
   .avatar-opt{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;background:var(--panel-2);border:2.5px solid var(--ink);border-radius:12px;padding:0;cursor:pointer;}
   .avatar-opt.selected{border-color:var(--gold-dark);background:var(--panel-3);box-shadow:0 3px 0 rgba(184,120,0,0.3);}
   input.nick-input{width:100%;font-family:'Fredoka',sans-serif;font-size:15px;background:#fff;border:2.5px solid var(--ink);border-radius:10px;color:var(--ink);padding:9px 12px;margin-bottom:14px;text-align:center;}
+  /* --- monety lecące do portfela --- */
+  .coin-fly{position:fixed;width:28px;height:28px;margin:-14px 0 0 -14px;z-index:60;pointer-events:none;will-change:transform;}
+  .coin-fly .c{display:block;font-size:22px;line-height:28px;text-align:center;will-change:transform,opacity;}
+  @keyframes chipPop{0%{transform:scale(1);}35%{transform:scale(1.16);}100%{transform:scale(1);}}
+  .chip-pop{animation:chipPop .34s ease-out;}
+
   /* --- wór z kaucją i droga po nią --- */
   .stash-box{display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#FFF6DE,#FFE9B8);border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 rgba(0,0,0,0.18);padding:10px 12px;margin-bottom:10px;}
   .stash-box .sb-ic{font-size:26px;line-height:1;flex-shrink:0;}
@@ -1138,7 +1144,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-15 · 9';
+  const APP_VERSION = '2026-09-15 · 10';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -1779,6 +1785,59 @@
      wybór punktu -> dojazd -> (problem) -> kolejka -> butelkomat
      -> paragon -> kasa. Każdy krok podmienia wnętrze karty.
      ========================================================= */
+  /* Monety lecą z miejsca kliknięcia do pigułki z portfelem, a licznik
+     dolicza się w tym samym czasie. Bez tego przelew był niezauważalny:
+     liczba podmieniała się gdzieś na górze ekranu w chwili, gdy patrzyłeś
+     na okienko kasy.
+
+     Łuk robią dwa zagnieżdżone elementy — zewnętrzny jedzie w poziomie
+     jednym tempem, wewnętrzny w pionie innym. Jedna transformacja dałaby
+     prostą linię. */
+  function countUpTo(el, from, to, ms){
+    const t0 = performance.now();
+    const step = (now)=>{
+      const f = Math.min(1,(now-t0)/ms);
+      el.textContent = fmt(from + (to-from)*(1-Math.pow(1-f,3)));
+      if(f<1) requestAnimationFrame(step); else el.textContent = fmt(to);
+    };
+    requestAnimationFrame(step);
+  }
+  function flyToWallet(fromX, fromY, before, after){
+    const target = document.getElementById('walletVal');
+    if(!target){ return; }
+    const chip = target.closest ? target.closest('.top-chip') : null;
+    const tr = target.getBoundingClientRect();
+    const tx = tr.left + tr.width/2, ty = tr.top + tr.height/2;
+    const gain = Math.max(0, after-before);
+    const n = Math.max(6, Math.min(14, Math.round(gain/2)+6));
+    target.textContent = fmt(before);
+    let started = false;
+    for(let i=0;i<n;i++){
+      const wrap = document.createElement('div');
+      wrap.className = 'coin-fly';
+      const sx = fromX + (Math.random()-0.5)*80, sy = fromY + (Math.random()-0.5)*30;
+      wrap.style.left = sx+'px'; wrap.style.top = sy+'px';
+      const c = document.createElement('span');
+      c.className = 'c'; c.textContent = '🪙';
+      wrap.appendChild(c);
+      document.body.appendChild(wrap);
+      const dur = 600 + Math.random()*150;
+      setTimeout(()=>{
+        wrap.style.transition = 'transform '+dur+'ms cubic-bezier(.45,.05,.55,.95)';
+        wrap.style.transform  = 'translateX('+(tx-sx)+'px)';
+        c.style.transition = 'transform '+dur+'ms cubic-bezier(.7,0,.9,.35), opacity 150ms linear '+(dur-150)+'ms';
+        c.style.transform  = 'translateY('+(ty-sy)+'px) scale(0.5)';
+        c.style.opacity = '0';
+        if(!started){ started = true; countUpTo(target, before, after, n*55 + dur*0.6); }
+        setTimeout(()=>{
+          if(i%3===0) Sfx.buy();
+          if(chip){ chip.classList.remove('chip-pop'); void chip.offsetWidth; chip.classList.add('chip-pop'); }
+          wrap.remove();
+        }, dur);
+      }, 40 + i*55);
+    }
+  }
+
   const Deposit = (function(){
     let shop=null, toInsert=0, inserted=0, rejected=0, waits=0;
     let jam=0, streak=0, lastTap=0, timer=null;
@@ -1819,7 +1878,16 @@
       card().querySelectorAll('[data-shop]').forEach(b=>b.addEventListener('click', ()=>{
         Sfx.click(); haptic('light');
         shop = homeKind().shops[+b.dataset.shop];
-        if(shop.ticket){ profile.wallet = Math.max(0, profile.wallet - shop.ticket); saveProfile(); }
+        if(shop.ticket){
+          // Bilet schodził z portfela po cichu — pigułka u góry pokazywała
+          // starą kwotę aż do następnego przerysowania, a licznik przy kasie
+          // startował potem od liczby niższej niż ta na ekranie.
+          profile.wallet = Math.max(0, profile.wallet - shop.ticket);
+          saveProfile();
+          const wv = document.getElementById('walletVal');
+          if(wv) wv.textContent = fmt(profile.wallet);
+          showToast('🎫 Bilet −' + shop.ticket + ' zł');
+        }
         travel();
       }));
       card().querySelector('[data-act="close"]').addEventListener('click', ()=>{ Sfx.click(); close(); });
@@ -1959,13 +2027,19 @@
         + '<p class="sub">Podajesz paragon. Kasjerka odlicza gotówkę.</p>'
         + '<div class="receipt"><span class="r-sum">'+fmt(sum)+'</span></div>'
         + '<button class="primary" data-act="take">ODBIERAM '+fmt(sum).toUpperCase()+'</button>';
-      card().querySelector('[data-act="take"]').addEventListener('click', async ()=>{
+      card().querySelector('[data-act="take"]').addEventListener('click', async (ev)=>{
+        // pozycję przycisku bierzemy PRZED zamknięciem okienka — potem
+        // element już nie istnieje i nie da się z niego wystartować monet
+        const r = ev.currentTarget.getBoundingClientRect();
+        const fromX = r.left + r.width/2, fromY = r.top + r.height/2;
+        const before = profile.wallet;
         profile.stash = Math.max(0, (profile.stash||0) - toInsert*DEPOSIT_PER_ITEM);
         profile.wallet += sum;
         Sfx.bank(); hapticNotify('success');
         await saveProfile();
         grynaPlusEvent('deposit_returned', { amount:Number(sum.toFixed(2)), items:inserted, shop:shop.id, profileNick:profile.nick });
-        close();
+        close();                       // refreshProfileUI wpisuje nową kwotę...
+        flyToWallet(fromX, fromY, before, profile.wallet);  // ...a my cofamy ją i doliczamy
         showToast('💰 +'+fmt(sum)+' w portfelu');
       });
     }
