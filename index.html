@@ -31,27 +31,37 @@
   #game-wrap{position:relative;width:100%;height:100vh;display:flex;align-items:center;justify-content:center;}
   canvas{display:block;width:100%;height:100%;cursor:crosshair;}
 
-  /* --tg-header to wysokość paska Telegrama (Zamknij / ⌄ ⋯). Domyślnie 50 px,
-     czyli wartość dobrana kiedyś pod iPhone'a; jeśli Telegram poda swoje
-     wymiary (contentSafeAreaInset), JS nadpisuje ją realną liczbą. */
-  :root{--tg-header:50px;}
-  .hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(var(--tg-header) + 42px + env(safe-area-inset-top)) 16px 14px;pointer-events:none;z-index:5;gap:8px;}
-  .hud-left{display:flex;gap:8px;pointer-events:auto;align-items:flex-start;}
-  .pill{background:linear-gradient(180deg, rgba(255,255,255,0.93), rgba(255,243,214,0.93));color:var(--ink);border-radius:14px;padding:6px 11px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;box-shadow:0 4px 0 rgba(0,0,0,0.18);display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:70px;border:2.5px solid var(--ink);}
-  .pill .label{font-family:'Inter',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.03em;color:#8A6A3A;margin-bottom:1px;}
+  /* Trzy liczby opisujące górę ekranu, wszystkie ustawiane z JS w pikselach:
+     --tg-safe    wcięcie sprzętowe (notch),
+     --tg-content wysokość samego paska Telegrama pod notchem,
+     --tg-header  suma obu, czyli dokąd sięga cudzy interfejs.
+     Domyślne wartości odpowiadają zachowaniu sprzed pomiarów. */
+  :root{--tg-safe:0px;--tg-content:50px;--tg-header:50px;}
+  #safeProbe{position:absolute;top:0;left:0;width:0;padding-top:env(safe-area-inset-top);visibility:hidden;pointer-events:none;}
+  .hud{position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:5;}
+  /* wyśrodkowane w luce paska Telegrama */
+  .hud-top{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;
+    top:calc(var(--tg-safe) + (var(--tg-content) - 32px)/2);}
+  .hud-bottom{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:7px;z-index:5;pointer-events:none;}
+  /* pigułki leżą teraz w poziomie — niższe, więc mniej zasłaniają */
+  .pill{background:linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,243,214,0.94));color:var(--ink);border-radius:13px;padding:4px 10px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;box-shadow:0 3px 0 rgba(0,0,0,0.18);display:flex;flex-direction:row;align-items:baseline;gap:5px;line-height:1.15;border:2.5px solid var(--ink);white-space:nowrap;}
+  .pill.mini{padding:3px 9px;}
+  .pill.mini .value{font-size:13px;}
+  .pill .label{font-family:'Inter',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.03em;color:#8A6A3A;}
   .pill .value{font-size:16px;}
   .pill.money .value{color:var(--gold-dark);}
-  .pill.combo{background:linear-gradient(180deg, #FF8AC4, var(--combo));border-color:#B81E63;box-shadow:0 4px 0 rgba(0,0,0,0.25);transform:scale(0.85);opacity:0;transition:transform .18s ease,opacity .18s ease;}
-  .pill.combo.show{transform:scale(1);opacity:1;}
-  .pill.combo .label{color:#FFE3F0;}
-  .pill.combo .value{color:#fff;}
+  /* Combo siedzi WEWNĄTRZ pigułki z łupem. Osobna pigułka obok psuła
+     wyśrodkowanie w luce paska Telegrama nawet wtedy, gdy była niewidoczna. */
+  .combo-tag{display:none;font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;color:#fff;background:linear-gradient(180deg,#FF8AC4,var(--combo));border:2px solid #B81E63;border-radius:9px;padding:0 5px;margin-left:1px;}
+  .combo-tag.show{display:inline-block;}
   .icon-btn{pointer-events:auto;width:38px;height:38px;border-radius:12px;background:linear-gradient(180deg, #FFFFFF, #FFF3D6);border:2.5px solid var(--ink);color:var(--ink);font-size:18px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .icon-btn:active{transform:translateY(3px);box-shadow:none;}
 
-  #heatContainer{position:absolute;top:calc(var(--tg-header) + 96px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:218px;text-align:center;pointer-events:none;z-index:6;background:linear-gradient(180deg,rgba(255,255,255,0.93),rgba(255,243,214,0.93));padding:6px 11px;border-radius:14px;border:2.5px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.2);}
-  .heat-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  /* wąski pasek tuż pod nagłówkiem Telegrama — jedna linia zamiast panelu */
+  #heatContainer{position:absolute;top:calc(var(--tg-header) + 6px);left:12px;right:12px;display:flex;align-items:center;gap:9px;pointer-events:none;z-index:6;background:linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,243,214,0.92));padding:5px 10px;border-radius:13px;border:2.5px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
+  .heat-cap{font-family:'Inter',sans-serif;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
   #heatContainer .lbl{font-size:9px;color:#C9541F;font-weight:800;letter-spacing:.05em;text-transform:uppercase;font-family:'Inter',sans-serif;}
-  .heat-track{width:100%;height:9px;background:rgba(0,0,0,0.15);border-radius:6px;overflow:hidden;margin-top:4px;border:1.5px solid rgba(0,0,0,0.2);}
+  .heat-track{flex:1;min-width:0;height:9px;background:rgba(0,0,0,0.15);border-radius:6px;overflow:hidden;border:1.5px solid rgba(0,0,0,0.2);}
   .heat-fill{width:0%;height:100%;background:linear-gradient(90deg,#F5A623,#FF8A3A);transition:width .12s linear;}
   .heat-fill.danger{background:linear-gradient(90deg,#FF5D3A,#C81E1E);}
 
@@ -68,7 +78,7 @@
      linear-gradient(180deg, var(--bg-sky-a), var(--bg-sky-b));}
   .menu-app{display:flex;flex-direction:column;width:100%;height:100%;max-width:480px;margin:0 auto;color:var(--ink);}
   /* --- Górny pasek HUD: pełnej szerokości, niebieski --- */
-  .menu-topbar{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:calc(var(--tg-header) + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,#2E9BE0,#1E7DBF);border-bottom:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
+  .menu-topbar{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:var(--tg-header) 10px 8px;background:linear-gradient(180deg,#2E9BE0,#1E7DBF);border-bottom:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
   .avatar-tile{position:relative;width:50px;height:50px;flex-shrink:0;border-radius:14px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .avatar-tile .av{font-size:26px;line-height:1;}
   .top-chip{flex:1;min-width:0;display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#1668A8,#10537F);border:2.5px solid var(--ink);box-shadow:inset 0 2px 4px rgba(0,0,0,0.3);border-radius:16px;padding:7px 10px;}
@@ -88,13 +98,20 @@
 
   .menu-scroll{flex:1;min-height:0;overflow-y:auto;padding:10px 14px 12px;-webkit-overflow-scrolling:touch;}
   /* przypięty rząd akcji — zawsze widoczny nad paskiem zakładek */
-  .cta-dock{flex-shrink:0;padding:0 14px 6px;}
+  /* Rząd akcji i pasek zakładek to jeden moduł na dole, nie dwa osobne
+     elementy na sobie — dlatego wspólne tło i tylko JEDNA górna krawędź. */
+  .cta-dock{flex-shrink:0;padding:12px 14px 4px;background:var(--panel);border-top:3px solid var(--ink);box-shadow:0 -4px 14px rgba(0,0,0,0.14);}
   .cta-dock.hidden{display:none;}
+  .cta-dock.hidden + .bottom-tabbar{border-top:3px solid var(--ink);}
 
   /* --- Dolny rząd akcji: przycisk poboczny + wielki GRAJ --- */
-  .cta-row{display:flex;align-items:stretch;gap:9px;margin-bottom:8px;}
-  .cta-side{flex-shrink:0;width:88px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:linear-gradient(180deg,#B07BEA,#8B45D0);border:3px solid #5E2A94;border-radius:18px;box-shadow:0 6px 0 #5E2A94;color:#fff;font-family:'Fredoka',sans-serif;font-weight:700;font-size:13px;line-height:1.1;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,0.35);padding:10px 4px;}
-  .cta-side:active{transform:translateY(4px);box-shadow:0 2px 0 #5E2A94;}
+  /* zapas na dole, żeby wypukły przycisk „Główna" nie wchodził na GRAJ */
+  .cta-row{display:flex;align-items:stretch;gap:10px;margin-bottom:22px;}
+  /* ta sama kremowa rodzina co przyciski przy karuzeli map */
+  .cta-side{flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 rgba(0,0,0,0.22);color:var(--ink);cursor:pointer;padding:8px 4px;}
+  .cta-side .ic{font-size:22px;line-height:1;}
+  .cta-side .lbl{font-family:'Inter',sans-serif;font-size:9px;font-weight:800;letter-spacing:.04em;color:#8A6A3A;}
+  .cta-side:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,0.22);}
   .cta-row .play-cta{flex:1;margin-bottom:0;}
   .play-cta{font-size:26px !important;padding:16px 20px !important;letter-spacing:1px;}
 
@@ -131,7 +148,7 @@
   .energy-strip .energy-row{margin-bottom:0;}
   .tab-panel{display:block;}
   .tab-panel.hidden{display:none;}
-  .bottom-tabbar{position:relative;flex-shrink:0;display:flex;background:var(--panel);border-top:3px solid var(--ink);box-shadow:0 -4px 14px rgba(0,0,0,0.18);padding:24px 6px 8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
+  .bottom-tabbar{position:relative;flex-shrink:0;display:flex;background:var(--panel);padding:24px 6px 8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
   .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;background:none;border:none;color:#B89B6C;font-family:'Inter',sans-serif;font-size:9.5px;font-weight:700;padding:0;cursor:pointer;position:relative;}
   .tab-btn .ic{position:relative;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.22);margin-top:-32px;margin-bottom:2px;transition:transform .15s cubic-bezier(.34,1.56,.64,1), background .15s ease, box-shadow .15s ease;}
   .tab-btn.active{color:var(--gold-dark);}
@@ -230,24 +247,33 @@
 <div id="game-wrap">
   <canvas id="c"></canvas>
 
+  <span id="safeProbe"></span>
+
+  <!-- Pasek Telegrama (Zamknij po lewej, ⌄ ⋯ po prawej) ma wolne miejsce
+       POŚRODKU. Łup wchodzi dokładnie w tę lukę, zamiast spychać całą grę
+       pod nagłówek. Pod nagłówkiem zostaje już tylko wąski pasek przypału. -->
   <div class="hud">
-    <div class="hud-left">
-      <button class="icon-btn" id="profileBtnGame" title="Profil">👤</button>
-      <button class="icon-btn" id="muteBtn" title="Dźwięk">🔊</button>
-      <div class="pill" style="min-width:56px;"><span class="label">ENERGIA</span><span class="value" id="energyHudVal">3/3</span></div>
-    </div>
-    <div style="display:flex;gap:8px;">
-      <div class="pill money"><span class="label">ŁUP</span><span class="value" id="lootVal">0,00 zł</span></div>
-      <div class="pill combo" id="comboPill"><span class="label">COMBO</span><span class="value" id="comboVal">x1</span></div>
+    <div class="hud-top">
+      <div class="pill money">
+        <span class="label">ŁUP</span>
+        <span class="value" id="lootVal">0,00 zł</span>
+        <span class="combo-tag" id="comboPill" aria-label="combo"><span id="comboVal">x1</span></span>
+      </div>
     </div>
   </div>
 
   <div id="heatContainer">
-    <div class="heat-row">
-      <div class="lbl" id="heatLabel">⚠️ Przypał</div>
-      <div class="lbl" id="binsProgress" style="color:#8A6A3A;">🗑️ 0/0</div>
-    </div>
+    <span class="heat-cap" id="heatLabel">⚠️ Przypał</span>
     <div class="heat-track"><div class="heat-fill" id="heatFill"></div></div>
+    <span class="heat-cap" id="binsProgress" style="color:#8A6A3A;">🗑️ 0/0</span>
+  </div>
+
+  <!-- rzeczy, bez których da się grać, schodzą na dół: tam gracz i tak
+       już był, a góra zostaje wolna na to, co dopiero nadjeżdża -->
+  <div class="hud-bottom">
+    <button class="icon-btn" id="profileBtnGame" title="Profil">👤</button>
+    <button class="icon-btn" id="muteBtn" title="Dźwięk">🔊</button>
+    <div class="pill mini"><span class="label">ENERGIA</span><span class="value" id="energyHudVal">3/3</span></div>
   </div>
 
   <div id="liveToast"></div>
@@ -381,7 +407,7 @@
            widać — trzeba było przewinąć panel, żeby zacząć grę. -->
       <div class="cta-dock" id="ctaDock">
         <div class="cta-row">
-          <button class="cta-side" id="mapSwitchBtn"><span>ZMIEŃ</span><span>MAPĘ</span></button>
+          <button class="cta-side" id="mapSwitchBtn"><span class="ic">🗺️</span><span class="lbl">MAPA</span></button>
           <button class="primary play-cta" id="startBtn">GRAJ</button>
         </div>
       </div>
@@ -757,32 +783,37 @@
     stars = [];
     for(let i=0;i<44;i++){ stars.push({ x:Math.random()*WORLD_W, y:20+Math.random()*80, r:0.6+Math.random()*1.4, tw:Math.random()*Math.PI*2 }); }
   }
-  // Telegram od Bot API 7.7 podaje, ile miejsca zabiera jego własny pasek.
-  // Gdy poda — używamy tej liczby zamiast stałej dobranej pod jeden telefon.
+  /* Trzy liczby opisujące górę ekranu. Notch czytamy sondą (env() nie jest
+     widoczne z JS), wysokość paska Telegrama bierzemy z API 7.7+, a gdy go
+     nie ma — zostaje 50 px, czyli tyle, ile było wpisane na sztywno. */
   function applyTelegramHeader(){
-    let header = null;
+    const root = document.documentElement.style;
+    const probe = document.getElementById('safeProbe');
+    let safe = probe ? Math.round(probe.getBoundingClientRect().height) : 0;
+    let content = 50;
     if(TG){
-      const content = TG.contentSafeAreaInset && TG.contentSafeAreaInset.top;
-      const safe = (TG.safeAreaInset && TG.safeAreaInset.top) || 0;
-      if(typeof content === 'number' && content > 0) header = content + safe;
+      if(TG.safeAreaInset && typeof TG.safeAreaInset.top === 'number') safe = Math.max(safe, Math.round(TG.safeAreaInset.top));
+      const c = TG.contentSafeAreaInset && TG.contentSafeAreaInset.top;
+      if(typeof c === 'number' && c > 0) content = Math.round(c);
     }
-    if(header != null){
-      document.documentElement.style.setProperty('--tg-header', Math.round(header)+'px');
-    }
+    root.setProperty('--tg-safe', safe+'px');
+    root.setProperty('--tg-content', content+'px');
+    root.setProperty('--tg-header', (safe+content)+'px');
   }
   function measureUiTop(){
     let bottom = 0;
-    const hud = document.querySelector('.hud');
+    const top = document.querySelector('.hud-top');
     const heat = document.getElementById('heatContainer');
-    if(hud) bottom = Math.max(bottom, hud.getBoundingClientRect().bottom);
+    if(top) bottom = Math.max(bottom, top.getBoundingClientRect().bottom);
     if(heat) bottom = Math.max(bottom, heat.getBoundingClientRect().bottom);
-    // zapas pod paskiem, ale nigdy więcej niż trzecia część ekranu —
+    // zapas pod paskiem, ale nigdy więcej niż czwarta część ekranu —
     // na niskim telefonie nie ma co zjadać terenu do grania
-    return Math.max(108, Math.min(Math.round(H*0.34), Math.round(bottom) + 14));
+    return Math.max(96, Math.min(Math.round(H*0.25), Math.round(bottom) + 12));
   }
   function resize(){
     W=canvas.clientWidth=window.innerWidth; H=canvas.clientHeight=window.innerHeight;
     canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+    applyTelegramHeader();
     UI_TOP = measureUiTop();
     HORIZON = UI_TOP;
     WORLD_W = Math.round(W*1.45);
@@ -3230,8 +3261,7 @@
   (async function boot(){
     player.x=WORLD_W/2; player.y=WORLD_H-90;
     initTelegram();
-    applyTelegramHeader();
-    resize();            // po zmianie --tg-header pasek UI ma inną wysokość
+    resize();            // Telegram zdążył już podać swoje wymiary
     if(isDesktopTelegram()){
       document.getElementById('startOverlay').classList.add('hidden');
       document.getElementById('desktopBlockOverlay').classList.remove('hidden');
