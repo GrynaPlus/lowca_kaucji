@@ -920,6 +920,9 @@
     osiedle:  { npcCount:3, vision:85,  chase:80,  wander:38, emojis:['👵'] },
     miasto:   { npcCount:9, vision:78,  chase:110, wander:70, emojis:['🚶','🚶‍♀️','🧑','👨'] },
     festyn:   { npcCount:11, vision:68,  chase:130, wander:75, emojis:['🚶','🚶‍♀️','🧑','👩'] },
+    // lane: przechodnie trzymają się chodnika zamiast błąkać się po całej
+    // mapie. Widzą daleko, ale krzak ich zasłania — zdradza dopiero hałas
+    row:      { npcCount:3, vision:96, chase:115, wander:60, lane:true, emojis:['🚶','🚶‍♀️','🧑','🧓'] },
     blok:     { npcCount:3, vision:135, chase:150, wander:55, emojis:['👮'] }
   };
   let currentMapId = 'osiedle';
@@ -1691,15 +1694,34 @@
     return TYPES[0];
   }
 
+  const ROAD_HALF = 83;  // połowa jezdni + pobocze
+  /* Chodnik przy rowie — pas tuż za prawym poboczem, którym chodzą ludzie.
+     Do tej pory ta mapa nie miała ani jednego przechodnia (brak wpisu
+     w MAP_HAZARDS), tylko przejeżdżające auta, więc mimo czwartego
+     miejsca w kolejce była najłatwiejsza w grze. Teraz prawy rów jest
+     pod obserwacją, a lewy nadal spokojny — jest z czego wybierać. */
+  function sidewalkRect(){
+    return { x: WORLD_W/2 + ROAD_HALF, w: 46 };
+  }
+  // pas, na którym nie stawiamy nic swojego: jezdnia + chodnik
+  function rowKeepClear(){
+    const sw = sidewalkRect();
+    const from = WORLD_W/2 - 100, to = sw.x + sw.w + 12;
+    return { x:from, w:to-from };
+  }
   function generateMapObjects(){
     bushes=[]; cars=[];
     if(currentMapId==='row'){
-      const roadHalf=83; // połowa jezdni + pobocze
+      const sw = sidewalkRect();
+      // po lewej krzaki rosną tuż za poboczem, po prawej dopiero za
+      // chodnikiem — inaczej wyrastałyby z płyt chodnikowych
+      const innerR = sw.x + sw.w + 26;
+      const bandR = Math.min(55, Math.max(18, WORLD_W-40-innerR));
       for(let i=0;i<18;i++){
         const isLeft = Math.random()>0.5;
         const bx = isLeft
-          ? WORLD_W/2 - roadHalf - 28 - Math.random()*55
-          : WORLD_W/2 + roadHalf + 28 + Math.random()*55;
+          ? WORLD_W/2 - ROAD_HALF - 28 - Math.random()*55
+          : innerR + Math.random()*bandR;
         const by = unprojY(150)+Math.random()*(WORLD_H-unprojY(280));
         bushes.push({ x:Math.max(34,Math.min(WORLD_W-34,bx)), y:by, r:30+Math.random()*10 });
       }
@@ -1727,23 +1749,56 @@
     const padY = unprojY(pad); // margines podany w pikselach ekranu
     return x>exitZone.x-pad && x<exitZone.x+exitZone.w+pad && y>exitZone.y-padY && y<exitZone.y+exitZone.h+padY;
   }
+  // Miejsce nadaje się na kosz, gdy da się do niego podejść, nie wchodzi
+  // na inny kosz i nie blokuje wyjścia.
+  function binSpotOk(x,y){
+    return !tooCloseToExit(x,y)
+        && !pointInObstacle(x,y,22)
+        && !bins.some(bn=>viewDist(bn.x,bn.y,x,y)<70);
+  }
+  // losowe miejsce na mapie; przy rowie z pominięciem jezdni i chodnika
+  function randomBinSpot(margin){
+    const y = unprojY(150)+Math.random()*(WORLD_H-unprojY(260));
+    let x = margin+Math.random()*(WORLD_W-margin*2);
+    if(currentMapId==='row'){
+      const kc = rowKeepClear();
+      const leftMax = Math.max(margin, kc.x);
+      const rightMin = Math.min(WORLD_W-margin, kc.x+kc.w);
+      x = Math.random()<0.5 ? margin+Math.random()*(leftMax-margin)
+                            : rightMin+Math.random()*(WORLD_W-margin-rightMin);
+    }
+    return { x:x, y:y };
+  }
   function spawnBins(){
     const cfg = BIN_CONFIG[currentMapId] || BIN_CONFIG.row;
     const margin=60;
     for(let i=0;i<cfg.count;i++){
-      let x,y;
+      let spot=null;
       if(currentMapId==='row' && bushes.length){
-        let tries=0, b;
-        do{ b = bushes[Math.floor(Math.random()*bushes.length)]; tries++; }
-        while(tooCloseToExit(b.x,b.y,50) && tries<10);
-        x = b.x + (Math.random()-0.5)*26; y = b.y + (Math.random()-0.5)*unprojY(26);
-        if(tooCloseToExit(x,y)) y += exitZone.h+unprojY(50);
-      } else {
-        let tries=0;
-        do{ x=margin+Math.random()*(WORLD_W-margin*2); y=unprojY(150)+Math.random()*(WORLD_H-unprojY(260)); tries++; }
-        while((bins.some(bn=>viewDist(bn.x,bn.y,x,y)<70) || tooCloseToExit(x,y) || pointInObstacle(x,y,22)) && tries<25);
+        // Przy rowie kosze stoją w krzakach — ale krzak potrafi zostać
+        // przykryty żywopłotem albo autem i wtedy kosza nie da się
+        // opróżnić, a bez kompletu koszy przepada awans. Dlatego losujemy
+        // POZYCJĘ, nie sam krzak, i sprawdzamy ją tak samo jak wszędzie.
+        for(let t=0;t<30 && !spot;t++){
+          const b = bushes[Math.floor(Math.random()*bushes.length)];
+          const c = { x:b.x + (Math.random()-0.5)*26, y:b.y + (Math.random()-0.5)*unprojY(26) };
+          if(binSpotOk(c.x,c.y)) spot=c;
+        }
       }
-      bins.push({ x,y, searched:false, empty:false, tapsNeeded:tapsNeededBase()+Math.floor(Math.random()*3), tapsDone:0, shakeTimer:0, bob:Math.random()*Math.PI*2 });
+      // ścieżka wspólna, a przy rowie zarazem awaryjna, gdy w krzakach
+      // zabrakło wolnego miejsca
+      for(let t=0;t<40 && !spot;t++){
+        const c = randomBinSpot(margin);
+        if(binSpotOk(c.x,c.y)) spot=c;
+      }
+      // ostatnia deska ratunku: odpuszczamy odstęp od innych koszy,
+      // ale NIGDY to, że da się do kosza podejść
+      for(let t=0;t<200 && !spot;t++){
+        const c = randomBinSpot(margin);
+        if(!tooCloseToExit(c.x,c.y) && !pointInObstacle(c.x,c.y,22)) spot=c;
+      }
+      if(!spot) spot = { x:WORLD_W/2, y:WORLD_H-unprojY(140) };
+      bins.push({ x:spot.x, y:spot.y, searched:false, empty:false, tapsNeeded:tapsNeededBase()+Math.floor(Math.random()*3), tapsDone:0, shakeTimer:0, bob:Math.random()*Math.PI*2 });
     }
   }
   function spawnItem(initial){
@@ -1751,10 +1806,10 @@
     let x = margin+Math.random()*(WORLD_W-margin*2);
     let y = unprojY(130)+Math.random()*(WORLD_H-unprojY(230));
     if(currentMapId==='row'){
-      // butelki leżą w rowie, nie na asfalcie
-      const roadHalf=95;
-      const leftMax = Math.max(margin, WORLD_W/2-roadHalf);
-      const rightMin = Math.min(WORLD_W-margin, WORLD_W/2+roadHalf);
+      // butelki leżą w rowie, nie na asfalcie i nie na chodniku
+      const kc = rowKeepClear();
+      const leftMax = Math.max(margin, kc.x);
+      const rightMin = Math.min(WORLD_W-margin, kc.x+kc.w);
       x = Math.random()<0.5 ? margin+Math.random()*(leftMax-margin) : rightMin+Math.random()*(WORLD_W-margin-rightMin);
     }
     if(tooCloseToExit(x,y)) y = exitZone.y+exitZone.h+unprojY(30+Math.random()*40);
@@ -2030,8 +2085,11 @@
       // nie zastawiaj wyjścia ani startu gracza
       if(rectsOverlap(cand,{x:exitZone.x-45,y:exitZone.y-unprojY(45),w:exitZone.w+90,h:exitZone.h+unprojY(90)})) continue;
       if(rectsOverlap(cand,{x:WORLD_W/2-90,y:WORLD_H-unprojY(190),w:180,h:unprojY(190)})) continue;
-      // na "Rowie" nie stawiaj nic na jezdni
-      if(currentMapId==='row' && rectsOverlap(cand,{x:WORLD_W/2-100,y:0,w:200,h:WORLD_H})) continue;
+      // na "Rowie" nie stawiaj nic na jezdni ani na chodniku
+      if(currentMapId==='row'){
+        const kc = rowKeepClear();
+        if(rectsOverlap(cand,{x:kc.x,y:0,w:kc.w,h:WORLD_H})) continue;
+      }
       if(obstacles.some(o=>rectsOverlap(cand,{x:o.x-26,y:o.y-unprojY(26),w:o.w+52,h:o.h+unprojY(52)}))) continue;
       obstacles.push(cand);
     }
@@ -2106,17 +2164,36 @@
     npcSpawnTimer -= dt;
     if(npcs.length < cfg.npcCount && npcSpawnTimer<=0){
       npcSpawnTimer = 1+Math.random()*2;
-      npcs.push({ x:Math.random()*WORLD_W, y:unprojY(150)+Math.random()*(WORLD_H-unprojY(260)), vx:(Math.random()<0.5?-1:1)*cfg.wander, vy:(Math.random()<0.5?-1:1)*cfg.wander*VIEW_UNTILT, vision:cfg.vision, alert:false, emoji:cfg.emojis[Math.floor(Math.random()*cfg.emojis.length)] });
+      const lane = cfg.lane ? sidewalkRect() : null;
+      // każdy przechodzień trzyma swój własny tor na płycie, żeby po
+      // powrocie z pościgu nie zbijali się w jedną kupkę
+      const laneOff = lane ? 10+Math.random()*(lane.w-20) : 0;
+      npcs.push({
+        laneOff: laneOff,
+        x: lane ? lane.x+laneOff : Math.random()*WORLD_W,
+        y: unprojY(150)+Math.random()*(WORLD_H-unprojY(260)),
+        vx: lane ? 0 : (Math.random()<0.5?-1:1)*cfg.wander,
+        vy: (Math.random()<0.5?-1:1)*cfg.wander*VIEW_UNTILT,
+        vision:cfg.vision, alert:false, lane:!!lane,
+        emoji:cfg.emojis[Math.floor(Math.random()*cfg.emojis.length)] });
     }
     let detected=false;
     npcs.forEach(n=>{
       const d=viewDist(player.x,player.y,n.x,n.y);
       // wzrok nie przechodzi przez przeszkody, ale HAŁAS owszem —
       // dlatego stukanie w kosz za murkiem i tak może Cię zdradzić.
-      const seen = d < n.vision && hasLineOfSight(n.x, n.y, player.x, player.y);
+      // Krzak zasłania Cię przed wzrokiem — ale nie przed uchem. Stukanie
+      // w kosz schowany w krzaku i tak ściąga przechodniów z chodnika.
+      const seen = !player.hidden && d < n.vision && hasLineOfSight(n.x, n.y, player.x, player.y);
       const heard = d < player.noiseRadius;
-      if(seen || heard) n.alert=true;
-      else if(d > n.vision*1.6) n.alert=false;
+      if(seen || heard){ n.alert=true; n.lost=0; }
+      else if(n.alert){
+        // Sąsiad nie jest psem gończym. Gdy Cię zgubi z oczu i z uszu,
+        // po chwili odpuszcza i wraca do swoich spraw — dzięki temu murek
+        // albo krzak faktycznie ratuje sytuację, a nie tylko ją odracza.
+        n.lost = (n.lost||0) + dt;
+        if(n.lost > 2.5 || d > n.vision*1.6) n.alert=false;
+      }
       if(n.alert){
         const dx=player.x-n.x, dy=(player.y-n.y)*VIEW_TILT, dist=Math.hypot(dx,dy)||1;
         const nx=n.x+(dx/dist)*cfg.chase*dt, ny=n.y+(dy/dist)*cfg.chase*dt*VIEW_UNTILT;
@@ -2124,6 +2201,14 @@
         if(!pointInObstacle(nx, n.y, 8)) n.x=nx;
         if(!pointInObstacle(n.x, ny, 8)) n.y=ny;
         detected = detected || seen;
+      } else if(n.lane){
+        // przechodzień wraca na chodnik i idzie wzdłuż niego — po pościgu
+        // sam znajduje drogę z powrotem na płytę
+        const lane = sidewalkRect(), cx = lane.x + n.laneOff;
+        n.x += Math.max(-1, Math.min(1, (cx-n.x)/20)) * cfg.wander * 0.7 * dt;
+        const ny = n.y + n.vy*dt;
+        if(pointInObstacle(n.x, ny, 8)) n.vy*=-1; else n.y=ny;
+        if(n.y<unprojY(130)||n.y>WORLD_H-unprojY(30)) n.vy*=-1;
       } else {
         const nx=n.x+n.vx*dt, ny=n.y+n.vy*dt;
         if(pointInObstacle(nx, n.y, 8)) n.vx*=-1; else n.x=nx;
@@ -2418,6 +2503,22 @@
     // przerywana linia środkowa — odstępy mierzone na ekranie
     ctx.fillStyle='rgba(255,255,255,0.65)';
     for(let y=-((elapsedSinceStart*70)%90); y<bottom; y+=90){ ctx.fillRect(WORLD_W/2-3,y,6,44); }
+    drawSidewalk(bottom);
+  }
+  function drawSidewalk(bottom){
+    const sw = sidewalkRect();
+    // krawężnik — wąski próg między asfaltem a terenem przechodniów
+    ctx.fillStyle='#CFC7B4'; ctx.fillRect(sw.x-7, 0, 7, bottom);
+    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.fillRect(sw.x-8, 0, 2, bottom);
+    // płyta chodnikowa
+    const g=ctx.createLinearGradient(sw.x,0,sw.x+sw.w,0);
+    g.addColorStop(0,'#BDB6A6'); g.addColorStop(0.5,'#C9C2B1'); g.addColorStop(1,'#B2AB9C');
+    ctx.fillStyle=g; ctx.fillRect(sw.x, 0, sw.w, bottom);
+    ctx.strokeStyle='rgba(60,54,40,0.18)'; ctx.lineWidth=1.4;
+    for(let y=0; y<bottom; y+=26){ ctx.beginPath(); ctx.moveTo(sw.x,y); ctx.lineTo(sw.x+sw.w,y); ctx.stroke(); }
+    ctx.beginPath(); ctx.moveTo(sw.x+sw.w/2,0); ctx.lineTo(sw.x+sw.w/2,bottom); ctx.stroke();
+    ctx.strokeStyle='rgba(0,0,0,0.20)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(sw.x+sw.w,0); ctx.lineTo(sw.x+sw.w,bottom); ctx.stroke();
   }
   function drawBush(b){
     ctx.save(); ctx.translate(b.x, projY(b.y));
@@ -2629,8 +2730,10 @@
     npcs.forEach(n=>{
       const ny=projY(n.y);
       const g=ctx.createRadialGradient(n.x,ny,n.vision*0.45,n.x,ny,n.vision);
-      if(n.alert){ g.addColorStop(0,'rgba(255,93,58,0.16)'); g.addColorStop(1,'rgba(255,93,58,0.02)'); }
-      else { g.addColorStop(0,'rgba(255,215,0,0.09)'); g.addColorStop(1,'rgba(255,215,0,0.01)'); }
+      // na jasnym chodniku słaba poświata ginie, a przy rowie trzeba
+      // widzieć, dokąd sięga wzrok przechodnia
+      if(n.alert){ g.addColorStop(0,'rgba(255,93,58,0.20)'); g.addColorStop(1,'rgba(255,93,58,0.03)'); }
+      else { g.addColorStop(0,'rgba(255,215,0,0.13)'); g.addColorStop(1,'rgba(255,215,0,0.02)'); }
       ctx.fillStyle=g; ctx.beginPath(); ctx.arc(n.x,ny,n.vision,0,Math.PI*2); ctx.fill();
     });
   }
