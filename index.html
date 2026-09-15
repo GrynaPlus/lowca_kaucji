@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Łowca Kaucji</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -36,12 +36,12 @@
      --tg-content wysokość samego paska Telegrama pod notchem,
      --tg-header  suma obu, czyli dokąd sięga cudzy interfejs.
      Domyślne wartości odpowiadają zachowaniu sprzed pomiarów. */
-  :root{--tg-safe:0px;--tg-content:50px;--tg-header:50px;}
+  :root{--tg-safe:0px;--tg-content:0px;--tg-header:0px;--hud-y:6px;}
   #safeProbe{position:absolute;top:0;left:0;width:0;padding-top:env(safe-area-inset-top);visibility:hidden;pointer-events:none;}
+  #safeProbeB{position:absolute;top:0;left:0;width:0;padding-top:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none;}
   .hud{position:absolute;top:0;left:0;right:0;pointer-events:none;z-index:5;}
   /* wyśrodkowane w luce paska Telegrama */
-  .hud-top{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;
-    top:calc(var(--tg-safe) + (var(--tg-content) - 32px)/2);}
+  .hud-top{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;top:var(--hud-y);}
   .hud-bottom{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:7px;z-index:5;pointer-events:none;}
   /* pigułki leżą teraz w poziomie — niższe, więc mniej zasłaniają */
   .pill{background:linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,243,214,0.94));color:var(--ink);border-radius:13px;padding:4px 10px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;box-shadow:0 3px 0 rgba(0,0,0,0.18);display:flex;flex-direction:row;align-items:baseline;gap:5px;line-height:1.15;border:2.5px solid var(--ink);white-space:nowrap;}
@@ -78,9 +78,16 @@
      linear-gradient(180deg, var(--bg-sky-a), var(--bg-sky-b));}
   .menu-app{display:flex;flex-direction:column;width:100%;height:100%;max-width:480px;margin:0 auto;color:var(--ink);}
   /* --- Górny pasek HUD: pełnej szerokości, niebieski --- */
-  .menu-logo{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--tg-safe) + (var(--tg-content) - 30px)/2);display:flex;align-items:baseline;gap:5px;padding:4px 12px;border-radius:12px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:2.5px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.22);font-family:'Fredoka',sans-serif;font-weight:700;line-height:1;white-space:nowrap;pointer-events:none;z-index:2;}
-  .menu-logo .lg-a{font-size:13px;color:var(--ink);}
-  .menu-logo .lg-b{font-size:13px;color:var(--gold-dark);}
+  /* Logo jak naklejka: gruby kontur, lekki przechył i twardy cień pod
+     spodem. Bez ramki i tła — plakietka wyglądała jak element interfejsu,
+     a nie jak znak gry. */
+  .menu-logo{position:absolute;left:50%;top:var(--hud-y);transform:translateX(-50%) rotate(-2.5deg);display:flex;align-items:baseline;gap:6px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:20px;line-height:1.15;letter-spacing:.6px;white-space:nowrap;pointer-events:none;z-index:2;}
+  .menu-logo span{text-shadow:
+     -2.4px 0 0 var(--ink), 2.4px 0 0 var(--ink), 0 -2.4px 0 var(--ink), 0 2.4px 0 var(--ink),
+     -1.8px -1.8px 0 var(--ink), 1.8px -1.8px 0 var(--ink), -1.8px 1.8px 0 var(--ink), 1.8px 1.8px 0 var(--ink),
+     0 5px 0 rgba(0,0,0,0.30);}
+  .menu-logo .lg-a{color:#FFFFFF;}
+  .menu-logo .lg-b{color:var(--gold);}
   .menu-topbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:7px;padding:var(--tg-header) 10px 8px;background:linear-gradient(180deg,#2E9BE0,#1E7DBF);border-bottom:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
   .avatar-tile{position:relative;width:50px;height:50px;flex-shrink:0;border-radius:14px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .avatar-tile .av{font-size:26px;line-height:1;}
@@ -241,7 +248,7 @@
 <div id="game-wrap">
   <canvas id="c"></canvas>
 
-  <span id="safeProbe"></span>
+  <span id="safeProbe"></span><span id="safeProbeB"></span>
 
   <!-- Pasek Telegrama (Zamknij po lewej, ⌄ ⋯ po prawej) ma wolne miejsce
        POŚRODKU. Łup wchodzi dokładnie w tę lukę, zamiast spychać całą grę
@@ -748,6 +755,7 @@
      zgadywać, i NIC z rozgrywki nie ląduje wyżej — wcześniej wyjście, kosze
      i butelki potrafiły schować się pod napisami. */
   let UI_TOP = 108;
+  let UI_BOTTOM = 0;   // pasek gestów na dole ekranu
   let HORIZON = 108;                 // linia horyzontu = dolna krawędź pasa UI
   // górna krawędź terenu gry, w świecie
   function playTop(){ return unprojY(UI_TOP); }
@@ -789,15 +797,35 @@
     const root = document.documentElement.style;
     const probe = document.getElementById('safeProbe');
     let safe = probe ? Math.round(probe.getBoundingClientRect().height) : 0;
-    let content = 50;
+    let content = 0;
     if(TG){
       if(TG.safeAreaInset && typeof TG.safeAreaInset.top === 'number') safe = Math.max(safe, Math.round(TG.safeAreaInset.top));
       const c = TG.contentSafeAreaInset && TG.contentSafeAreaInset.top;
       if(typeof c === 'number' && c > 0) content = Math.round(c);
+      // Starsze klienty nie mają contentSafeAreaInset (Bot API 7.7+), a zdarza
+      // się też, że przychodzi dopiero po chwili. Zapasowe liczby są zdjęte
+      // z realnego iPhone'a: pasek Telegrama kończy się tam ~91 px od góry.
+      if(!content) content = 44;
+      if(!safe) safe = 24;   // Android: sam status bar, bez wcięcia na notch
+    } else {
+      content = 36;          // podgląd w przeglądarce: pasek na logo i łup
     }
+    // Pozycję logo i pigułki z łupem liczymy tu, a nie w CSS — jedna liczba
+    // w pikselach zamiast calc() z max(), które nie wszędzie działa tak samo.
+    const hudY = Math.max(4, safe + Math.round((content - 30)/2));
     root.setProperty('--tg-safe', safe+'px');
     root.setProperty('--tg-content', content+'px');
     root.setProperty('--tg-header', (safe+content)+'px');
+    root.setProperty('--hud-y', hudY+'px');
+  }
+  // Telegram potrafi podać wcięcia dopiero po starcie i zmienić je przy
+  // obrocie ekranu — wtedy przeliczamy układ. W trakcie wyprawy ruszamy tylko
+  // interfejsem, bo resize() przegenerowałby teren pod graczem.
+  function watchTelegramInsets(){
+    if(!TG || !TG.onEvent) return;
+    ['safeAreaChanged','contentSafeAreaChanged','viewportChanged'].forEach(ev=>{
+      try{ TG.onEvent(ev, ()=>{ applyTelegramHeader(); if(state!=='playing') resize(); }); }catch(e){}
+    });
   }
   function measureUiTop(){
     let bottom = 0;
@@ -813,6 +841,8 @@
     W=canvas.clientWidth=window.innerWidth; H=canvas.clientHeight=window.innerHeight;
     canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
     applyTelegramHeader();
+    const probeB = document.getElementById('safeProbeB');
+    UI_BOTTOM = probeB ? Math.round(probeB.getBoundingClientRect().height) : 0;
     UI_TOP = measureUiTop();
     HORIZON = UI_TOP;
     WORLD_W = Math.round(W*1.45);
@@ -2891,10 +2921,13 @@
     if(state!=='playing') return;
     const ex = exitZone.x+exitZone.w/2, ey = exitZone.y+exitZone.h/2;
     const sx = ex-cam.x, sy = projY(ey)-cam.y;
-    if(sx>10 && sx<W-10 && sy>10 && sy<H-10) return; // wyjście widać, strzałka zbędna
-    const cx=W/2, cy=H/2;
+    // „widać wyjście" znaczy: widać je POD paskiem interfejsu, nie za nim
+    if(sx>10 && sx<W-10 && sy>UI_TOP && sy<H-UI_BOTTOM-10) return;
+    // elipsa liczona od środka WIDOCZNEGO kadru — inaczej przy wyjściu na
+    // wprost strzałka lądowała pod paskiem przypału
+    const cx=W/2, cy=UI_TOP+(H-UI_TOP-UI_BOTTOM)/2;
     const ang=Math.atan2(sy-cy, sx-cx);
-    const rx=W/2-46, ry=H/2-92;
+    const rx=W/2-46, ry=Math.max(60,(H-UI_TOP-UI_BOTTOM)/2-46);
     const ax=cx+Math.cos(ang)*rx, ay=cy+Math.sin(ang)*ry;
     ctx.save();
     ctx.translate(ax,ay); ctx.rotate(ang);
@@ -2913,7 +2946,7 @@
     // minimapa pokazuje świat tak, jak go widać — czyli już po rzucie
     const worldPH=projY(WORLD_H);
     const mw=62, mh=Math.round(mw*(worldPH/WORLD_W));
-    const mx=W-mw-14, my=H-mh-16;
+    const mx=W-mw-14, my=H-mh-16-UI_BOTTOM;
     const sx=mw/WORLD_W, sy=mh/worldPH;
     ctx.save();
     ctx.globalAlpha=0.9;
@@ -3249,6 +3282,7 @@
   (async function boot(){
     player.x=WORLD_W/2; player.y=WORLD_H-90;
     initTelegram();
+    watchTelegramInsets();
     resize();            // Telegram zdążył już podać swoje wymiary
     if(isDesktopTelegram()){
       document.getElementById('startOverlay').classList.add('hidden');
