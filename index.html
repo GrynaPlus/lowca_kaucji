@@ -78,7 +78,10 @@
      linear-gradient(180deg, var(--bg-sky-a), var(--bg-sky-b));}
   .menu-app{display:flex;flex-direction:column;width:100%;height:100%;max-width:480px;margin:0 auto;color:var(--ink);}
   /* --- Górny pasek HUD: pełnej szerokości, niebieski --- */
-  .menu-topbar{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:var(--tg-header) 10px 8px;background:linear-gradient(180deg,#2E9BE0,#1E7DBF);border-bottom:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
+  .menu-logo{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--tg-safe) + (var(--tg-content) - 30px)/2);display:flex;align-items:baseline;gap:5px;padding:4px 12px;border-radius:12px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:2.5px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.22);font-family:'Fredoka',sans-serif;font-weight:700;line-height:1;white-space:nowrap;pointer-events:none;z-index:2;}
+  .menu-logo .lg-a{font-size:13px;color:var(--ink);}
+  .menu-logo .lg-b{font-size:13px;color:var(--gold-dark);}
+  .menu-topbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:7px;padding:var(--tg-header) 10px 8px;background:linear-gradient(180deg,#2E9BE0,#1E7DBF);border-bottom:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
   .avatar-tile{position:relative;width:50px;height:50px;flex-shrink:0;border-radius:14px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .avatar-tile .av{font-size:26px;line-height:1;}
   .top-chip{flex:1;min-width:0;display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#1668A8,#10537F);border:2.5px solid var(--ink);box-shadow:inset 0 2px 4px rgba(0,0,0,0.3);border-radius:16px;padding:7px 10px;}
@@ -111,21 +114,17 @@
 
   /* --- Scena z karuzelą map i bocznymi kolumnami przycisków --- */
   .stage{position:relative;padding:6px 0 2px;margin-bottom:10px;}
-  .side-rail{position:absolute;top:4px;display:flex;flex-direction:column;gap:12px;z-index:3;}
-  .side-rail.left{left:0;}
-  .side-rail.right{right:0;}
-  .rail-btn{position:relative;width:48px;background:none;border:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;}
-  .rail-btn .ic{width:48px;height:48px;border-radius:50%;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.22);display:flex;align-items:center;justify-content:center;font-size:21px;transition:transform .12s ease;}
-  .rail-btn:active .ic{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,0.22);}
-  .rail-btn.on .ic{background:linear-gradient(180deg,#FFE59A,var(--gold));border-color:var(--gold-dark);}
   .rail-lbl{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:800;color:#fff;text-shadow:-1.2px 0 0 var(--ink),1.2px 0 0 var(--ink),0 -1.2px 0 var(--ink),0 1.2px 0 var(--ink);}
 
-  .map-stage{padding:0 54px;}
-  .map-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:9px;}
+  .map-stage{padding:0;}
+  .map-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:9px;margin-bottom:6px;}
   .map-nav{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.22);color:var(--ink);font-family:'Fredoka',sans-serif;font-weight:700;font-size:20px;line-height:0;cursor:pointer;padding:0;}
   .map-nav:disabled{opacity:0.35;cursor:default;}
   .map-card{width:100%;background:linear-gradient(180deg,#FFFFFF,#FFF6DE);border:4px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 rgba(0,0,0,0.2);padding:9px 9px 11px;text-align:center;}
-  .map-scene{position:relative;width:100%;aspect-ratio:220/140;border-radius:14px;overflow:hidden;border:3px solid var(--ink);margin-bottom:7px;background:#cfe8f7;}
+  /* Bez bocznych przycisków karta jest szersza, a przy sztywnych proporcjach
+     obrazek rósł razem z nią i na 360x640 spychał GRAJ pod pasek zakładek.
+     Limit wysokości trzyma kartę w ryzach niezależnie od szerokości ekranu. */
+  .map-scene{position:relative;width:100%;aspect-ratio:320/128;max-height:min(160px,21vh);border-radius:14px;overflow:hidden;border:3px solid var(--ink);margin-bottom:7px;background:#cfe8f7;}
   .map-scene svg{display:block;width:100%;height:100%;}
   .map-scene.locked svg{filter:grayscale(0.75) brightness(0.72);}
   .scene-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;text-shadow:0 3px 6px rgba(0,0,0,0.5);}
@@ -266,7 +265,7 @@
   <!-- rzeczy, bez których da się grać, schodzą na dół: tam gracz i tak
        już był, a góra zostaje wolna na to, co dopiero nadjeżdża -->
   <div class="hud-bottom">
-    <button class="icon-btn" id="profileBtnGame" title="Profil">👤</button>
+    <button class="icon-btn" id="pauseBtn" title="Przerwa">⏸️</button>
     <button class="icon-btn" id="muteBtn" title="Dźwięk">🔊</button>
     <div class="pill mini"><span class="label">ENERGIA</span><span class="value" id="energyHudVal">3/3</span></div>
   </div>
@@ -286,6 +285,9 @@
   <div class="overlay" id="startOverlay">
     <div class="menu-app">
       <div class="menu-topbar">
+        <!-- ta sama luka między „Zamknij" a „⌄ ⋯", w której podczas gry
+             siedzi ŁUP — w menu jest wolna, więc wchodzi tu logo -->
+        <div class="menu-logo"><span class="lg-a">ŁOWCA</span><span class="lg-b">KAUCJI</span></div>
         <div class="avatar-tile" id="profileStripStart" role="button" tabindex="0">
           <span class="av" id="avatarDisplayStart">🧢</span>
         </div>
@@ -311,15 +313,6 @@
         <!-- ZAKŁADKA: GRAJ -->
         <div class="tab-panel" id="tabGraj">
           <div class="stage">
-            <div class="side-rail left">
-              <button class="rail-btn" data-panel="panelGoals"><span class="ic">🎯</span><span class="rail-lbl">Cele</span></button>
-              <button class="rail-btn" data-panel="panelLevel"><span class="ic">🧹</span><span class="rail-lbl">Poziom</span></button>
-            </div>
-            <div class="side-rail right">
-              <button class="rail-btn" id="railTasks"><span class="ic">📋</span><span class="rail-lbl">Zadania</span></button>
-              <button class="rail-btn" id="railShare"><span class="ic">📢</span><span class="rail-lbl">Podziel</span></button>
-            </div>
-
             <div class="map-stage">
               <div class="map-card" id="mapCard">
                 <!-- renderMapSelector nadpisuje wnętrze karty, więc przycisk
@@ -337,7 +330,7 @@
             </div>
           </div>
 
-          <div class="info-panel hidden" id="panelGoals">
+          <div class="info-panel" id="panelGoals">
             <div class="t-title">🎯 Cele tej mapy</div>
             <div id="goalsListStart"></div>
             <div class="legend">
@@ -348,7 +341,7 @@
             </div>
           </div>
 
-          <div class="info-panel hidden" id="panelLevel">
+          <div class="info-panel" id="panelLevel">
             <div class="t-title">🧹 Poziom mapy</div>
             <div id="mapLevelInfo" style="font-size:11px;color:#5C4522;line-height:1.5;"></div>
           </div>
@@ -417,6 +410,18 @@
   </div>
 
   <!-- CAUGHT -->
+  <!-- Ten przycisk był wcześniej profilem i jedno dotknięcie wyrzucało
+       z wyprawy razem z całym łupem, bez ostrzeżenia. Teraz zatrzymuje grę
+       i pyta, zanim cokolwiek przepadnie. -->
+  <div class="overlay hidden" id="pauseOverlay">
+    <div class="card">
+      <h1 style="font-size:24px;">⏸️ Przerwa</h1>
+      <p class="sub">W plecaku masz <b id="pauseLoot">0,00 zł</b>.<br>Jeśli teraz wyjdziesz, łup przepadnie.</p>
+      <button class="primary" id="resumeBtn">WRACAM DO GRY</button>
+      <button class="secondary danger" id="quitRunBtn">Zakończ wyprawę i wróć do menu</button>
+    </div>
+  </div>
+
   <div class="overlay hidden" id="caughtOverlay">
     <div class="card">
       <h1 style="color:#FF6B5C;">PRZYPAŁ 100%!</h1>
@@ -962,7 +967,7 @@
     const bottle = (x,y,sc)=>`<g transform="translate(${x},${y}) scale(${sc})" stroke="${ink}" stroke-width="2.2" stroke-linejoin="round">
       <path d="M-4 10 L-4 -2 L-2 -7 L-2 -11 L2 -11 L2 -7 L4 -2 L4 10 Z" fill="#3FA9F5"/></g>`;
 
-    return `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+    return `<svg viewBox="0 0 220 140" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax slice">
       <defs>
         <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="${s1}"/><stop offset="100%" stop-color="${s2}"/>
@@ -1727,7 +1732,6 @@
     btn.addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab(btn.dataset.tab); });
   });
   function openProfile(){ Sfx.click(); haptic('light'); refreshProfileUI(); switchTab('profil'); }
-  document.getElementById('profileBtnGame').addEventListener('click', openProfile);
   document.getElementById('profileStripStart').addEventListener('click', openProfile);
   document.getElementById('profileStripStart').addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openProfile(); } });
   document.getElementById('muteBtn').addEventListener('click', (e)=>{
@@ -1743,7 +1747,7 @@
   });
 
   function goToMenu(){
-    ['caughtOverlay','extractOverlay'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+    ['caughtOverlay','extractOverlay','pauseOverlay'].forEach(id=>document.getElementById(id).classList.add('hidden'));
     state='idle';
     refreshProfileUI();
     switchTab('graj');
@@ -3010,6 +3014,22 @@
   function loop(now){ const dt=Math.min(0.033,(now-last)/1000); last=now; update(dt); draw(); requestAnimationFrame(loop); }
   requestAnimationFrame(loop);
 
+  /* Przerwa: update() i tak zaczyna od „if(state!=='playing') return", więc
+     samo przestawienie stanu zamraża cały świat — sąsiedzi, auta, przypał
+     i zegar wyprawy stoją. Rysowanie leci dalej, dzięki czemu pod okienkiem
+     widać zatrzymaną scenę. */
+  function pauseRound(){
+    if(state!=='playing') return;
+    state='paused';
+    document.getElementById('pauseLoot').textContent = fmt(loot);
+    document.getElementById('pauseOverlay').classList.remove('hidden');
+    Sfx.click(); haptic('light');
+  }
+  function resumeRound(){
+    document.getElementById('pauseOverlay').classList.add('hidden');
+    if(state==='paused'){ state='playing'; last=performance.now(); }
+    Sfx.click(); haptic('light');
+  }
   function tierMessage(v){
     if(v<2) return 'Ledwo starczy na gumę do żucia. Spróbuj jeszcze raz!';
     if(v<5) return 'Bilet na autobus się uzbierał — jedziesz na drugi koniec miasta.';
@@ -3167,6 +3187,7 @@
     document.getElementById('startOverlay').classList.add('hidden');
     document.getElementById('extractOverlay').classList.add('hidden');
     document.getElementById('caughtOverlay').classList.add('hidden');
+    document.getElementById('pauseOverlay').classList.add('hidden');
     resetGame(); state='playing'; roundsPlayed+=1;
     startTutorialIfNeeded();
     Music.start('game');
@@ -3184,35 +3205,13 @@
   });
   document.getElementById('mapPrev').addEventListener('click', ()=> moveStage(-1));
   document.getElementById('mapNext').addEventListener('click', ()=> moveStage(1));
-  document.querySelectorAll('.rail-btn[data-panel]').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const panel = document.getElementById(btn.dataset.panel);
-      if(!panel) return;
-      Sfx.click(); haptic('light');
-      const willShow = panel.classList.contains('hidden');
-      // tylko jeden panel naraz
-      document.querySelectorAll('.info-panel').forEach(p=>p.classList.add('hidden'));
-      document.querySelectorAll('.rail-btn[data-panel]').forEach(b=>b.classList.remove('on'));
-      if(willShow){
-        panel.classList.remove('hidden');
-        btn.classList.add('on');
-        // Panel otwiera się NIŻEJ, poza widokiem — bez tego przewinięcia
-        // wyglądało to tak, jakby przycisk nic nie robił.
-        requestAnimationFrame(()=>{
-          const box = panel.getBoundingClientRect();
-          const scroller = document.getElementById('menuScrollEl');
-          if(!scroller) return;
-          const view = scroller.getBoundingClientRect();
-          if(box.bottom > view.bottom || box.top < view.top){
-            scroller.scrollTo({ top: scroller.scrollTop + (box.top - view.top) - 8, behavior:'smooth' });
-          }
-        });
-      }
-    });
-  });
-  document.getElementById('railTasks').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('zadania'); });
-  document.getElementById('railShare').addEventListener('click', ()=>{ Sfx.click(); doShare(); });
   document.getElementById('burgerBtn').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('profil'); });
+  document.getElementById('pauseBtn').addEventListener('click', pauseRound);
+  document.getElementById('resumeBtn').addEventListener('click', resumeRound);
+  document.getElementById('quitRunBtn').addEventListener('click', ()=>{
+    document.getElementById('pauseOverlay').classList.add('hidden');
+    Sfx.click(); goToMenu();
+  });
   document.getElementById('againBtn').addEventListener('click', attemptStart);
   document.getElementById('menuBtnEnd').addEventListener('click', goToMenu);
 
