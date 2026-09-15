@@ -235,6 +235,45 @@
   .avatar-opt{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;background:var(--panel-2);border:2.5px solid var(--ink);border-radius:12px;padding:0;cursor:pointer;}
   .avatar-opt.selected{border-color:var(--gold-dark);background:var(--panel-3);box-shadow:0 3px 0 rgba(184,120,0,0.3);}
   input.nick-input{width:100%;font-family:'Fredoka',sans-serif;font-size:15px;background:#fff;border:2.5px solid var(--ink);border-radius:10px;color:var(--ink);padding:9px 12px;margin-bottom:14px;text-align:center;}
+  /* --- wór z kaucją i droga po nią --- */
+  .stash-box{display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#FFF6DE,#FFE9B8);border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 rgba(0,0,0,0.18);padding:10px 12px;margin-bottom:10px;}
+  .stash-box .sb-ic{font-size:26px;line-height:1;flex-shrink:0;}
+  .stash-box .sb-body{flex:1;min-width:0;text-align:left;}
+  .stash-box .sb-title{font-family:'Inter',sans-serif;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8A6A3A;}
+  .stash-box .sb-val{font-family:'Fredoka',sans-serif;font-weight:700;font-size:16px;color:var(--gold-dark);}
+  .sb-go{flex-shrink:0;font-family:'Fredoka',sans-serif;font-weight:700;font-size:11px;line-height:1.15;color:#5C3600;background:linear-gradient(180deg,#FFE59A 0%,#FFC93B 45%,#FFA700 100%);border:3px solid var(--gold-dark);border-radius:14px;box-shadow:0 4px 0 var(--gold-dark);padding:8px 10px;cursor:pointer;}
+  .sb-go:active{transform:translateY(3px);box-shadow:0 1px 0 var(--gold-dark);}
+  .sb-go:disabled{opacity:.45;cursor:default;}
+
+  /* .dep-shop, a nie .shop-row — ta druga nazwa należy już do sklepu
+     z ulepszeniami i moje style rozjechałyby tamte wiersze */
+  .dep-shop{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:linear-gradient(180deg,#FFFFFF,#FFF6DE);border:2.5px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 rgba(0,0,0,0.16);padding:9px 11px;margin-bottom:9px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .dep-shop:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,0.16);}
+  .dep-shop:disabled{opacity:.45;cursor:default;}
+  .dep-shop .r-ic{font-size:24px;flex-shrink:0;}
+  .dep-shop .r-name{font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;color:var(--ink);}
+  .dep-shop .r-meta{font-size:10px;font-weight:600;color:#8A6A3A;line-height:1.45;}
+  .dep-shop .r-tag{display:inline-block;font-size:9px;font-weight:800;padding:1px 5px;border-radius:6px;margin-right:4px;}
+  .tag-free{background:#CFE9C6;color:#2C6B1E;}
+  .tag-cost{background:#FFD9D9;color:#A32A2A;}
+  .tag-risk{background:#FFE0B2;color:#9A5B00;}
+
+  .dep-bar{height:14px;border-radius:8px;background:rgba(0,0,0,0.14);border:2px solid var(--ink);overflow:hidden;margin:10px 0 6px;}
+  .dep-fill{height:100%;width:0;background:linear-gradient(180deg,#FFE59A,var(--gold));transition:width .15s linear;}
+  .dep-note{font-size:11px;font-weight:600;color:#8A6A3A;line-height:1.5;}
+  .machine{margin:10px 0 4px;background:linear-gradient(180deg,#DCE6EE,#B9C8D6);border:3px solid var(--ink);border-radius:18px;box-shadow:inset 0 3px 8px rgba(0,0,0,0.2);padding:12px 12px 14px;}
+  .machine .m-slot{background:#2A3340;border:3px solid var(--ink);border-radius:10px;height:46px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#8FA3B8;overflow:hidden;}
+  .machine .m-count{font-family:'Fredoka',sans-serif;font-weight:700;font-size:20px;color:var(--ink);margin-top:8px;}
+  .machine .m-streak{font-family:'Fredoka',sans-serif;font-weight:700;font-size:12px;color:#B81E63;min-height:15px;}
+  .machine.jammed{background:linear-gradient(180deg,#FFD9D9,#F3B0B0);}
+  .tap-zone{width:100%;font-family:'Fredoka',sans-serif;font-weight:700;font-size:20px;color:#5C3600;background:linear-gradient(180deg,#FFE59A 0%,#FFC93B 45%,#FFA700 100%);border:3px solid var(--gold-dark);border-radius:18px;box-shadow:0 6px 0 var(--gold-dark);padding:16px;cursor:pointer;margin-top:8px;}
+  .tap-zone:active{transform:translateY(4px);box-shadow:0 2px 0 var(--gold-dark);}
+  .receipt{background:#FFFDF5;border:2.5px dashed var(--ink);border-radius:10px;padding:12px 10px;margin:10px 0;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--ink);line-height:1.7;}
+  .receipt .r-sum{font-family:'Fredoka',sans-serif;font-weight:700;font-size:24px;color:var(--gold-dark);}
+  .home-pick{display:flex;gap:8px;margin-top:10px;}
+  .home-pick button{flex:1;font-family:'Fredoka',sans-serif;font-weight:700;font-size:13px;color:var(--ink);background:linear-gradient(180deg,#FFFFFF,#FFF6DE);border:2.5px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 rgba(0,0,0,0.15);padding:9px 6px;cursor:pointer;}
+  .home-pick button.on{background:linear-gradient(180deg,#FFE59A,var(--gold));border-color:var(--gold-dark);box-shadow:0 4px 0 var(--gold-dark);}
+
   .build-stamp{margin-top:12px;text-align:center;font-family:'Inter',sans-serif;font-size:10px;font-weight:600;color:#A88F63;letter-spacing:.03em;}
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
   .stat-box{background:var(--panel-2);border:2px solid var(--ink);border-radius:10px;padding:8px;text-align:center;}
@@ -344,6 +383,15 @@
             </div>
           </div>
 
+          <div class="stash-box" id="stashBox">
+            <div class="sb-ic">🛍️</div>
+            <div class="sb-body">
+              <div class="sb-title">W worze</div>
+              <div class="sb-val" id="stashVal">0 szt. · 0,00 zł</div>
+            </div>
+            <button class="sb-go" id="stashBtn">ODDAJ<br>KAUCJĘ</button>
+          </div>
+
           <div class="info-panel" id="panelGoals">
             <div class="t-title">🎯 Cele tej mapy</div>
             <div id="goalsListStart"></div>
@@ -402,6 +450,12 @@
             <div class="stat-box"><div class="n" id="statPoints">0</div><div class="l">pkt w kodach</div></div>
             <div class="stat-box"><div class="n" id="statStreak">0</div><div class="l">dni z rzędu</div></div>
           </div>
+          <div class="t-title" style="margin-top:14px;">🏠 Gdzie mieszkasz?</div>
+          <div style="font-size:11px;font-weight:600;color:#8A6A3A;line-height:1.5;">Decyduje, jakie punkty skupu masz pod ręką, gdy oddajesz kaucję.</div>
+          <div class="home-pick" id="homePick">
+            <button data-home="miasto">🏙️ Miasto</button>
+            <button data-home="wies">🌾 Wieś</button>
+          </div>
           <div class="build-stamp" id="buildStamp"></div>
         </div>
 
@@ -428,6 +482,10 @@
   <!-- Ten przycisk był wcześniej profilem i jedno dotknięcie wyrzucało
        z wyprawy razem z całym łupem, bez ostrzeżenia. Teraz zatrzymuje grę
        i pyta, zanim cokolwiek przepadnie. -->
+  <div class="overlay hidden" id="returnOverlay">
+    <div class="card" id="returnCard"></div>
+  </div>
+
   <div class="overlay hidden" id="pauseOverlay">
     <div class="card">
       <h1 style="font-size:24px;">⏸️ Przerwa</h1>
@@ -455,6 +513,7 @@
       <div class="banner" id="levelBanner" style="background:var(--xp);">⭐ Awans na wyższy poziom!</div>
       <div class="banner" id="mapLevelBanner" style="background:var(--combo);"></div>
       <div class="result-amount" id="resultAmount">0,00 zł</div>
+      <p class="sub" style="margin:0 0 6px;">🛍️ trafia do wora — oddaj w sklepie, żeby zamienić na gotówkę</p>
       <p class="result-tier" id="resultTier"></p>
       <div class="tasks-box">
         <div class="t-title">🎯 Cele mapy</div>
@@ -1032,6 +1091,34 @@
   // Liczby dobrane pod ŚWIAT WIĘKSZY NIŻ EKRAN (ok. 2,9x powierzchni):
   // przy starych wartościach mapa byłaby pusta, a cel "opróżnij wszystkie
   // kosze" oznaczałby długi marsz po pustkowiu.
+  /* =========================================================
+     DROGA PO KAUCJĘ
+     Łup z wyprawy ląduje w worze, nie w portfelu. Żeby zamienić go na
+     gotówkę, trzeba dojść albo dojechać do punktu skupu, odstać swoje,
+     wrzucić butelki do butelkomatu i z paragonem pójść do kasy.
+
+     Wybór punktu to realny kompromis, a nie ozdoba: sklep pod nosem jest
+     darmowy i natychmiastowy, ale ma mały zasobnik i najczęściej bywa
+     pełny. Duży market weźmie wszystko, tylko kosztuje bilet i stoi się
+     tam najdłużej. Dlatego przy małym worze opłaca się rogówka, a przy
+     dużym trzeba zapłacić za dojazd.
+     ========================================================= */
+  const DEPOSIT_PER_ITEM = 0.5;
+  const HOMES = {
+    miasto: { label:'Miasto', note:'Sklep pod nosem, ale kolejki.', shops:[
+      { id:'rog',   icon:'🏪', name:'Sklep na rogu',    how:'2 min pieszo',     go:'Idziesz z worem...',  ticket:0, travel:1700, cap:30,  full:0.38, jam:0.10, reject:0.06, queue:[0,4] },
+      { id:'mark',  icon:'🛒', name:'Market w centrum', how:'12 min autobusem', go:'Jedziesz autobusem...', ticket:4, travel:2500, cap:120, full:0.16, jam:0.06, reject:0.04, queue:[2,7] },
+      { id:'hiper', icon:'🏬', name:'Hipermarket',      how:'20 min rowerem',   go:'Pedałujesz z worem...', ticket:7, travel:3100, cap:400, full:0.05, jam:0.04, reject:0.03, queue:[4,12] }
+    ]},
+    wies: { label:'Wieś', note:'Dalej do wszystkiego, za to spokojniej.', shops:[
+      { id:'spoz',  icon:'🏪', name:'Sklep spożywczy',  how:'5 min pieszo',     go:'Idziesz z worem...',  ticket:0, travel:2000, cap:20,  full:0.48, jam:0.12, reject:0.07, queue:[0,3] },
+      { id:'gmina', icon:'🛒', name:'Market w gminie',  how:'15 min autobusem', go:'Jedziesz autobusem...', ticket:6, travel:2800, cap:150, full:0.14, jam:0.06, reject:0.04, queue:[1,6] },
+      { id:'duzy',  icon:'🏬', name:'Market w mieście', how:'35 min autobusem', go:'Jedziesz do miasta...', ticket:9, travel:3400, cap:400, full:0.05, jam:0.03, reject:0.03, queue:[3,10] }
+    ]}
+  };
+  function homeKind(){ return HOMES[profile.home] || HOMES.miasto; }
+  function stashItems(){ return Math.round((profile.stash||0)/DEPOSIT_PER_ITEM); }
+
   const BIN_CONFIG = {
     osiedle:  { count:12, emptyChance:0.28 },
     miasto:   { count:15, emptyChance:0.35 },
@@ -1051,7 +1138,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-15 · 8';
+  const APP_VERSION = '2026-09-15 · 9';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -1427,7 +1514,9 @@
     totalEarned:0, gamesPlayed:0, grynaPoints:0, bestScore:0,
     energy:3, lastEnergyTs: Date.now(),
     streak:0, lastPlayDate:'', wallet:0, mapsOwned:['osiedle'], lastMapId:'osiedle',
-    mapProgress:{}, upgrades:{}, mapLevels:{}
+    mapProgress:{}, upgrades:{}, mapLevels:{},
+    stash:0,            // kaucja w worze — czeka na oddanie w sklepie
+    home:'miasto'       // decyduje, jakie punkty skupu masz pod ręką
   };
   function xpToNext(level){ return 80+(level-1)*40; }
   function energyMax(){ let m=3; if(profile.level>=5) m=4; if(profile.level>=10) m=5; return m; }
@@ -1551,6 +1640,9 @@
   function refreshProfileUI(){
     const stamp = document.getElementById('buildStamp');
     if(stamp) stamp.textContent = 'wersja ' + APP_VERSION;
+    document.querySelectorAll('#homePick button').forEach(b=>
+      b.classList.toggle('on', b.dataset.home === (profile.home||'miasto')));
+    renderStash();
     document.getElementById('avatarDisplayStart').textContent = profile.avatar;
     document.getElementById('nickDisplayStart').textContent = profile.nick;
     document.getElementById('lvlDisplayStart').textContent = profile.level;
@@ -1630,6 +1722,7 @@
     if(owned && currentMapId!==m.id){
       currentMapId=m.id; profile.lastMapId=m.id; saveProfile();
     }
+    renderStash();
     renderGoalsList('goalsListStart', m.id);
     renderMapLevelInfo();
     updatePlayButton();
@@ -1680,6 +1773,215 @@
   /* =========================================================
      SKLEP
      ========================================================= */
+
+  /* =========================================================
+     DROGA PO KAUCJĘ — maszyna stanów jednego okienka.
+     wybór punktu -> dojazd -> (problem) -> kolejka -> butelkomat
+     -> paragon -> kasa. Każdy krok podmienia wnętrze karty.
+     ========================================================= */
+  const Deposit = (function(){
+    let shop=null, toInsert=0, inserted=0, rejected=0, waits=0;
+    let jam=0, streak=0, lastTap=0, timer=null;
+    function card(){ return document.getElementById('returnCard'); }
+    function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+    function close(){
+      stop();
+      document.getElementById('returnOverlay').classList.add('hidden');
+      refreshProfileUI(); renderMapSelector();
+    }
+    function open(){
+      if(stashItems()<=0){ showToast('Wór pusty — najpierw przynieś butelki'); return; }
+      shop=null; inserted=0; rejected=0; waits=0; jam=0; streak=0;
+      document.getElementById('returnOverlay').classList.remove('hidden');
+      pickShop();
+    }
+
+    function pickShop(){
+      stop();
+      const items = stashItems();
+      let html = '<h1 style="font-size:22px;">🛍️ Gdzie oddajesz?</h1>'
+        + '<p class="sub">W worze masz <b>'+items+' szt.</b> — '+fmt(items*DEPOSIT_PER_ITEM)+'</p>';
+      homeKind().shops.forEach((sh,i)=>{
+        const stac = sh.cap < items;
+        const drogo = sh.ticket > profile.wallet;
+        html += '<button class="dep-shop" data-shop="'+i+'"'+(drogo?' disabled':'')+'>'
+          + '<span class="r-ic">'+sh.icon+'</span><span style="flex:1;min-width:0;">'
+          + '<span class="r-name">'+sh.name+'</span><br><span class="r-meta">'
+          + (sh.ticket ? '<span class="r-tag tag-cost">bilet '+sh.ticket+' zł</span>' : '<span class="r-tag tag-free">za darmo</span>')
+          + (sh.full>=0.3 ? '<span class="r-tag tag-risk">często pełny</span>' : '')
+          + '<br>'+sh.how+' · zasobnik na '+sh.cap+' szt.'
+          + (stac ? '<br><b>weźmie tylko '+sh.cap+' z '+items+'</b>' : '')
+          + (drogo ? '<br><b>brakuje na bilet</b>' : '')
+          + '</span></span></button>';
+      });
+      html += '<button class="secondary" data-act="close">Może później</button>';
+      card().innerHTML = html;
+      card().querySelectorAll('[data-shop]').forEach(b=>b.addEventListener('click', ()=>{
+        Sfx.click(); haptic('light');
+        shop = homeKind().shops[+b.dataset.shop];
+        if(shop.ticket){ profile.wallet = Math.max(0, profile.wallet - shop.ticket); saveProfile(); }
+        travel();
+      }));
+      card().querySelector('[data-act="close"]').addEventListener('click', ()=>{ Sfx.click(); close(); });
+    }
+
+    function travel(){
+      stop();
+      card().innerHTML = '<h1 style="font-size:22px;">'+shop.icon+' '+shop.go+'</h1>'
+        + '<p class="sub">'+shop.name+' · '+shop.how+'</p>'
+        + '<div class="dep-bar"><div class="dep-fill" id="depFill"></div></div>';
+      const t0 = performance.now();
+      timer = setInterval(()=>{
+        const f = Math.min(1,(performance.now()-t0)/shop.travel);
+        const el = document.getElementById('depFill'); if(el) el.style.width = (f*100)+'%';
+        if(f>=1){ stop(); arrive(); }
+      }, 40);
+    }
+
+    const PROBLEMS = [
+      { t:'Butelkomat przepełniony', d:'Zasobnik pełny po brzegi. Obsługa nie zdążyła go opróżnić.' },
+      { t:'Butelkomat nieczynny',    d:'Na szybie kartka: „Awaria, przepraszamy".' },
+      { t:'Skaner nie czyta kodów',  d:'Maszyna mruga i wypluwa każdą butelkę z powrotem.' }
+    ];
+    function arrive(){
+      const chance = shop.full / (1 + waits);
+      if(Math.random() < chance) problem(); else queue();
+    }
+    function problem(){
+      stop();
+      const pr = PROBLEMS[Math.floor(Math.random()*PROBLEMS.length)];
+      Sfx.empty(); hapticNotify('error');
+      card().innerHTML = '<h1 style="font-size:21px;">😖 '+pr.t+'</h1>'
+        + '<p class="sub">'+pr.d+'</p>'
+        + (waits<2 ? '<button class="primary" data-act="wait">Czekam 10 minut</button>' : '<p class="sub"><b>Czekanie nic nie daje, dziś już nie odpuści.</b></p>')
+        + '<button class="secondary" data-act="other">🚌 Jadę gdzie indziej</button>'
+        + '<button class="secondary danger" data-act="home">Wracam z worem</button>';
+      const w = card().querySelector('[data-act="wait"]');
+      // czekanie na miejscu, a nie powrót i kolejny dojazd
+      if(w) w.addEventListener('click', ()=>{
+        Sfx.click(); waits++;
+        card().innerHTML = '<h1 style="font-size:22px;">⏳ Czekasz...</h1>'
+          + '<p class="sub">Stoisz pod sklepem i liczysz na obsługę.</p>'
+          + '<div class="dep-bar"><div class="dep-fill" id="depFill"></div></div>';
+        const t0 = performance.now(), dur = 1600;
+        timer = setInterval(()=>{
+          const f = Math.min(1,(performance.now()-t0)/dur);
+          const el = document.getElementById('depFill'); if(el) el.style.width = (f*100)+'%';
+          if(f>=1){ stop(); arrive(); }
+        }, 40);
+      });
+      card().querySelector('[data-act="other"]').addEventListener('click', ()=>{ Sfx.click(); waits=0; pickShop(); });
+      card().querySelector('[data-act="home"]').addEventListener('click', ()=>{ Sfx.click(); close(); });
+    }
+
+    function queue(){
+      stop();
+      let left = shop.queue[0] + Math.floor(Math.random()*(shop.queue[1]-shop.queue[0]+1));
+      const draw = ()=>{
+        card().innerHTML = '<h1 style="font-size:22px;">🧍 Kolejka</h1>'
+          + '<p class="sub">'+shop.name+'</p>'
+          + '<div style="font-size:26px;letter-spacing:2px;min-height:34px;">'+(left>0?'🧍'.repeat(Math.min(left,8)):'✅')+'</div>'
+          + '<p class="sub">'+(left>0 ? 'Przed Tobą: <b>'+left+'</b>' : 'Twoja kolej!')+'</p>'
+          + (left>0 ? '<button class="secondary reward" data-act="skip">🎬 Obejrzyj reklamę → bez kolejki</button>' : '')
+          + '<button class="secondary danger" data-act="home">Odpuszczam, wracam z worem</button>';
+        const sk = card().querySelector('[data-act="skip"]');
+        if(sk) sk.addEventListener('click', ()=>{ Sfx.click(); stop(); Ads.showRewarded(()=>{ left=0; machine(); }, ()=>{}); });
+        card().querySelector('[data-act="home"]').addEventListener('click', ()=>{ Sfx.click(); close(); });
+      };
+      draw();
+      if(left<=0){ setTimeout(machine, 500); return; }
+      timer = setInterval(()=>{ left--; if(left<=0){ stop(); draw(); setTimeout(machine, 500); } else draw(); }, 1500);
+    }
+
+    function machine(){
+      stop();
+      const items = stashItems();
+      toInsert = Math.min(items, shop.cap);
+      inserted=0; rejected=0; jam=0; streak=0; lastTap=0;
+      card().innerHTML = '<h1 style="font-size:21px;">🫙 Butelkomat</h1>'
+        + (toInsert<items ? '<p class="sub">Zasobnik weźmie <b>'+toInsert+'</b> z '+items+' szt. Reszta zostaje w worze.</p>' : '<p class="sub">Wrzucasz '+toInsert+' szt., sztuka po sztuce.</p>')
+        + '<div class="machine" id="machBox"><div class="m-slot" id="machSlot">🫙</div>'
+        + '<div class="m-count" id="machCount">0 / '+toInsert+'</div>'
+        + '<div class="m-streak" id="machStreak"></div>'
+        + '<div class="dep-bar"><div class="dep-fill" id="machFill"></div></div></div>'
+        + '<button class="tap-zone" id="machTap">WRZUĆ BUTELKĘ</button>'
+        + '<p class="dep-note">Równe tempo = maszyna łyka po kilka naraz.</p>';
+      document.getElementById('machTap').addEventListener('click', tap);
+    }
+    function refreshMachine(msg){
+      const done = inserted+rejected;
+      document.getElementById('machCount').textContent = inserted+' / '+toInsert+' · '+fmt(inserted*DEPOSIT_PER_ITEM);
+      document.getElementById('machFill').style.width = (100*done/toInsert)+'%';
+      const st = document.getElementById('machStreak'); if(st) st.textContent = msg||'';
+      const box = document.getElementById('machBox'); if(box) box.classList.toggle('jammed', jam>0);
+      const slot = document.getElementById('machSlot');
+      if(slot) slot.textContent = jam>0 ? '⚠️' : (msg && msg.indexOf('Odrzuc')===0 ? '🚫' : '🍾');
+      const tapBtn = document.getElementById('machTap');
+      if(tapBtn) tapBtn.textContent = jam>0 ? 'STUKAJ SZYBKO!' : 'WRZUĆ BUTELKĘ';
+    }
+    function tap(){
+      if(jam>0){
+        jam--; Sfx.tap(); haptic('light');
+        refreshMachine(jam>0 ? 'Zacięcie! Stukaj...' : 'Odblokowane!');
+        return;
+      }
+      const now = performance.now(), gap = now-lastTap; lastTap = now;
+      if(lastTap && gap>110 && gap<460) streak++; else streak=0;
+      const batch = 1 + Math.min(3, Math.floor(streak/4));
+      let msg = batch>1 ? 'Tempo! ×'+batch : '';
+      for(let i=0;i<batch && inserted+rejected<toInsert;i++){
+        if(Math.random() < shop.reject){ rejected++; msg = 'Odrzucona — zgnieciona'; Sfx.empty(); }
+        else { inserted++; Sfx.bottle(); }
+        if(Math.random() < shop.jam/15){ jam = 5; msg = 'Zacięcie! Stukaj...'; streak=0; break; }
+      }
+      haptic('light');
+      refreshMachine(msg);
+      if(inserted+rejected>=toInsert && jam<=0) setTimeout(receipt, 450);
+    }
+
+    function receipt(){
+      stop();
+      const sum = inserted*DEPOSIT_PER_ITEM;
+      const left = stashItems() - toInsert;
+      card().innerHTML = '<h1 style="font-size:22px;">🧾 Paragon</h1>'
+        + '<div class="receipt">'+shop.name+'<br>przyjęto: <b>'+inserted+' szt.</b>'
+        + (rejected ? '<br>odrzucono: '+rejected+' szt.' : '')
+        + (shop.ticket ? '<br>bilet: −'+shop.ticket+' zł (zapłacone)' : '')
+        + '<br><br><span class="r-sum">'+fmt(sum)+'</span><br>do odbioru w kasie</div>'
+        + (left>0 ? '<p class="sub">W worze zostaje jeszcze <b>'+left+' szt.</b></p>' : '')
+        + '<button class="primary" data-act="cash">IDĘ DO KASY</button>';
+      card().querySelector('[data-act="cash"]').addEventListener('click', ()=>{ Sfx.click(); cashier(sum); });
+    }
+
+    async function cashier(sum){
+      stop();
+      card().innerHTML = '<h1 style="font-size:22px;">💰 Kasa</h1>'
+        + '<p class="sub">Podajesz paragon. Kasjerka odlicza gotówkę.</p>'
+        + '<div class="receipt"><span class="r-sum">'+fmt(sum)+'</span></div>'
+        + '<button class="primary" data-act="take">ODBIERAM '+fmt(sum).toUpperCase()+'</button>';
+      card().querySelector('[data-act="take"]').addEventListener('click', async ()=>{
+        profile.stash = Math.max(0, (profile.stash||0) - toInsert*DEPOSIT_PER_ITEM);
+        profile.wallet += sum;
+        Sfx.bank(); hapticNotify('success');
+        await saveProfile();
+        grynaPlusEvent('deposit_returned', { amount:Number(sum.toFixed(2)), items:inserted, shop:shop.id, profileNick:profile.nick });
+        close();
+        showToast('💰 +'+fmt(sum)+' w portfelu');
+      });
+    }
+
+    return { open: open, close: close };
+  })();
+
+  function renderStash(){
+    const box = document.getElementById('stashBox'); if(!box) return;
+    const items = stashItems();
+    document.getElementById('stashVal').textContent = items+' szt. · '+fmt(items*DEPOSIT_PER_ITEM);
+    const btn = document.getElementById('stashBtn');
+    if(btn) btn.disabled = items<=0;
+    box.style.opacity = items>0 ? '1' : '0.6';
+  }
+
   function renderShop(){
     const c = document.getElementById('shopList');
     if(!c) return;
@@ -1783,6 +2085,12 @@
     Music.setMuted(m);
     e.currentTarget.textContent = m ? '🔇' : '🔊';
   });
+  document.querySelectorAll('#homePick button').forEach(b=> b.addEventListener('click', async ()=>{
+    Sfx.click(); haptic('light');
+    profile.home = b.dataset.home;
+    await saveProfile(); refreshProfileUI();
+    showToast(profile.home==='wies' ? '🌾 Mieszkasz na wsi' : '🏙️ Mieszkasz w mieście');
+  }));
   document.getElementById('closeProfileBtn').addEventListener('click', async ()=>{
     const nick=document.getElementById('nickInput').value.trim();
     if(nick){ profile.nick=nick.slice(0,16); profile.nickSet=true; }
@@ -3170,7 +3478,10 @@
     Sfx.bank(); hapticNotify('success');
     const banked = loot; loot=0; lastBankedAmount=banked;
     profile.gamesPlayed += 1;
-    profile.wallet += banked;
+    // Kasa nie wpada od razu — butelki lądują w worze i czekają na
+    // odstawienie w punkcie skupu. XP, poziom mapy i gwiazdki dostajesz
+    // od razu, bo one nagradzają samo skradanie.
+    profile.stash = (profile.stash||0) + banked;
     profile.totalEarned += banked;
     daily.earn += banked;
     daily.extracts = (daily.extracts||0)+1;
@@ -3253,6 +3564,7 @@
   document.getElementById('mapPrev').addEventListener('click', ()=> moveStage(-1));
   document.getElementById('mapNext').addEventListener('click', ()=> moveStage(1));
   document.getElementById('burgerBtn').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('profil'); });
+  document.getElementById('stashBtn').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); Deposit.open(); });
   document.getElementById('pauseBtn').addEventListener('click', pauseRound);
   document.getElementById('resumeBtn').addEventListener('click', resumeRound);
   document.getElementById('quitRunBtn').addEventListener('click', ()=>{
