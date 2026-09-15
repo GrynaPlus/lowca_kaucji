@@ -31,9 +31,13 @@
   #game-wrap{position:relative;width:100%;height:100vh;display:flex;align-items:center;justify-content:center;}
   canvas{display:block;width:100%;height:100%;cursor:crosshair;}
 
-  .hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(92px + env(safe-area-inset-top)) 16px 14px;pointer-events:none;z-index:5;gap:8px;}
+  /* --tg-header to wysokość paska Telegrama (Zamknij / ⌄ ⋯). Domyślnie 50 px,
+     czyli wartość dobrana kiedyś pod iPhone'a; jeśli Telegram poda swoje
+     wymiary (contentSafeAreaInset), JS nadpisuje ją realną liczbą. */
+  :root{--tg-header:50px;}
+  .hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(var(--tg-header) + 42px + env(safe-area-inset-top)) 16px 14px;pointer-events:none;z-index:5;gap:8px;}
   .hud-left{display:flex;gap:8px;pointer-events:auto;align-items:flex-start;}
-  .pill{background:linear-gradient(180deg, #FFFFFF, #FFF3D6);color:var(--ink);border-radius:14px;padding:7px 12px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;box-shadow:0 4px 0 rgba(0,0,0,0.18);display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:70px;border:2.5px solid var(--ink);}
+  .pill{background:linear-gradient(180deg, rgba(255,255,255,0.93), rgba(255,243,214,0.93));color:var(--ink);border-radius:14px;padding:6px 11px;font-family:'Fredoka',sans-serif;font-weight:700;font-size:14px;box-shadow:0 4px 0 rgba(0,0,0,0.18);display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;min-width:70px;border:2.5px solid var(--ink);}
   .pill .label{font-family:'Inter',sans-serif;font-weight:700;font-size:9px;letter-spacing:0.03em;color:#8A6A3A;margin-bottom:1px;}
   .pill .value{font-size:16px;}
   .pill.money .value{color:var(--gold-dark);}
@@ -44,9 +48,10 @@
   .icon-btn{pointer-events:auto;width:38px;height:38px;border-radius:12px;background:linear-gradient(180deg, #FFFFFF, #FFF3D6);border:2.5px solid var(--ink);color:var(--ink);font-size:18px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .icon-btn:active{transform:translateY(3px);box-shadow:none;}
 
-  #heatContainer{position:absolute;top:calc(92px + env(safe-area-inset-top) + 58px);left:50%;transform:translateX(-50%);width:210px;text-align:center;pointer-events:none;z-index:6;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);padding:7px 12px;border-radius:14px;border:2.5px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.2);}
+  #heatContainer{position:absolute;top:calc(var(--tg-header) + 96px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:218px;text-align:center;pointer-events:none;z-index:6;background:linear-gradient(180deg,rgba(255,255,255,0.93),rgba(255,243,214,0.93));padding:6px 11px;border-radius:14px;border:2.5px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.2);}
+  .heat-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
   #heatContainer .lbl{font-size:9px;color:#C9541F;font-weight:800;letter-spacing:.05em;text-transform:uppercase;font-family:'Inter',sans-serif;}
-  .heat-track{width:100%;height:10px;background:rgba(0,0,0,0.15);border-radius:6px;overflow:hidden;margin-top:5px;border:1.5px solid rgba(0,0,0,0.2);}
+  .heat-track{width:100%;height:9px;background:rgba(0,0,0,0.15);border-radius:6px;overflow:hidden;margin-top:4px;border:1.5px solid rgba(0,0,0,0.2);}
   .heat-fill{width:0%;height:100%;background:linear-gradient(90deg,#F5A623,#FF8A3A);transition:width .12s linear;}
   .heat-fill.danger{background:linear-gradient(90deg,#FF5D3A,#C81E1E);}
 
@@ -63,7 +68,7 @@
      linear-gradient(180deg, var(--bg-sky-a), var(--bg-sky-b));}
   .menu-app{display:flex;flex-direction:column;width:100%;height:100%;max-width:480px;margin:0 auto;color:var(--ink);}
   /* --- Górny pasek HUD: pełnej szerokości, niebieski --- */
-  .menu-topbar{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:calc(50px + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,#2E9BE0,#1E7DBF);border-bottom:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
+  .menu-topbar{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:calc(var(--tg-header) + env(safe-area-inset-top)) 10px 8px;background:linear-gradient(180deg,#2E9BE0,#1E7DBF);border-bottom:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.18);}
   .avatar-tile{position:relative;width:50px;height:50px;flex-shrink:0;border-radius:14px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.28);display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .avatar-tile .av{font-size:26px;line-height:1;}
   .top-chip{flex:1;min-width:0;display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#1668A8,#10537F);border:2.5px solid var(--ink);box-shadow:inset 0 2px 4px rgba(0,0,0,0.3);border-radius:16px;padding:7px 10px;}
@@ -238,9 +243,11 @@
   </div>
 
   <div id="heatContainer">
-    <div class="lbl" id="heatLabel">⚠️ Poziom przypału</div>
+    <div class="heat-row">
+      <div class="lbl" id="heatLabel">⚠️ Przypał</div>
+      <div class="lbl" id="binsProgress" style="color:#8A6A3A;">🗑️ 0/0</div>
+    </div>
     <div class="heat-track"><div class="heat-fill" id="heatFill"></div></div>
-    <div class="lbl" id="binsProgress" style="margin-top:4px;color:#8A6A3A;">🗑️ 0/0 koszy</div>
   </div>
 
   <div id="liveToast"></div>
@@ -382,7 +389,7 @@
       <div class="bottom-tabbar">
         <button class="tab-btn" data-tab="sklep"><span class="ic">🛒<span class="tab-badge" id="badgeSklep"></span></span>Sklep</button>
         <button class="tab-btn" data-tab="kupony"><span class="ic">🎟️<span class="tab-badge" id="badgeKupony"></span></span>Kupony</button>
-        <button class="tab-btn center active" data-tab="graj"><span class="ic">🏠</span>Graj</button>
+        <button class="tab-btn center active" data-tab="graj"><span class="ic">🏠</span>Główna</button>
         <button class="tab-btn" data-tab="zadania"><span class="ic">📋<span class="tab-badge" id="badgeZadania"></span></span>Zadania</button>
         <button class="tab-btn" data-tab="profil"><span class="ic">👤</span>Profil</button>
       </div>
@@ -416,7 +423,7 @@
       <button class="secondary reward" id="rewardDoubleBtn">🎬 Obejrzyj reklamę → podwój ten łup</button>
       <button class="primary" id="againBtn">JESZCZE RAZ</button>
       <button class="secondary" id="shareBtn">📢 Pochwal się wynikiem</button>
-      <button class="secondary" id="menuBtnEnd">🗺️ Menu — zmień mapę</button>
+      <button class="secondary" id="menuBtnEnd">🏠 Wróć do menu</button>
       <div class="footnote">To tylko gra — prawdziwe butelki i puszki oddawaj do automatu lub sklepu.</div>
     </div>
   </div>
@@ -694,6 +701,7 @@
   // nie widać całej mapy naraz (jest co odkrywać), a wielkość ekranu
   // przestaje dawać przewagę: na telefonie i na tablecie widać tyle samo.
   let WORLD_W=0, WORLD_H=0;
+  let PLAY_SPAN=0;   // wysokość terenu gry na ekranie — bez pasa interfejsu
   /* =========================================================
      WIDOK 2.5D — kamera patrzy na świat pod kątem.
      Oś Y świata jest na ekranie ściśnięta o VIEW_TILT, a obiekty
@@ -710,7 +718,14 @@
      ========================================================= */
   const VIEW_TILT = 0.66;            // ile zostaje z pionu po przechyleniu
   const VIEW_UNTILT = 1/VIEW_TILT;   // ekran -> świat w osi Y
-  const HORIZON = 108;               // linia horyzontu, w pikselach ekranu
+  /* UI_TOP to wysokość pasa u góry ekranu, który zasłania płótno: nagłówek
+     Telegrama plus własny HUD (energia, łup, przypał). Mierzymy go, zamiast
+     zgadywać, i NIC z rozgrywki nie ląduje wyżej — wcześniej wyjście, kosze
+     i butelki potrafiły schować się pod napisami. */
+  let UI_TOP = 108;
+  let HORIZON = 108;                 // linia horyzontu = dolna krawędź pasa UI
+  // górna krawędź terenu gry, w świecie
+  function playTop(){ return unprojY(UI_TOP); }
   const INK = 'rgba(30,20,8,0.85)';  // wspólny kontur brył
   function projY(y){ return y*VIEW_TILT; }        // świat -> ekran
   function unprojY(sy){ return sy*VIEW_UNTILT; }  // ekran -> świat
@@ -721,7 +736,10 @@
   const cam = { x:0, y:0 };          // cam.y jest już w pikselach ekranu
   function updateCamera(dt, snap){
     const targetX = Math.max(0, Math.min(WORLD_W-W, player.x - W/2));
-    const targetY = Math.max(0, Math.min(projY(WORLD_H)-H, projY(player.y) - H*0.58));
+    // Gracz ma siedzieć w środku tego, co WIDAĆ, a nie w środku ekranu —
+    // górny pas zasłania interfejs, więc liczymy od jego dolnej krawędzi.
+    const anchor = UI_TOP + (H-UI_TOP)*0.46;
+    const targetY = Math.max(0, Math.min(projY(WORLD_H)-H, projY(player.y) - anchor));
     if(snap){ cam.x=targetX; cam.y=targetY; return; }
     const k = Math.min(1, dt*6.5); // płynne dociąganie, bez szarpania
     cam.x += (targetX-cam.x)*k;
@@ -729,7 +747,7 @@
   }
   let grassBlades=[], stars=[];
   function generateEnvironment(){
-    const grassTop=unprojY(HORIZON);
+    const grassTop=playTop();
     grassBlades = [];
     const count = Math.min(260, Math.floor(WORLD_W/11));
     for(let i=0;i<count;i++){
@@ -739,13 +757,41 @@
     stars = [];
     for(let i=0;i<44;i++){ stars.push({ x:Math.random()*WORLD_W, y:20+Math.random()*80, r:0.6+Math.random()*1.4, tw:Math.random()*Math.PI*2 }); }
   }
+  // Telegram od Bot API 7.7 podaje, ile miejsca zabiera jego własny pasek.
+  // Gdy poda — używamy tej liczby zamiast stałej dobranej pod jeden telefon.
+  function applyTelegramHeader(){
+    let header = null;
+    if(TG){
+      const content = TG.contentSafeAreaInset && TG.contentSafeAreaInset.top;
+      const safe = (TG.safeAreaInset && TG.safeAreaInset.top) || 0;
+      if(typeof content === 'number' && content > 0) header = content + safe;
+    }
+    if(header != null){
+      document.documentElement.style.setProperty('--tg-header', Math.round(header)+'px');
+    }
+  }
+  function measureUiTop(){
+    let bottom = 0;
+    const hud = document.querySelector('.hud');
+    const heat = document.getElementById('heatContainer');
+    if(hud) bottom = Math.max(bottom, hud.getBoundingClientRect().bottom);
+    if(heat) bottom = Math.max(bottom, heat.getBoundingClientRect().bottom);
+    // zapas pod paskiem, ale nigdy więcej niż trzecia część ekranu —
+    // na niskim telefonie nie ma co zjadać terenu do grania
+    return Math.max(108, Math.min(Math.round(H*0.34), Math.round(bottom) + 14));
+  }
   function resize(){
     W=canvas.clientWidth=window.innerWidth; H=canvas.clientHeight=window.innerHeight;
     canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+    UI_TOP = measureUiTop();
+    HORIZON = UI_TOP;
     WORLD_W = Math.round(W*1.45);
-    // dwa ekrany w pionie LICZONE PO PRZECHYLENIU: świat musi być
-    // o tyle wyższy, o ile kamera go spłaszcza
-    WORLD_H = Math.round(H*2.0*VIEW_UNTILT);
+    // Dwa ekrany w pionie LICZONE PO PRZECHYLENIU: świat musi być o tyle
+    // wyższy, o ile kamera go spłaszcza. Do tego doliczamy pas zjedzony
+    // przez interfejs ponad dawne 108 px — inaczej treść ściśnięta w krótszy
+    // teren robi się gęstsza i cała gra niepostrzeżenie trudnieje.
+    PLAY_SPAN = H*2.0;   // teren gry w pikselach ekranu, bez pasa interfejsu
+    WORLD_H = Math.round((PLAY_SPAN + Math.max(0, UI_TOP-108)) * VIEW_UNTILT);
     generateEnvironment();
   }
   window.addEventListener('resize', resize); resize();
@@ -1065,7 +1111,16 @@
       }catch(e){ console.warn('[music] brak Web Audio', e); }
       return actx;
     }
-    function resume(){ const a=ensure(); if(a && a.state==='suspended') a.resume(); }
+    // Po odblokowaniu dźwięku trzeba przestawić zegar: przy uśpionym
+    // kontekście currentTime stoi, więc zaplanowane nuty miały stare czasy
+    // i po wznowieniu sypały się wszystkie naraz albo wcale.
+    function resume(){
+      const a=ensure(); if(!a) return;
+      if(a.state==='suspended'){
+        const done = ()=>{ nextTime = a.currentTime + 0.05; stepIndex = 0; };
+        const r = a.resume(); if(r && r.then) r.then(done, ()=>{}); else done();
+      }
+    }
     function note(freq, time, dur, type, vol){
       const a=ensure(); if(!a) return;
       const o=a.createOscillator(), g=a.createGain();
@@ -1076,15 +1131,17 @@
       o.connect(g); g.connect(master);
       o.start(time); o.stop(time+dur+0.05);
     }
-    // spokojne, "chill" arpeggio dur — grane w menu
-    const MENU_TRACK = { stepDur:0.34, seq:[
-      {n:261.63,bass:130.81},{n:329.63},{n:392.00},{n:329.63},
-      {n:293.66,bass:146.83},{n:349.23},{n:440.00},{n:349.23},
-      {n:261.63,bass:196.00},{n:329.63},{n:392.00},{n:493.88},
-      {n:293.66,bass:174.61},{n:349.23},{n:440.00},{n:523.25}
+    /* Dwa wyraźnie różne motywy.
+       MENU: spokojne arpeggio dur z miękkim akordem w tle — ciepłe, leniwe.
+       GRA:  suchy, pulsujący motyw molowy bez akordów — nerwowy.
+       Akord (pad) jest tylko w menu; to on najbardziej je od siebie odróżnia. */
+    const MENU_TRACK = { stepDur:0.32, lead:0.085, bassVol:0.068, padVol:0.032, wave:'triangle', seq:[
+      {n:261.63,bass:130.81,pad:[261.63,329.63,392.00]},{n:329.63},{n:392.00},{n:329.63},
+      {n:293.66,bass:146.83,pad:[293.66,349.23,440.00]},{n:349.23},{n:440.00},{n:349.23},
+      {n:261.63,bass:196.00,pad:[246.94,329.63,392.00]},{n:329.63},{n:392.00},{n:493.88},
+      {n:293.66,bass:174.61,pad:[293.66,349.23,440.00]},{n:349.23},{n:440.00},{n:523.25}
     ]};
-    // pulsujący, napięty motyw molowy — grany podczas wyprawy
-    const GAME_TRACK = { stepDur:0.22, seq:[
+    const GAME_TRACK = { stepDur:0.22, lead:0.05, bassVol:0.045, padVol:0, wave:'square', seq:[
       {n:220.00,bass:110.00},{n:0},{n:261.63},{n:0},
       {n:220.00,bass:110.00},{n:0},{n:329.63},{n:0},
       {n:196.00,bass:98.00},{n:0},{n:233.08},{n:0},
@@ -1094,8 +1151,9 @@
       const a=ensure(); if(!a || muted || !current) return;
       while(nextTime < a.currentTime + 0.3){
         const step = current.seq[stepIndex % current.seq.length];
-        if(step.n) note(step.n, nextTime, current.stepDur*0.85, 'triangle', current===GAME_TRACK?0.05:0.075);
-        if(step.bass) note(step.bass, nextTime, current.stepDur*1.7, 'sine', current===GAME_TRACK?0.045:0.06);
+        if(step.n) note(step.n, nextTime, current.stepDur*0.85, current.wave, current.lead);
+        if(step.bass) note(step.bass, nextTime, current.stepDur*1.7, 'sine', current.bassVol);
+        if(step.pad && current.padVol) step.pad.forEach(f=> note(f, nextTime, current.stepDur*3.8, 'sine', current.padVol));
         nextTime += current.stepDur;
         stepIndex++;
       }
@@ -1118,7 +1176,15 @@
     };
   })();
   // odblokowanie audio (efekty + muzyka) przy pierwszej interakcji
-  ['pointerdown','keydown'].forEach(ev=> window.addEventListener(ev, ()=>{ Sfx.resume(); Music.resume(); }, { once:true }));
+  // Przeglądarka i Telegram nie puszczą dźwięku przed pierwszym dotknięciem.
+  // Nie wieszamy się na jednym zdarzeniu ({once:true}) — jeśli pierwsze
+  // dotknięcie było akurat kliknięciem GRAJ, muzyka menu nie zdążyłaby
+  // zagrać ani razu. Przy każdym geście poza rozgrywką wracamy do motywu menu.
+  ['pointerdown','keydown','touchstart'].forEach(ev=>
+    window.addEventListener(ev, ()=>{
+      Sfx.resume(); Music.resume();
+      if(state!=='playing') Music.start('menu');
+    }, { passive:true }));
 
   function cartBonus(){ return upLevel('cart'); }
 
@@ -1734,7 +1800,8 @@
         const bx = isLeft
           ? WORLD_W/2 - ROAD_HALF - 28 - Math.random()*55
           : innerR + Math.random()*bandR;
-        const by = unprojY(150)+Math.random()*(WORLD_H-unprojY(280));
+        const byTop = playTop()+unprojY(42), byBot = WORLD_H-unprojY(130);
+        const by = byTop + Math.random()*(byBot-byTop);
         bushes.push({ x:Math.max(34,Math.min(WORLD_W-34,bx)), y:by, r:30+Math.random()*10 });
       }
     }
@@ -1748,7 +1815,9 @@
     doubleUsedThisRound=false; leveledThisRound=false;
     run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
     player.x=WORLD_W/2; player.y=WORLD_H-unprojY(90); player.heat=0; player.noiseRadius=0; player.hidden=false;
-    exitZone = { x:WORLD_W/2-65, y:unprojY(60), w:130, h:unprojY(100) };
+    // wyjście zaczyna się PONIŻEJ paska interfejsu — wcześniej leżało
+    // na wysokości 60 px ekranu, czyli dokładnie pod nagłówkiem Telegrama
+    exitZone = { x:WORLD_W/2-65, y:playTop()+unprojY(12), w:130, h:unprojY(96) };
     updateCamera(0, true);
     generateMapObjects();
     generateObstacles();
@@ -1770,7 +1839,8 @@
   }
   // losowe miejsce na mapie; przy rowie z pominięciem jezdni i chodnika
   function randomBinSpot(margin){
-    const y = unprojY(150)+Math.random()*(WORLD_H-unprojY(260));
+    const yTop = playTop()+unprojY(42), yBot = WORLD_H-unprojY(110);
+    const y = yTop + Math.random()*(yBot-yTop);
     let x = margin+Math.random()*(WORLD_W-margin*2);
     if(currentMapId==='row'){
       const kc = rowKeepClear();
@@ -1816,7 +1886,8 @@
   function spawnItem(initial){
     const margin=50, t=pickType();
     let x = margin+Math.random()*(WORLD_W-margin*2);
-    let y = unprojY(130)+Math.random()*(WORLD_H-unprojY(230));
+    const iTop = playTop()+unprojY(22), iBot = WORLD_H-unprojY(100);
+    let y = iTop + Math.random()*(iBot-iTop);
     if(currentMapId==='row'){
       // butelki leżą w rowie, nie na asfalcie i nie na chodniku
       const kc = rowKeepClear();
@@ -1892,7 +1963,7 @@
     if(mx!==0 && !pointInObstacle(player.x+mx, player.y, player.r-2)) player.x+=mx;
     if(my!==0 && !pointInObstacle(player.x, player.y+my, player.r-2)) player.y+=my;
     player.x=Math.max(player.r+6,Math.min(WORLD_W-player.r-6,player.x));
-    player.y=Math.max(unprojY(player.r+6),Math.min(WORLD_H-unprojY(player.r+16),player.y));
+    player.y=Math.max(playTop()+unprojY(player.r*0.4),Math.min(WORLD_H-unprojY(player.r+16),player.y));
     player.moving = viewDist(player.x,player.y,px,py) > 0.4;
     if(player.moving) tut.hasMoved = true;
   }
@@ -1912,13 +1983,13 @@
     fill.classList.toggle('danger', hp>70);
     const lbl=document.getElementById('heatLabel');
     if(lbl){
-      if(elapsedSinceStart>40){ lbl.textContent='🔥 Za długo tu jesteś!'; lbl.style.color='#FF6B5C'; }
-      else { lbl.textContent='⚠️ Poziom przypału'; lbl.style.color='#FF9B7A'; }
+      if(elapsedSinceStart>40){ lbl.textContent='🔥 Za długo tu!'; lbl.style.color='#FF6B5C'; }
+      else { lbl.textContent='⚠️ Przypał'; lbl.style.color='#FF9B7A'; }
     }
     const bp = document.getElementById('binsProgress');
     if(bp){
       const done = bins.filter(b=>b.searched).length;
-      bp.textContent = '🗑️ '+done+'/'+bins.length+' koszy';
+      bp.textContent = '🗑️ '+done+'/'+bins.length;
       bp.style.color = (bins.length>0 && done>=bins.length) ? '#1E9E52' : '#5C4522';
     }
   }
@@ -1950,12 +2021,12 @@
 
   function updateDog(dt){
     if(currentMapId!=='osiedle'){ dog=null; return; }
-    if(!dog) dog={ x:Math.random()*WORLD_W, y:unprojY(150)+Math.random()*(WORLD_H-unprojY(250)), wanderT:Math.random()*Math.PI*2 };
+    if(!dog) dog={ x:Math.random()*WORLD_W, y:playTop()+unprojY(42)+Math.random()*(WORLD_H-unprojY(100)-playTop()-unprojY(42)), wanderT:Math.random()*Math.PI*2 };
     dog.wanderT += dt*1.5;
     dog.x += Math.sin(dog.wanderT)*60*dt;
     dog.y += Math.cos(dog.wanderT*0.7)*40*dt*VIEW_UNTILT;
     dog.x = Math.max(40,Math.min(WORLD_W-40,dog.x));
-    dog.y = Math.max(unprojY(140),Math.min(WORLD_H-unprojY(40),dog.y));
+    dog.y = Math.max(playTop()+unprojY(32),Math.min(WORLD_H-unprojY(40),dog.y));
     if(viewDist(player.x,player.y,dog.x,dog.y) < player.r+18 && (Date.now()-(dog.lastHit||0))>1500){
       dog.lastHit=Date.now(); combo=1; comboTimer=0;
       addFloatText(dog.x,dog.y,'Hau! combo stracone','#FF8A8A');
@@ -2078,9 +2149,11 @@
       row:     ['hedge','car'],
       blok:    ['wall','container','car']
     }[currentMapId] || ['wall'];
-    // gęstość liczona po POWIERZCHNI EKRANU, nie po wysokości świata —
-    // inaczej przechylenie kamery samo z siebie dosypałoby przeszkód
-    const count = Math.round((WORLD_W*projY(WORLD_H))/95000);
+    // Gęstość liczona po POWIERZCHNI TERENU GRY, nie po wysokości świata.
+    // Świat jest wyższy o pas zjedzony przez interfejs, a przeszkody i tak
+    // stoją tylko w terenie — liczenie z WORLD_H dosypywałoby ich tam,
+    // gdzie miejsca nie przybyło.
+    const count = Math.round((WORLD_W*PLAY_SPAN)/95000);
     let guard=0;
     while(obstacles.length<count && guard<count*40){
       guard++;
@@ -2092,7 +2165,8 @@
       const w = horiz? long : thick;
       const h = unprojY(horiz? thick : long);
       const x = 30+Math.random()*(WORLD_W-60-w);
-      const y = unprojY(170)+Math.random()*(WORLD_H-unprojY(330)-h);
+      const oTop = playTop()+unprojY(62), oBot = WORLD_H-unprojY(160)-h;
+      const y = oTop + Math.random()*Math.max(0, oBot-oTop);
       const cand = { x,y,w,h,kind };
       // nie zastawiaj wyjścia ani startu gracza
       if(rectsOverlap(cand,{x:exitZone.x-45,y:exitZone.y-unprojY(45),w:exitZone.w+90,h:exitZone.h+unprojY(90)})) continue;
@@ -2183,7 +2257,7 @@
       npcs.push({
         laneOff: laneOff,
         x: lane ? lane.x+laneOff : Math.random()*WORLD_W,
-        y: unprojY(150)+Math.random()*(WORLD_H-unprojY(260)),
+        y: playTop()+unprojY(42)+Math.random()*(WORLD_H-unprojY(110)-playTop()-unprojY(42)),
         vx: lane ? 0 : (Math.random()<0.5?-1:1)*cfg.wander,
         vy: (Math.random()<0.5?-1:1)*cfg.wander*VIEW_UNTILT,
         vision:cfg.vision, alert:false, lane:!!lane,
@@ -2220,13 +2294,13 @@
         n.x += Math.max(-1, Math.min(1, (cx-n.x)/20)) * cfg.wander * 0.7 * dt;
         const ny = n.y + n.vy*dt;
         if(pointInObstacle(n.x, ny, 8)) n.vy*=-1; else n.y=ny;
-        if(n.y<unprojY(130)||n.y>WORLD_H-unprojY(30)) n.vy*=-1;
+        if(n.y<playTop()+unprojY(22)||n.y>WORLD_H-unprojY(30)) n.vy*=-1;
       } else {
         const nx=n.x+n.vx*dt, ny=n.y+n.vy*dt;
         if(pointInObstacle(nx, n.y, 8)) n.vx*=-1; else n.x=nx;
         if(pointInObstacle(n.x, ny, 8)) n.vy*=-1; else n.y=ny;
         if(n.x<20||n.x>WORLD_W-20) n.vx*=-1;
-        if(n.y<unprojY(130)||n.y>WORLD_H-unprojY(30)) n.vy*=-1;
+        if(n.y<playTop()+unprojY(22)||n.y>WORLD_H-unprojY(30)) n.vy*=-1;
       }
     });
     return detected;
@@ -2438,11 +2512,6 @@
         ctx.fillStyle='rgba(60,60,70,0.5)'; ctx.fillRect(bx+6,80,bw-12,5);
       }
       // chodnik z płyt
-      // kostka chodnikowa leży na ziemi, więc rysujemy ją już po rzucie
-      ctx.fillStyle='rgba(255,255,255,0.06)';
-      const groundBottom=projY(WORLD_H);
-      for(let x=0;x<WORLD_W;x+=44){ ctx.fillRect(x,HORIZON,2,groundBottom-HORIZON); }
-      for(let y=HORIZON;y<groundBottom;y+=30){ ctx.fillRect(0,y,WORLD_W,2); }
     } else {
       for(let i=0;i<7;i++){
         const bx=(i*WORLD_W/7+Math.sin(i*13)*30)%(WORLD_W+80)-40;
@@ -2473,10 +2542,21 @@
     const bottom=projY(WORLD_H);
     const g=ctx.createLinearGradient(0,0,0,bottom); g.addColorStop(0,map.sky[0]); g.addColorStop(1,map.sky[1]);
     ctx.fillStyle=g; ctx.fillRect(0,0,WORLD_W,bottom);
+    // Panorama była rysowana na sztywno w pasie 14..110 px. Horyzont zjeżdża
+    // teraz razem z paskiem interfejsu, więc przesuwamy ją tak, żeby budynki
+    // dalej stały na linii horyzontu, a nie wisiały w powietrzu.
+    ctx.save(); ctx.translate(0, HORIZON-108);
     drawSkyGlow(map);
     drawMapDecor(map);
+    ctx.restore();
     const gg=ctx.createLinearGradient(0,HORIZON,0,bottom); gg.addColorStop(0,map.grass[0]); gg.addColorStop(1,map.grass[1]);
     ctx.fillStyle=gg; ctx.fillRect(0,HORIZON,WORLD_W,bottom-HORIZON);
+    if(currentMapId==='miasto'){
+      // kostka chodnikowa leży na ziemi, więc idzie po gradiencie trawy
+      ctx.fillStyle='rgba(255,255,255,0.06)';
+      for(let x=0;x<WORLD_W;x+=44){ ctx.fillRect(x,HORIZON,2,bottom-HORIZON); }
+      for(let y=HORIZON;y<bottom;y+=30){ ctx.fillRect(0,y,WORLD_W,2); }
+    }
     // miękkie przejście przy horyzoncie — ziemia „ucieka" w dal
     const haze=ctx.createLinearGradient(0,HORIZON,0,HORIZON+70);
     haze.addColorStop(0,'rgba(255,255,255,0.20)'); haze.addColorStop(1,'rgba(255,255,255,0)');
@@ -3087,7 +3167,21 @@
       // tylko jeden panel naraz
       document.querySelectorAll('.info-panel').forEach(p=>p.classList.add('hidden'));
       document.querySelectorAll('.rail-btn[data-panel]').forEach(b=>b.classList.remove('on'));
-      if(willShow){ panel.classList.remove('hidden'); btn.classList.add('on'); }
+      if(willShow){
+        panel.classList.remove('hidden');
+        btn.classList.add('on');
+        // Panel otwiera się NIŻEJ, poza widokiem — bez tego przewinięcia
+        // wyglądało to tak, jakby przycisk nic nie robił.
+        requestAnimationFrame(()=>{
+          const box = panel.getBoundingClientRect();
+          const scroller = document.getElementById('menuScrollEl');
+          if(!scroller) return;
+          const view = scroller.getBoundingClientRect();
+          if(box.bottom > view.bottom || box.top < view.top){
+            scroller.scrollTo({ top: scroller.scrollTop + (box.top - view.top) - 8, behavior:'smooth' });
+          }
+        });
+      }
     });
   });
   document.getElementById('railTasks').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('zadania'); });
@@ -3136,6 +3230,8 @@
   (async function boot(){
     player.x=WORLD_W/2; player.y=WORLD_H-90;
     initTelegram();
+    applyTelegramHeader();
+    resize();            // po zmianie --tg-header pasek UI ma inną wysokość
     if(isDesktopTelegram()){
       document.getElementById('startOverlay').classList.add('hidden');
       document.getElementById('desktopBlockOverlay').classList.remove('hidden');
