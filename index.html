@@ -1265,7 +1265,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 14';
+  const APP_VERSION = '2026-09-16 · 15';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2885,6 +2885,19 @@
     }
     return true;
   }
+  /* Wymiary brył podane tak, jak mają wyglądać NA EKRANIE — osobno dla
+     każdego rodzaju. Wspólny zakres 70-160 x 22-34 dawał proporcje do 7:1.
+     Dla żywopłotu i murku to prawda — takie są. Ale kontener ani auto nie
+     są siedem razy dłuższe niż szersze i wychodziły z nich patyki.
+     Średnia powierzchnia bryły zmienia się przy tym o mniej niż 10%, żeby
+     nie przestawić ilości osłony, a z nią całego balansu. */
+  const OBSTACLE_SIZES = {
+    hedge:     { dl:[76,160], gr:[24,33] },   // żywopłot: długi i wąski
+    wall:      { dl:[70,150], gr:[24,32] },   // murek: jak wyżej
+    container: { dl:[52,72],  gr:[34,44] },   // kontener: przysadzisty, ~1,6:1
+    car:       { dl:[78,98],  gr:[36,44] },   // auto: ~2,2:1
+    stall:     { dl:[60,86],  gr:[42,54] }    // stragan: prawie kwadratowy
+  };
   function generateObstacles(){
     obstacles = [];
     const kinds = {
@@ -2904,9 +2917,9 @@
       guard++;
       const kind = kinds[Math.floor(Math.random()*kinds.length)];
       const horiz = Math.random()<0.5;
-      // wymiary zadane tak, jak mają wyglądać na ekranie
-      const long = 70+Math.random()*90;
-      const thick = 22+Math.random()*12;
+      const sz = OBSTACLE_SIZES[kind] || OBSTACLE_SIZES.wall;
+      const long  = sz.dl[0] + Math.random()*(sz.dl[1]-sz.dl[0]);
+      const thick = sz.gr[0] + Math.random()*(sz.gr[1]-sz.gr[0]);
       const w = horiz? long : thick;
       const h = unprojY(horiz? thick : long);
       const x = 30+Math.random()*(WORLD_W-60-w);
