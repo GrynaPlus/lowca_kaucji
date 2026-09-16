@@ -1363,7 +1363,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 18';
+  const APP_VERSION = '2026-09-16 · 19';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2934,10 +2934,14 @@
     const mi = MAPS.findIndex(m=>m.id===mapId);
     if(mi<0) return GAME_LINK;
     const p = ['w', mi, lvl, seedNaTekst(seed), seedNaTekst(Math.round(cel*2))].join('_');
-    return GAME_LINK + '?startapp=' + p;
+    return zParametrem('startapp', p);
   }
   function linkPolecajacy(){
-    return GAME_LINK + '?startapp=r_' + encodeURIComponent(tgUserId());
+    return zParametrem('startapp', 'r_' + tgUserId());
+  }
+  // GAME_LINK może kiedyś mieć już własny parametr — wtedy doklejamy przez &
+  function zParametrem(klucz, wartosc){
+    return GAME_LINK + (GAME_LINK.indexOf('?')>=0 ? '&' : '?') + klucz + '=' + encodeURIComponent(wartosc);
   }
   function zastosujStartParam(){
     const p = czytajStartParam();
@@ -4809,10 +4813,15 @@
   document.getElementById('againBtn').addEventListener('click', attemptStart);
   document.getElementById('menuBtnEnd').addEventListener('click', goToMenu);
 
-  // PODMIEŃ na link do swojego bota/mini-appki.
-  // UWAGA: dopóki to jest zaślepka, KAŻDY link z gry (wyzwanie, polecenie,
-  // karta wyniku) prowadzi donikąd.
-  const GAME_LINK = 'https://t.me/TWOJ_BOT/gra';
+  /* Adres mini-appki. Doklejamy do niego parametr startapp, więc to on
+     decyduje, czy wyzwania i polecenia w ogóle zadziałają.
+
+     Ta postać — sam bot, bez nazwy aplikacji — wymaga, żeby bot miał
+     w BotFather ustawioną GŁÓWNĄ mini-appkę (Main Mini App). Jeśli jej
+     nie ma, Telegram otworzy zwykły czat z botem i parametr przepadnie;
+     wtedy trzeba tu wpisać pełną postać z nazwą aplikacji, czyli
+     https://t.me/lowcybot/<nazwa_apki>. */
+  const GAME_LINK = 'https://t.me/lowcybot';
 
   /* =========================================================
      KARTA WYNIKU — obrazek 1080x1350 (pion, jak na TikToka).
