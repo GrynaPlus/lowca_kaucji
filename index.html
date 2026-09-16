@@ -183,7 +183,35 @@
     font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:11px;color:var(--ink);cursor:pointer;}
   .mod-chip:active{transform:translateY(1px);box-shadow:none;}
   .mod-none{font-size:11px;color:#5C4522;padding:3px 0;}
+  /* tabela ligi — miejsce, nick, wynik */
+  .lg-row{display:flex;align-items:center;gap:8px;font-size:11px;color:#5C4522;padding:3px 0;}
+  .lg-row.me{color:#1E9E52;font-weight:700;}
+  .lg-row .lg-no{flex-shrink:0;width:26px;text-align:right;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;color:var(--gold-dark);}
+  .lg-row .lg-nick{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .lg-row .lg-val{flex-shrink:0;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;}
+  .lg-me{margin-top:7px;padding-top:7px;border-top:2px dashed rgba(138,106,58,0.35);font-size:11px;color:#5C4522;}
   .map-card .mc-mods{font-size:14px;letter-spacing:3px;margin-top:3px;line-height:1;}
+  /* Pasek „z wiadomości" po wyprawie — lokalny absurd jest największą
+     przewagą tej gry i warto go pokazać, a nie tylko podliczyć złotówki. */
+  .news-bar{display:none;margin:8px 0 4px;padding:7px 10px;border:2.5px solid var(--ink);border-radius:10px;
+    background:linear-gradient(180deg,#E8402F,#C22B1C);color:#FFF3C4;text-align:left;
+    font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:11px;line-height:1.35;
+    box-shadow:0 3px 0 rgba(0,0,0,0.2);}
+  .news-bar.show{display:block;}
+  /* pasek nad powtórką: ma być widoczny, ale nie zasłaniać akcji */
+  .replay-bar{position:absolute;left:10px;right:10px;bottom:calc(14px + var(--safe-b,0px));z-index:12;
+    display:flex;align-items:center;gap:8px;padding:8px 10px;border:2.5px solid var(--ink);border-radius:14px;
+    background:rgba(24,18,10,0.86);box-shadow:0 4px 0 rgba(0,0,0,0.25);}
+  .replay-bar.hidden{display:none;}
+  .replay-bar .rb-dot{width:11px;height:11px;border-radius:50%;background:#FF4B3E;flex-shrink:0;
+    animation:rbPuls 1s infinite;}
+  @keyframes rbPuls{0%,100%{opacity:1;}50%{opacity:0.25;}}
+  .replay-bar .rb-txt{flex:1;font-size:10.5px;font-weight:700;color:#FFF3C4;line-height:1.3;}
+  .replay-bar .rb-x{flex-shrink:0;padding:6px 12px;border:2.5px solid var(--ink);border-radius:999px;
+    background:linear-gradient(180deg,#FFF6DE,#FFE3A8);font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;
+    font-weight:700;font-size:11px;color:var(--ink);cursor:pointer;}
+  .news-bar .nb-tag{display:inline-block;background:#FFF3C4;color:#C22B1C;border-radius:4px;
+    padding:1px 5px;margin-right:6px;font-size:9px;letter-spacing:0.5px;}
   .lvl-tile.sel{background:linear-gradient(180deg,#FFE3A8,#FFC94F);}
   .lvl-tile.locked{background:#E7DCC6;opacity:0.55;cursor:default;box-shadow:none;}
   .lvl-tile.locked .lt-no{color:#9A8C74;}
@@ -238,6 +266,8 @@
   .tasks-box .t-title{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--gold-dark);margin-bottom:6px;}
   .task-row{display:flex;align-items:center;gap:8px;font-size:11px;color:#5C4522;padding:4px 0;}
   .task-row.done{color:#1E9E52;}
+  .task-row.contract{align-items:flex-start;border-bottom:2px dashed rgba(138,106,58,0.35);padding-bottom:8px;margin-bottom:4px;}
+  .task-row.contract b{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;color:var(--gold-dark);}
   .task-check{width:16px;height:16px;border-radius:5px;background:rgba(0,0,0,0.1);border:1.5px solid rgba(0,0,0,0.25);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;}
   .task-row.done .task-check{background:var(--green);border-color:#1E9E52;}
   .task-progress{margin-left:auto;font-size:10px;color:#8A6A3A;flex-shrink:0;}
@@ -529,6 +559,19 @@
             <div class="stat-box"><div class="n" id="statPoints">0</div><div class="l">pkt w kodach</div></div>
             <div class="stat-box"><div class="n" id="statStreak">0</div><div class="l">dni z rzędu</div></div>
           </div>
+          <div class="tasks-box" style="margin-top:14px;">
+            <div class="t-title">🏆 Liga tygodnia</div>
+            <div id="leagueBox"><div class="mod-none">Wczytuję…</div></div>
+          </div>
+
+          <div class="tasks-box">
+            <div class="t-title">🤝 Zaproś znajomych</div>
+            <div style="font-size:11px;color:#5C4522;line-height:1.5;margin-bottom:8px;">
+              Obaj dostajecie po <b id="inviteBonus">10 zł</b> kaucji. Zaproszonych: <b id="invitedCount">0</b>
+            </div>
+            <button class="secondary" id="inviteBtn">📨 Wyślij zaproszenie</button>
+          </div>
+
           <div class="t-title" style="margin-top:14px;">🏠 Gdzie mieszkasz?</div>
           <div style="font-size:11px;font-weight:600;color:#8A6A3A;line-height:1.5;">Decyduje, jakie punkty skupu masz pod ręką, gdy oddajesz kaucję.</div>
           <div class="home-pick" id="homePick">
@@ -592,6 +635,7 @@
       <div class="banner" id="levelBanner" style="background:var(--xp);">⭐ Awans na wyższy poziom!</div>
       <div class="banner" id="mapLevelBanner" style="background:var(--combo);"></div>
       <div class="result-amount" id="resultAmount">0,00 zł</div>
+      <div class="news-bar" id="newsBar"></div>
       <p class="sub" style="margin:0 0 6px;">🛍️ trafia do wora — oddaj w sklepie, żeby zamienić na gotówkę</p>
       <p class="result-tier" id="resultTier"></p>
       <div class="tasks-box">
@@ -600,9 +644,45 @@
       </div>
       <button class="secondary reward" id="rewardDoubleBtn">🎬 Obejrzyj reklamę → podwój ten łup</button>
       <button class="primary" id="againBtn">JESZCZE RAZ</button>
+      <button class="secondary" id="replayBtn">🎬 Powtórka ostatnich sekund</button>
+      <button class="secondary" id="cardBtn">📸 Karta wyniku</button>
       <button class="secondary" id="shareBtn">📢 Pochwal się wynikiem</button>
       <button class="secondary" id="menuBtnEnd">🏠 Wróć do menu</button>
       <div class="footnote">To tylko gra — prawdziwe butelki i puszki oddawaj do automatu lub sklepu.</div>
+    </div>
+  </div>
+
+  <!-- PASEK POWTÓRKI -->
+  <div class="replay-bar hidden" id="replayBar">
+    <span class="rb-dot"></span>
+    <span class="rb-txt">Powtórka leci w kółko — nagraj ekran telefonu i masz rolkę</span>
+    <button class="rb-x" id="replayCloseBtn">Gotowe</button>
+  </div>
+
+  <!-- KARTA WYNIKU DO POKAZANIA ŚWIATU -->
+  <div class="overlay hidden" id="cardOverlay">
+    <div class="card" style="padding:14px;">
+      <img id="cardImg" alt="Karta wyniku" style="width:100%;border-radius:16px;border:3px solid var(--ink);display:block;">
+      <p class="sub" style="margin:10px 0 8px;">Zrób zrzut ekranu i wrzuć na TikToka — albo wyślij link, żeby kolega zagrał <b>dokładnie tę mapę</b>.</p>
+      <button class="primary" id="cardShareBtn">📤 Wyślij wyzwanie</button>
+      <button class="secondary" id="cardSaveBtn">💾 Zapisz obrazek</button>
+      <button class="secondary" id="cardCloseBtn">Zamknij</button>
+    </div>
+  </div>
+
+  <!-- WYZWANIE Z LINKU -->
+  <div class="overlay hidden" id="duelOverlay">
+    <div class="card">
+      <h1>🥊 WYZWANIE</h1>
+      <p class="sub" id="duelSub">Ktoś rzucił ci rękawicę.</p>
+      <div class="tasks-box" style="text-align:center;">
+        <div class="t-title" style="text-align:center;">DO POBICIA</div>
+        <div class="result-amount" id="duelTarget">0,00 zł</div>
+        <div id="duelWhere" style="font-size:11px;color:#5C4522;line-height:1.5;"></div>
+      </div>
+      <button class="primary" id="duelPlayBtn">PRZYJMUJĘ</button>
+      <button class="secondary" id="duelSkipBtn">Najpierw się rozejrzę</button>
+      <div class="footnote">Ta sama mapa, to samo rozstawienie koszy co u niego. Pojedynek nie daje gwiazdek — kaucja z niego trafia do wora normalnie.</div>
     </div>
   </div>
 
@@ -1283,7 +1363,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 17';
+  const APP_VERSION = '2026-09-16 · 18';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -1323,7 +1403,7 @@
     smieciarka: { icon:'🚛', name:'Śmieciarka',
                   desc:'Zabiera kosze sprzed nosa. Zdążysz do zaznaczonego, zanim przyjedzie?' },
     konkurencja:{ icon:'🧓', name:'Konkurencja',
-                  desc:'Inny zbieracz chodzi po mapie i opróżnia kosze przed tobą.' },
+                  desc:'Pan Heniek i spółka. Chodzą po mapie i opróżniają kosze przed tobą.' },
     deszcz:     { icon:'🌧️', name:'Deszcz',
                   desc:'Deszcz zagłusza stukanie, ale grunt jest śliski, a przypał schodzi dużo wolniej.' },
     pies:       { icon:'🐕', name:'Pies',
@@ -1337,6 +1417,23 @@
     row:     ['deszcz','pies','konkurencja'],
     blok:    ['pies','smieciarka','konkurencja']
   };
+  /* Konkurencja ma twarz i nazwisko. „Inny zbieracz" to mechanika,
+     a Pan Heniek to postać — a ludzie kręcą filmiki o postaciach. */
+  const RYWALE = [
+    { imie:'Pan Heniek',      emoji:'🧓' },
+    { imie:'Zbyszek z bloku', emoji:'👴' },
+    { imie:'Pani Krysia',     emoji:'👵' },
+    { imie:'Stary Mirek',     emoji:'🧔' },
+    { imie:'Wiesiek z parteru', emoji:'👨‍🦳' }
+  ];
+  const TEKSTY_RYWALA = [
+    'Młody, za wolno!',
+    'To było moje.',
+    'Dzięki za naprowadzenie!',
+    'Emerytura sama się nie zbierze.',
+    'Kto pierwszy, ten lepszy.',
+    'Ucz się, chłopcze.'
+  ];
   const MOD_FROM = 6, MOD_TWO = 21, MOD_THREE = 41;
   function levelMods(mapId, lvl){
     const pool = MAP_MODS[mapId] || [];
@@ -1728,11 +1825,31 @@
     energy:3, lastEnergyTs: Date.now(),
     streak:0, lastPlayDate:'', wallet:0, mapsOwned:['osiedle'], lastMapId:'osiedle',
     mapProgress:{}, upgrades:{}, mapLevels:{}, mapSel:{},
+    firstSeen:0,        // kiedy gracz pierwszy raz odpalił grę (pierwsza doba bez limitu energii)
+    invitedBy:'',       // kto go przyprowadził
+    invited:0,          // ilu sam przyprowadził
+    refSent:false,      // czy backend wie już, kto go zaprosił
     stash:0,            // kaucja w worze — czeka na oddanie w sklepie
     home:'miasto'       // decyduje, jakie punkty skupu masz pod ręką
   };
   function xpToNext(level){ return 80+(level-1)*40; }
-  function energyMax(){ let m=3; if(profile.level>=5) m=4; if(profile.level>=10) m=5; return m; }
+  /* Pierwszy dzień bez ściany.
+
+     Ktoś, kto trafia tu z filmiku, grał trzy wyprawy po dwadzieścia
+     sekund — łącznie minutę — i uderzał w dwudziestominutowe czekanie.
+     Nie wracał. Pierwszej doby energia jest więc nielimitowana; licznik
+     zaczyna obowiązywać dopiero nazajutrz, gdy gra zdążyła się już
+     obronić sama. */
+  const DOBA = 24*60*60*1000;
+  const ZAPROSZENIE_BONUS = 10;   // dostają OBAJ: i zapraszający, i zaproszony
+  function pierwszaDoba(){
+    if(!profile.firstSeen) return true;
+    return (Date.now() - profile.firstSeen) < DOBA;
+  }
+  function energyMax(){
+    if(pierwszaDoba()) return 99;
+    let m=3; if(profile.level>=5) m=4; if(profile.level>=10) m=5; return m;
+  }
   function addXP(amount){
     profile.xp += amount; let leveled=false;
     while(profile.xp >= xpToNext(profile.level)){ profile.xp -= xpToNext(profile.level); profile.level++; leveled=true; }
@@ -1748,6 +1865,7 @@
     if(!profile.mapProgress || typeof profile.mapProgress!=='object') profile.mapProgress={};
     if(!profile.upgrades || typeof profile.upgrades!=='object') profile.upgrades={};
     if(!profile.mapSel || typeof profile.mapSel!=='object') profile.mapSel={};
+    if(!profile.firstSeen) profile.firstSeen = Date.now();
     if(!profile.mapLevels || typeof profile.mapLevels!=='object') profile.mapLevels={};
     /* Migracja z wersji <=11: było 5 poziomów podnoszących wyłącznie limit
        plecaka i 3 gwiazdki na całą mapę. Teraz poziomów jest 10 i każdy ma
@@ -1785,7 +1903,8 @@
     if(heartsEl){
       heartsEl.innerHTML='';
       for(let i=0;i<max;i++){ const s=document.createElement('span'); s.className='heart'+(i<profile.energy?' full':''); s.textContent='❤️'; heartsEl.appendChild(s); }
-      if(profile.energy>=max){ noteEl.textContent = max+'/'+max+' gry dziś dostępne'; noteEl.classList.remove('warn'); }
+      if(pierwszaDoba()){ noteEl.textContent = '🎉 Pierwszy dzień — gra bez limitu!'; noteEl.classList.remove('warn'); }
+      else if(profile.energy>=max){ noteEl.textContent = max+'/'+max+' gry dziś dostępne'; noteEl.classList.remove('warn'); }
       else{
         const remaining = REGEN_MS - ((Date.now()-profile.lastEnergyTs)%REGEN_MS);
         const mm=Math.floor(remaining/60000), ss=Math.floor((remaining%60000)/1000);
@@ -1793,7 +1912,7 @@
         noteEl.classList.toggle('warn', profile.energy<=0);
       }
     }
-    document.getElementById('energyHudVal').textContent = profile.energy+'/'+max;
+    document.getElementById('energyHudVal').textContent = pierwszaDoba() ? '∞' : (profile.energy+'/'+max);
     updatePlayButton();
   }
   setInterval(regenTick, 1000);
@@ -1817,7 +1936,52 @@
     { id:'combo',   label:v=>'Zdobądź combo x'+v+' w jednej wyprawie', target:4, reward:4 },
     { id:'extract', label:v=>'Wróć do bazy z łupem '+v+' razy dzisiaj', target:2, reward:6 }
   ];
-  let daily = { date: todayStr(), earn:0, items:0, comboMax:0, extracts:0, pointsClaimed:0, claimed:{earn:false,items:false,combo:false,extract:false} };
+  let daily = { date: todayStr(), earn:0, items:0, comboMax:0, extracts:0, pointsClaimed:0,
+                claimed:{earn:false,items:false,combo:false,extract:false},
+                zlecenieDone:false, premiaUzyta:false };
+
+  /* =========================================================
+     ZLECENIE DNIA — jeden konkretny powód, żeby wrócić jutro.
+
+     Losowane z DATY, więc przez całą dobę jest to samo zlecenie i da się
+     do niego podejść kilka razy. Mapa i poziom wybierane spośród tych,
+     które gracz naprawdę ma otwarte — zlecenie nie ma być zaproszeniem
+     donikąd.
+     ========================================================= */
+  const ZLECENIE_NAGRODA = 20;
+  const ZLECENIA_TYPY = [
+    { id:'kasa',  opis:(m,l,c)=>'Przynieś '+fmt(c)+' z jednej wyprawy',           cel:(q)=>Math.round(q*1.2*2)/2, sprawdz:(r,c)=> r.banked>=c },
+    { id:'kosze', opis:(m,l,c)=>'Opróżnij '+c+' koszy w jednej wyprawie',          cel:(q,b)=>Math.max(4, Math.round(b*0.55)), sprawdz:(r,c)=> r.binsEmptied>=c },
+    { id:'cicho', opis:(m,l,c)=>'Wróć z łupem, nie przekraczając '+c+'% przypału', cel:()=>40, sprawdz:(r,c)=> r.banked>0 && r.maxHeat<c },
+    { id:'combo', opis:(m,l,c)=>'Zdobądź combo x'+c+' i wróć z łupem',             cel:()=>5,  sprawdz:(r,c)=> r.banked>0 && r.comboMax>=c }
+  ];
+  function zlecenieDnia(){
+    const d = todayStr();
+    let h = 2166136261;
+    for(let i=0;i<d.length;i++){ h ^= d.charCodeAt(i); h = Math.imul(h, 16777619); }
+    const rnd = mulberry32(h>>>0);
+    const moje = MAPS.filter(m=>profile.mapsOwned.includes(m.id));
+    const m = moje[Math.floor(rnd()*moje.length)] || MAPS[0];
+    const gora = topLevel(m.id);
+    const lvl = 1 + Math.floor(rnd()*Math.max(1, gora));
+    const typ = ZLECENIA_TYPY[Math.floor(rnd()*ZLECENIA_TYPY.length)];
+    const cel = typ.cel(levelQuota(m.id, lvl), binCountFor(m.id, lvl));
+    return { mapId:m.id, mapName:m.name, icon:m.icon, lvl:lvl, typ:typ.id,
+             opis:typ.opis(m, lvl, cel), cel:cel, nagroda:ZLECENIE_NAGRODA,
+             sprawdz:typ.sprawdz };
+  }
+  function sprawdzZlecenie(banked){
+    if(daily.zlecenieDone) return false;
+    const z = zlecenieDnia();
+    if(currentMapId !== z.mapId || playedLevel !== z.lvl) return false;
+    const ctxRun = Object.assign({}, run, { banked:banked });
+    if(!z.sprawdz(ctxRun, z.cel)) return false;
+    daily.zlecenieDone = true;
+    profile.wallet += z.nagroda;
+    showToast('📋 Zlecenie dnia wykonane! +'+fmt(z.nagroda));
+    grynaPlusEvent('daily_contract_done', { mapId:z.mapId, level:z.lvl, typ:z.typ, reward:z.nagroda, profileNick:profile.nick });
+    return true;
+  }
   async function loadDaily(){
     const raw = await LocalDB.get('lk_daily');
     if(raw){ try{ const d=JSON.parse(raw); if(d.date===todayStr()) daily=d; }catch(e){} }
@@ -1847,6 +2011,17 @@
   function renderTasks(){
     [document.getElementById('taskListModal')].forEach(c=>{
       if(!c) return; c.innerHTML='';
+      // zlecenie dnia stoi nad zwykłymi zadaniami — to jest ten jeden
+      // powód, dla którego warto tu dziś zajrzeć
+      try{
+        const z = zlecenieDnia();
+        const zr = document.createElement('div');
+        zr.className = 'task-row contract'+(daily.zlecenieDone?' done':'');
+        zr.innerHTML = '<span class="task-check">'+(daily.zlecenieDone?'✓':'📋')+'</span>'
+          + '<span><b>Zlecenie dnia</b> &middot; '+z.icon+' '+z.mapName+', poziom '+z.lvl+'<br>'+z.opis+'</span>'
+          + '<span class="task-progress">'+(daily.zlecenieDone?'OK':'+'+fmt(z.nagroda))+'</span>';
+        c.appendChild(zr);
+      }catch(e){}
       TASK_DEFS.forEach(def=>{
         const val = Math.min(taskValue(def), def.target);
         const done = daily.claimed[def.id];
@@ -2442,7 +2617,12 @@
     else if(name==='sklep'){ renderShop(); }
     else if(name==='kupony'){ renderPayouts(); renderCoupons(); }
     else if(name==='zadania'){ renderTasks(); }
-    else if(name==='profil'){ renderTasks(); renderCoupons(); }
+    else if(name==='profil'){
+      renderTasks(); renderCoupons();
+      document.getElementById('inviteBonus').textContent = fmt(ZAPROSZENIE_BONUS);
+      document.getElementById('invitedCount').textContent = profile.invited || 0;
+      renderLiga();
+    }
     document.getElementById('startOverlay').classList.remove('hidden');
     document.getElementById('menuScrollEl') && (document.getElementById('menuScrollEl').scrollTop = 0);
     updateTabBadges();
@@ -2539,6 +2719,63 @@
   // Modyfikatory też zamrażamy na starcie — zmiana wyboru w menu w trakcie
   // wyprawy nie może dołożyć psa w połowie skradania.
   let playedMods = [];
+  // stan efektu „o włos": t = ile jeszcze trwa zwolnienie, potem = co zrobić po nim
+  let oWlos = { t:0, byl:false, potem:null };
+
+  /* =========================================================
+     POWTÓRKA OSTATNICH SEKUND
+
+     Mini-appka Telegrama NIE MOŻE wrzucić pliku wideo na czat, a
+     pobieranie webm w WebView na iOS jest loterią — eksport filmu z
+     poziomu gry odpada. Zostaje to, co ludzie i tak robią: nagrywanie
+     ekranu telefonu. Gra musi im tylko dać co nagrywać, więc zapisujemy
+     ostatnie dziesięć sekund i odtwarzamy w kółko na pełnym ekranie.
+
+     Zapisujemy wyłącznie to, co potrzebne do NARYSOWANIA klatki —
+     bez fizyki, bez wykrywania. Odtwarzanie tylko podstawia te wartości
+     i woła zwykłe draw().
+     ========================================================= */
+  const POWTORKA_FPS = 20, POWTORKA_SEK = 10;
+  let klatki = [], klatkaT = 0;
+  let powtorka = { gra:false, t:0 };
+  function nagrajKlatke(){
+    klatki.push({
+      px:player.x, py:player.y, ph:player.heat, pn:player.noiseRadius, pk:player.hidden,
+      npc: npcs.map(n=>({ x:n.x, y:n.y, a:n.alert, e:n.emoji, v:n.vision, l:n.lane })),
+      dog: dog ? { x:dog.x, y:dog.y } : null,
+      riv: mods.rival ? { x:mods.rival.x, y:mods.rival.y, e:mods.rival.emoji, i:mods.rival.imie, k:mods.rival.krok } : null,
+      bin: bins.map(b=> b.searched ? (b.empty?2:1) : 0),
+      loot: loot
+    });
+    if(klatki.length > POWTORKA_FPS*POWTORKA_SEK) klatki.shift();
+  }
+  function odtworzKlatke(k){
+    if(!k) return;
+    player.x=k.px; player.y=k.py; player.heat=k.ph; player.noiseRadius=k.pn; player.hidden=k.pk;
+    npcs = k.npc.map(n=>({ x:n.x, y:n.y, alert:n.a, emoji:n.e, vision:n.v, lane:n.l }));
+    dog = k.dog ? { x:k.dog.x, y:k.dog.y, trail:[] } : null;
+    mods.rival = k.riv ? { x:k.riv.x, y:k.riv.y, emoji:k.riv.e, imie:k.riv.i, krok:k.riv.k } : null;
+    mods.truckBin = null;
+    for(let i=0;i<bins.length && i<k.bin.length;i++){
+      bins[i].searched = k.bin[i] > 0;
+      bins[i].empty    = k.bin[i] === 2;
+    }
+    loot = k.loot;
+  }
+  function wlaczPowtorke(){
+    if(klatki.length < POWTORKA_FPS){ showToast('Za krótka wyprawa na powtórkę'); return; }
+    powtorka.gra = true; powtorka.t = 0;
+    document.getElementById('extractOverlay').classList.add('hidden');
+    document.getElementById('caughtOverlay').classList.add('hidden');
+    document.getElementById('replayBar').classList.remove('hidden');
+    Sfx.click(); haptic('light');
+    grynaPlusEvent('replay_played', { profileNick:profile.nick });
+  }
+  function wylaczPowtorke(wrocDo){
+    powtorka.gra = false;
+    document.getElementById('replayBar').classList.add('hidden');
+    document.getElementById(wrocDo || 'extractOverlay').classList.remove('hidden');
+  }
   function hasMod(id){ return playedMods.indexOf(id) >= 0; }
   const RAIN_NOISE = 0.65;   // deszcz zagłusza stukanie
   const RAIN_SPEED = 0.94;   // ale grunt jest mokry
@@ -2638,10 +2875,103 @@
       }
     }
   }
+  /* =========================================================
+     ZIARNO MAPY — żeby dało się zagrać DOKŁADNIE tę samą mapę.
+
+     Bez tego „pobij mój wynik" znaczy tylko „zagraj gdzieś tam", bo
+     rozstawienie koszy losuje się od nowa przy każdym starcie. Z ziarnem
+     w linku widz z filmiku dostaje ten sam teren, który przed chwilą
+     oglądał.
+
+     Sztuczka: generowanie świata jest w całości synchroniczne, więc na
+     jego czas PODMIENIAMY Math.random na generator z ziarnem i zaraz
+     potem oddajemy oryginał. Dzięki temu nie trzeba przepisywać
+     pięćdziesięciu wywołań rozsianych po generatorach, a nic poza
+     generowaniem terenu nie robi się przewidywalne.  */
+  /* =========================================================
+     LINKI — wyzwanie i polecenie
+
+     Telegram przekazuje mini-appce parametr `start_param` z linku
+     t.me/bot/gra?startapp=… i to jedyny kanał, którym da się przenieść
+     cokolwiek z zewnątrz do gry. Do tej pory nie był używany w ogóle:
+     każdy link prowadził do menu głównego, więc widz filmiku lądował
+     gdzie indziej, niż był klip.
+
+     Dwa rodzaje, oba mieszczą się w dozwolonych znakach (A-Z a-z 0-9 _ -):
+       w_<mapa>_<poziom>_<ziarno36>_<cel36>   wyzwanie na konkretnej mapie
+       r_<id>                                 polecenie od gracza
+     ========================================================= */
+  let wyzwanie = null;        // { mapId, lvl, seed, cel }
+  let wynikWyzwania = null;   // wynik ostatniego pojedynku, do pokazania
+  let runSeed = 0;
+  function losoweZiarno(){ return (Math.floor(Math.random()*0xFFFFFFFF)>>>0); }
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function zZiarnem(seed, fn){
+    const oryginal = Math.random;
+    Math.random = mulberry32(seed >>> 0);
+    try { fn(); } finally { Math.random = oryginal; }
+  }
+  // ziarno w linku zapisujemy zwięźle, w systemie 36
+  function seedNaTekst(s){ return (s>>>0).toString(36); }
+  function tekstNaSeed(t){ const n = parseInt(String(t||''), 36); return Number.isFinite(n) ? (n>>>0) : 0; }
+
+  function czytajStartParam(){
+    try{
+      if(TG && TG.initDataUnsafe && TG.initDataUnsafe.start_param) return String(TG.initDataUnsafe.start_param);
+      const u = new URLSearchParams(location.search);
+      return u.get('startapp') || u.get('tgWebAppStartParam') || '';
+    }catch(e){ return ''; }
+  }
+  // buduje link, który po otwarciu wrzuca kolegę PROSTO na tę mapę i poziom
+  function linkWyzwania(mapId, lvl, seed, cel){
+    const mi = MAPS.findIndex(m=>m.id===mapId);
+    if(mi<0) return GAME_LINK;
+    const p = ['w', mi, lvl, seedNaTekst(seed), seedNaTekst(Math.round(cel*2))].join('_');
+    return GAME_LINK + '?startapp=' + p;
+  }
+  function linkPolecajacy(){
+    return GAME_LINK + '?startapp=r_' + encodeURIComponent(tgUserId());
+  }
+  function zastosujStartParam(){
+    const p = czytajStartParam();
+    if(!p) return null;
+    const cz = String(p).split('_');
+    if(cz[0]==='w' && cz.length>=5){
+      const mi = parseInt(cz[1],10), lvl = parseInt(cz[2],10);
+      const m = MAPS[mi];
+      if(m && lvl>=1 && lvl<=MAP_LEVEL_MAX){
+        wyzwanie = { mapId:m.id, lvl:lvl, seed:tekstNaSeed(cz[3]), cel:tekstNaSeed(cz[4])/2 };
+        return 'wyzwanie';
+      }
+    } else if(cz[0]==='r' && cz[1]){
+      const od = String(cz[1]).slice(0,32);
+      // nie liczymy samopolecenia ani drugiego zaproszenia tego samego gracza
+      if(!profile.invitedBy && od !== tgUserId()){
+        profile.invitedBy = od;
+        profile.wallet += ZAPROSZENIE_BONUS;
+        saveProfile();
+        return 'polecenie';
+      }
+    }
+    return null;
+  }
+
   function resetGame(){
-    playedLevel = mapLevel(currentMapId);
+    // wyzwanie narzuca poziom — u kogoś, kto dopiero przyszedł z linku,
+    // ten poziom może być jeszcze nieodblokowany i to jest w porządku:
+    // pojedynek nie przyznaje gwiazdek, więc nie da się nim przeskoczyć gry
+    playedLevel = wyzwanie ? wyzwanie.lvl : mapLevel(currentMapId);
     playedMods = levelMods(currentMapId, playedLevel);
     mods = { truckT:TRUCK_FIRST, truckBin:null, truckWarn:0, rival:null, drops:[] };
+    oWlos = { t:0, byl:false, potem:null };
+    klatki = []; klatkaT = 0; powtorka = { gra:false, t:0 };
     loot=0; combo=1; comboTimer=0; elapsedSinceStart=0;
     items=[]; particles=[]; confettiParticles=[]; dog=null; spawnTimer=0;
     bins=[]; npcs=[]; npcSpawnTimer=0.4;
@@ -2654,10 +2984,14 @@
     // na wysokości 60 px ekranu, czyli dokładnie pod nagłówkiem Telegrama
     exitZone = { x:WORLD_W/2-65, y:playTop()+unprojY(12), w:130, h:unprojY(96) };
     updateCamera(0, true);
-    generateMapObjects();
-    generateObstacles();
-    for(let i=0;i<10;i++) spawnItem(true);
-    spawnBins();
+    // wyzwanie z linku narzuca ziarno; zwykła wyprawa dostaje swoje własne
+    runSeed = (wyzwanie && wyzwanie.seed) ? wyzwanie.seed : losoweZiarno();
+    zZiarnem(runSeed, ()=>{
+      generateMapObjects();
+      generateObstacles();
+      for(let i=0;i<10;i++) spawnItem(true);
+      spawnBins();
+    });
     updateHUD();
   }
   function tooCloseToExit(x,y,pad){
@@ -2715,7 +3049,11 @@
         if(!tooCloseToExit(c.x,c.y) && !pointInObstacle(c.x,c.y,22)) spot=c;
       }
       if(!spot) spot = { x:WORLD_W/2, y:WORLD_H-unprojY(140) };
-      bins.push({ x:spot.x, y:spot.y, searched:false, empty:false, tapsNeeded:tapsNeededBase()+Math.floor(Math.random()*3), tapsDone:0, shakeTimer:0, bob:Math.random()*Math.PI*2 });
+      /* Jackpot: mniej więcej co czterdziesty kosz to trafienie życia.
+         Bez takich skoków wyprawa kończy się liczbą w okienku i nie ma
+         czego nagrywać — a to jest moment, który ktoś wrzuci na rolkę. */
+      bins.push({ x:spot.x, y:spot.y, searched:false, empty:false, jackpot:Math.random()<0.016,
+                  tapsNeeded:tapsNeededBase()+Math.floor(Math.random()*3), tapsDone:0, shakeTimer:0, bob:Math.random()*Math.PI*2 });
     }
   }
   function spawnItem(initial){
@@ -2895,7 +3233,10 @@
   function updateRival(dt){
     if(!hasMod('konkurencja')) return;
     if(!mods.rival){
-      mods.rival = { x: Math.random()*WORLD_W, y: playTop()+unprojY(60), cel:null, praca:0, wziete:0, krok:0 };
+      const kto = RYWALE[Math.floor(Math.random()*RYWALE.length)];
+      mods.rival = { x: Math.random()*WORLD_W, y: playTop()+unprojY(60), cel:null, praca:0, wziete:0, krok:0,
+                     imie: kto.imie, emoji: kto.emoji };
+      showToast(kto.emoji+' '+kto.imie+' też dziś zbiera. Kto pierwszy?');
     }
     const r = mods.rival;
     if(!r.cel || r.cel.searched){
@@ -2925,7 +3266,7 @@
         b.searched=true; b.empty=true; b.taken=true;
         r.wziete++; r.cel=null; r.praca=0;
         Sfx.empty();
-        addFloatText(b.x,b.y,'🧓 Zdążył pierwszy','#FFD5A3');
+        addFloatText(b.x, b.y, r.emoji+' '+TEKSTY_RYWALA[Math.floor(Math.random()*TEKSTY_RYWALA.length)], '#FFD5A3');
       }
     }
   }
@@ -2995,15 +3336,54 @@
       updateHUD();
     }
   }
+  const KONFETTI_BARWY = ['#FF6FA5','#FFD700','#5FC7E0','#3FBF7F'];
   function updateConfetti(dt){
-    if(currentMapId!=='festyn'){ confettiParticles=[]; return; }
-    if(Math.random()<0.3) confettiParticles.push({ x:Math.random()*WORLD_W, y:-10, vy:(60+Math.random()*40)*VIEW_UNTILT, vx:(Math.random()-0.5)*30, color:['#FF6FA5','#FFD700','#5FC7E0','#3FBF7F'][Math.floor(Math.random()*4)], rot:Math.random()*Math.PI });
-    confettiParticles.forEach(p=>{ p.y+=p.vy*dt; p.x+=p.vx*dt; p.rot+=dt*2; });
+    // Festyn sypie konfetti sam z siebie; poza nim leci tylko to, co
+    // wystrzelił jackpot — dlatego nie czyścimy już tablicy na innych
+    // mapach, a jedynie wstrzymujemy dosypywanie.
+    if(currentMapId==='festyn' && Math.random()<0.3){
+      confettiParticles.push({ x:Math.random()*WORLD_W, y:-10, vy:(60+Math.random()*40)*VIEW_UNTILT,
+        vx:(Math.random()-0.5)*30, color:KONFETTI_BARWY[Math.floor(Math.random()*4)], rot:Math.random()*Math.PI });
+    }
+    confettiParticles.forEach(p=>{
+      if(p.wybuch) p.vy += 520*dt*VIEW_UNTILT;   // wystrzelone opada
+      p.y+=p.vy*dt; p.x+=p.vx*dt; p.rot+=dt*2;
+    });
     confettiParticles=confettiParticles.filter(p=>p.y<WORLD_H+20);
   }
+  function burstConfetti(x, y){
+    for(let i=0;i<30;i++){
+      confettiParticles.push({ wybuch:true,
+        x: x+(Math.random()-0.5)*40, y: y-unprojY(26),
+        vx: (Math.random()-0.5)*260,
+        vy: (-120-Math.random()*170)*VIEW_UNTILT,
+        color: KONFETTI_BARWY[Math.floor(Math.random()*4)], rot: Math.random()*Math.PI });
+    }
+  }
 
+  /* 1,6% koszy przy kilkunastu na mapie to mniej więcej co czwarta
+     wyprawa — dość często, żeby nowy gracz trafił na to w pierwszej
+     sesji, i dość rzadko, żeby nie rozmiękczyć trzeciej gwiazdki.
+     Przy 2,5% i mnożniku 6 odsetek trzecich gwiazdek na osiedlu skoczył
+     z 66% na 82%. */
+  const JACKPOT_MNOZNIK = 5;
   function awardBinLoot(bin){
     run.binsEmptied += 1;
+    if(bin.jackpot){
+      // jackpot nigdy nie jest pusty — to byłby najgorszy możliwy żart
+      const sztuk = (1+Math.floor(Math.random()*3) + cartBonus() + binPieceBonus(playedLevel)) * JACKPOT_MNOZNIK;
+      const zysk = Math.min(0.5*sztuk, Math.max(0, backpackCap()-loot));
+      loot += zysk; daily.items += sztuk;
+      combo = Math.min(6, combo+3); comboTimer = 1.6;
+      if(combo>run.comboMax) run.comboMax = combo;
+      run.jackpots = (run.jackpots||0)+1;
+      burstConfetti(bin.x, bin.y);
+      Sfx.star(); hapticNotify('success');
+      addFloatText(bin.x, bin.y, '💰 ŻYŁA ZŁOTA! +'+fmt(zysk), '#FFD24A');
+      showToast('💰 JACKPOT! Ten kosz był nabity — +'+fmt(zysk));
+      grynaPlusEvent('jackpot_bin', { gain:Number(zysk.toFixed(2)), mapId:currentMapId, profileNick:profile.nick });
+      updateHUD(); return;
+    }
     if(Math.random() < emptyChanceFor(currentMapId, playedLevel)){
       bin.empty=true; combo=1; comboTimer=0;
       Sfx.empty();
@@ -3309,6 +3689,8 @@
   function update(dt){
     if(state!=='playing') return;
     elapsedSinceStart+=dt;
+    klatkaT += dt;
+    if(klatkaT >= 1/POWTORKA_FPS){ klatkaT = 0; nagrajKlatke(); }
     if(comboTimer>0){ comboTimer-=dt; if(comboTimer<=0){ combo=1; updateHUD(); } }
     updatePlayer(dt);
     updateCamera(dt);
@@ -3363,7 +3745,18 @@
     updateTutorial();
 
     if(player.heat>=100){ onCaught(); return; }
-    if(loot>0 && player.y<exitZone.y+exitZone.h && player.x>exitZone.x && player.x<exitZone.x+exitZone.w){ onExtract(); }
+    if(loot>0 && player.y<exitZone.y+exitZone.h && player.x>exitZone.x && player.x<exitZone.x+exitZone.w){
+      if(player.heat >= 85 && !oWlos.byl){
+        // wychodzisz na styku: zatrzymujemy obraz na chwilę, zanim
+        // wskoczy okienko wyniku
+        oWlos.byl = true; run.tightEscape = true;
+        oWlos.t = 1.1; oWlos.potem = onExtract;
+        state = 'banked';        // nic już nie może cię złapać w tej chwili
+        Sfx.star(); hapticNotify('success');
+        return;
+      }
+      onExtract();
+    }
   }
 
   /* =========================================================
@@ -3755,7 +4148,13 @@
       ctx.beginPath();
       ctx.moveTo(-12,-6); ctx.lineTo(12,-6); ctx.lineTo(10,20); ctx.lineTo(-10,20); ctx.closePath();
       ctx.fillStyle=bodyGrad; ctx.fill();
-      ctx.strokeStyle= isActive ? '#FFB800' : 'rgba(30,20,8,0.85)'; ctx.lineWidth = isActive ? 3 : 2.2; ctx.stroke();
+      // jackpot świeci na złoto, zanim go otworzysz — widać go z daleka
+      const zloty = bin.jackpot && !bin.searched;
+      ctx.strokeStyle = isActive ? '#FFB800' : (zloty ? '#FFD24A' : 'rgba(30,20,8,0.85)');
+      ctx.lineWidth = isActive ? 3 : (zloty ? 3.4 : 2.2);
+      if(zloty){ ctx.shadowColor='rgba(255,210,74,0.9)'; ctx.shadowBlur=14; }
+      ctx.stroke();
+      ctx.shadowBlur=0;
       ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(-6,18); ctx.moveTo(0,-4); ctx.lineTo(0,19); ctx.moveTo(8,0); ctx.lineTo(6,18); ctx.stroke();
       ctx.fillStyle='#171f14';
@@ -3843,9 +4242,13 @@
     ctx.save();
     ctx.translate(r.x, ry+bob);
     ctx.font='26px serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
-    ctx.fillText('🧓', 0, 2);
+    ctx.fillText(r.emoji || '🧓', 0, 2);
     ctx.font='15px serif';
     ctx.fillText('🛍️', 11, 6);
+    // imię nad głową — żeby było wiadomo, kto ci sprzątnął kosz
+    ctx.font='700 10px "Baloo 2","Segoe UI",Roboto,sans-serif';
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(30,20,8,0.85)'; ctx.lineJoin='round';
+    ctx.strokeText(r.imie||'', 0, -22); ctx.fillStyle='#FFE3A8'; ctx.fillText(r.imie||'', 0, -22);
     ctx.restore();
   }
   /* Kosz na celowniku śmieciarki — obwódka i odliczanie, żeby dało się
@@ -3997,6 +4400,17 @@
     drawParticles();
     ctx.restore();
     // --- ekran: efekty i sterowanie nie jeżdżą razem ze światem ---
+    if(oWlos.t > 0){
+      const a = Math.min(1, oWlos.t/1.1);
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,214,74,'+(0.20*a).toFixed(3)+')'; ctx.fillRect(0,0,W,H);
+      ctx.font='800 '+Math.round(W*0.13)+'px "Baloo 2","Segoe UI",Roboto,sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.lineWidth=10; ctx.lineJoin='round'; ctx.strokeStyle='rgba(30,20,8,0.95)';
+      ctx.strokeText('O WŁOS!', W/2, H*0.42);
+      ctx.fillStyle='#FFD24A'; ctx.fillText('O WŁOS!', W/2, H*0.42);
+      ctx.restore();
+    }
     drawRain();
     drawFlashlight();
     drawVignette();
@@ -4006,7 +4420,28 @@
   }
 
   let last=performance.now();
-  function loop(now){ const dt=Math.min(0.033,(now-last)/1000); last=now; update(dt); draw(); requestAnimationFrame(loop); }
+  function loop(now){
+    let dt=Math.min(0.033,(now-last)/1000); last=now;
+    // Zwolnione tempo po ucieczce o włos — to jest ten jeden moment
+    // wyprawy, który naprawdę warto mieć na filmiku.
+    if(powtorka.gra){
+      // powtórka leci wolniej niż gra (0,75x) — czytelniej na filmiku
+      powtorka.t += dt*0.75;
+      let i = Math.floor(powtorka.t*POWTORKA_FPS);
+      if(i >= klatki.length){ powtorka.t = 0; i = 0; }
+      odtworzKlatke(klatki[i]);
+      updateCamera(0, true);
+      draw();
+      requestAnimationFrame(loop);
+      return;
+    }
+    if(oWlos.t > 0){
+      oWlos.t -= dt;
+      dt *= 0.3;
+      if(oWlos.t <= 0 && oWlos.potem){ const f = oWlos.potem; oWlos.potem = null; f(); }
+    }
+    update(dt); draw(); requestAnimationFrame(loop);
+  }
   requestAnimationFrame(loop);
 
   /* Przerwa: update() i tak zaczyna od „if(state!=='playing') return", więc
@@ -4024,6 +4459,22 @@
     document.getElementById('pauseOverlay').classList.add('hidden');
     if(state==='paused'){ state='playing'; last=performance.now(); }
     Sfx.click(); haptic('light');
+  }
+  /* Nagłówek po wyprawie — losowany z tego, co się NAPRAWDĘ wydarzyło,
+     więc nie jest pustym ozdobnikiem. */
+  function naglowekPrasowy(banked){
+    const m = (MAPS.find(x=>x.id===currentMapId)||MAPS[0]).name.toUpperCase();
+    const nick = (profile.nick||'ŁOWCA').toUpperCase();
+    const kandydaci = [];
+    if(run.jackpots) kandydaci.push('SENSACJA NA „'+m+'": '+nick+' TRAFIŁ NA ŻYŁĘ ZŁOTA. KOSZ BYŁ NABITY PO BRZEGI');
+    if(run.tightEscape) kandydaci.push(nick+' UCIEKŁ DOSŁOWNIE O WŁOS. ŚWIADKOWIE DO DZIŚ NIE MOGĄ OCHŁONĄĆ');
+    if(wynikWyzwania && wynikWyzwania.wygrana) kandydaci.push(nick+' PRZYJĄŁ WYZWANIE I POBIŁ REKORD KOLEGI. KOLEGA MILCZY');
+    if(mods.rival && mods.rival.wziete>=3) kandydaci.push((mods.rival.imie||'PAN HENIEK').toUpperCase()+' SPRZĄTNĄŁ '+mods.rival.wziete+' KOSZY SPRZED NOSA. "TO BYŁO MOJE" — MÓWI');
+    if(banked>=30) kandydaci.push(nick+' ZGARNĄŁ '+fmt(banked)+' Z JEDNEJ WYPRAWY. SĄSIEDZI PYTAJĄ, GDZIE ON TO ZNAJDUJE');
+    if(run.maxHeat<30 && banked>0) kandydaci.push('NIKT NIC NIE WIDZIAŁ. '+nick+' WYSZEDŁ Z „'+m+'" JAK DUCH');
+    if(banked>0 && banked<3) kandydaci.push(nick+' WRACA Z '+fmt(banked)+'. "LICZY SIĘ RUCH NA ŚWIEŻYM POWIETRZU" — TŁUMACZY');
+    if(!kandydaci.length) kandydaci.push(nick+' ZAKOŃCZYŁ OBCHÓD PO „'+m+'". BILANS: '+fmt(banked));
+    return kandydaci[Math.floor(Math.random()*kandydaci.length)];
   }
   function tierMessage(v){
     if(v<2) return 'Ledwo starczy na gumę do żucia. Spróbuj jeszcze raz!';
@@ -4174,8 +4625,16 @@
     // Kasa nie wpada od razu — butelki lądują w worze i czekają na
     // odstawienie w punkcie skupu. XP, poziom mapy i gwiazdki dostajesz
     // od razu, bo one nagradzają samo skradanie.
-    profile.stash = (profile.stash||0) + banked;
-    profile.totalEarned += banked;
+    /* Pierwsza wyprawa dnia dostaje półtora raza tyle. Premia idzie do
+       wora OSOBNO i nie wlicza się do normy poziomu — inaczej gwiazdki
+       zdobywałoby się raz dziennie za darmo. */
+    let premia = 0;
+    if(!daily.premiaUzyta && banked>0){
+      daily.premiaUzyta = true;
+      premia = Math.round(banked*0.5*2)/2;
+    }
+    profile.stash = (profile.stash||0) + banked + premia;
+    profile.totalEarned += banked + premia;
     daily.earn += banked;
     daily.extracts = (daily.extracts||0)+1;
     const isNewBest = banked>profile.bestScore;
@@ -4184,19 +4643,44 @@
     // Poziom zaliczasz NORMĄ, nie kompletem koszy: liczy się, ile kaucji
     // przyniosłeś z wyprawy. Dróg do normy jest kilka — można biegać
     // szybko i zachłannie albo cicho i dokładnie.
-    const lvlRes = evaluateLevel(banked);
+    /* Pojedynek nie przyznaje gwiazdek ani nie otwiera poziomów: wyzwanie
+       potrafi wskazać poziom, którego gracz jeszcze nie odblokował, więc
+       inaczej dałoby się nim przeskoczyć pół gry. Kaucja jest zwyczajna. */
+    sprawdzZlecenie(banked);
+    const lvlRes = wyzwanie
+      ? { stars:0, gained:0, opened:false, quota:levelQuota(currentMapId, playedLevel) }
+      : evaluateLevel(banked);
+    if(wyzwanie){
+      wynikWyzwania = { cel:wyzwanie.cel, moj:banked, wygrana:banked>=wyzwanie.cel,
+                        mapId:currentMapId, lvl:playedLevel, seed:runSeed };
+      wyzwanie = null;   // kolejna wyprawa jest już zwyczajna
+      grynaPlusEvent('duel_finished', { won:wynikWyzwania.wygrana, mine:Number(banked.toFixed(2)),
+                                        target:wynikWyzwania.cel, profileNick:profile.nick });
+    } else {
+      wynikWyzwania = null;
+    }
 
     await saveDaily(); await saveProfile();
     checkTasks();
     refreshProfileUI();
+    zglosWynik(banked);     // do ligi tygodniowej; nie blokuje niczego
     grynaPlusEvent('round_finished', { earned:Number(banked.toFixed(2)), level:profile.level, mapId:currentMapId, newBest:isNewBest, profileNick:profile.nick });
 
-    document.getElementById('resultAmount').textContent = fmt(banked);
+    document.getElementById('resultAmount').textContent = fmt(banked + premia);
+    if(premia>0) setTimeout(()=>showToast('🌅 Pierwsza wyprawa dnia: +50% (+'+fmt(premia)+')'), 900);
     document.getElementById('resultTier').textContent = tierMessage(banked);
+    const nb = document.getElementById('newsBar');
+    nb.innerHTML = '<span class="nb-tag">WIADOMOŚCI</span>'+naglowekPrasowy(banked);
+    nb.classList.add('show');
     document.getElementById('recordBanner').classList.toggle('show', isNewBest);
     document.getElementById('levelBanner').classList.toggle('show', leveledThisRound);
     const mapLvlBanner = document.getElementById('mapLevelBanner');
-    if(lvlRes.opened){
+    if(wynikWyzwania){
+      mapLvlBanner.textContent = wynikWyzwania.wygrana
+        ? ('🥊 POBITE! '+fmt(wynikWyzwania.moj)+' kontra '+fmt(wynikWyzwania.cel))
+        : ('🥊 Zabrakło '+fmt(wynikWyzwania.cel-wynikWyzwania.moj)+' do wyniku kolegi');
+      mapLvlBanner.classList.add('show');
+    } else if(lvlRes.opened){
       mapLvlBanner.textContent = '🔓 Norma wyrobiona! Otwarty poziom '+(playedLevel+1)+'/'+MAP_LEVEL_MAX;
       mapLvlBanner.classList.add('show');
     } else if(lvlRes.gained>0){
@@ -4249,7 +4733,10 @@
   function attemptStart(){
     regenTick();
     if(profile.energy<=0){ showToast('Brak energii — poczekaj lub obejrzyj reklamę ↓'); return; }
-    const proceed = async ()=>{ profile.energy-=1; await saveProfile(); renderEnergy(); beginRound(); };
+    const proceed = async ()=>{
+      if(!pierwszaDoba()) profile.energy-=1;   // pierwszej doby nie liczymy
+      await saveProfile(); renderEnergy(); beginRound();
+    };
     const shouldAd = roundsPlayed>0 && roundsPlayed % AD_CONFIG.showInterstitialEveryNRounds === 0;
     if(shouldAd) Ads.showInterstitial(()=>proceed()); else proceed();
   }
@@ -4322,22 +4809,226 @@
   document.getElementById('againBtn').addEventListener('click', attemptStart);
   document.getElementById('menuBtnEnd').addEventListener('click', goToMenu);
 
-  // PODMIEŃ na link do swojego bota/mini-appki
+  // PODMIEŃ na link do swojego bota/mini-appki.
+  // UWAGA: dopóki to jest zaślepka, KAŻDY link z gry (wyzwanie, polecenie,
+  // karta wyniku) prowadzi donikąd.
   const GAME_LINK = 'https://t.me/TWOJ_BOT/gra';
+
+  /* =========================================================
+     KARTA WYNIKU — obrazek 1080x1350 (pion, jak na TikToka).
+
+     Dotąd „pochwal się" wysyłało samo zdanie tekstu, czyli nic, co da
+     się obejrzeć. Karta jest gotowym materiałem: da się ją pokazać,
+     zrzucić ekran i wrzucić na rolkę.
+     ========================================================= */
+  function rysujKarteWyniku(){
+    const c = document.createElement('canvas');
+    c.width = 1080; c.height = 1350;
+    const g = c.getContext('2d');
+    const mapa = MAPS.find(m=>m.id===currentMapId) || MAPS[0];
+
+    const tlo = g.createLinearGradient(0,0,0,1350);
+    tlo.addColorStop(0, mapa.sky[0]); tlo.addColorStop(0.34, mapa.sky[1]);
+    tlo.addColorStop(0.46, mapa.grass[0]); tlo.addColorStop(1, mapa.grass[1]);
+    g.fillStyle = tlo; g.fillRect(0,0,1080,1350);
+
+    /* Przyciemnienie pod tekstem WCHODZI I SCHODZI płynnie. Prostokąt
+       o twardych krawędziach dzielił kartę na widoczne pasy. */
+    const cien = g.createLinearGradient(0,250,0,1090);
+    cien.addColorStop(0,'rgba(20,14,6,0)');
+    cien.addColorStop(0.16,'rgba(20,14,6,0.36)');
+    cien.addColorStop(0.84,'rgba(20,14,6,0.36)');
+    cien.addColorStop(1,'rgba(20,14,6,0)');
+    g.fillStyle = cien; g.fillRect(0,250,1080,840);
+
+    const napis = (txt, y, size, kolor, waga)=>{
+      g.font = (waga||800)+' '+size+'px "Baloo 2","Segoe UI",Roboto,sans-serif';
+      g.textAlign='center'; g.textBaseline='middle';
+      g.lineWidth = Math.max(6, size*0.14); g.strokeStyle='rgba(30,20,8,0.92)';
+      g.lineJoin='round'; g.miterLimit=2;
+      g.strokeText(txt, 540, y); g.fillStyle=kolor; g.fillText(txt, 540, y);
+    };
+
+    napis('ŁOWCA KAUCJI', 120, 74, '#FFF3C4');
+    g.font='140px serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(mapa.icon, 540, 268);
+
+    napis(fmt(lastBankedAmount), 470, 190, '#FFD24A');
+    napis('z jednej wyprawy', 585, 46, '#FFF3C4', 600);
+
+    napis(mapa.name.toUpperCase(), 700, 56, '#FFFFFF');
+    napis('POZIOM '+playedLevel+'/'+MAP_LEVEL_MAX, 775, 50, '#FFE3A8');
+
+    const zasady = playedMods.map(id=>MODS[id].icon).join('  ');
+    if(zasady){ g.font='60px serif'; g.fillStyle='#fff'; g.fillText(zasady, 540, 862); }
+
+    if(wynikWyzwania){
+      napis(wynikWyzwania.wygrana ? '🥊 POBIŁEM WYZWANIE' : '🥊 zabrakło '+fmt(wynikWyzwania.cel-wynikWyzwania.moj),
+            950, 52, wynikWyzwania.wygrana ? '#8BE88B' : '#FFB4A2');
+    } else if(lastBankedAmount >= profile.bestScore){
+      napis('🏆 MÓJ REKORD', 950, 52, '#8BE88B');
+    }
+
+    napis('@'+(profile.nick||'Łowca'), 1120, 54, '#FFFFFF');
+    napis('POBIJESZ MNIE NA TEJ SAMEJ MAPIE?', 1215, 40, '#FFF3C4', 700);
+    napis('Telegram · Łowca Kaucji', 1285, 36, '#FFE3A8', 600);
+    return c;
+  }
+  function pokazKarteWyniku(){
+    try{
+      const c = rysujKarteWyniku();
+      document.getElementById('cardImg').src = c.toDataURL('image/png');
+      document.getElementById('cardOverlay').classList.remove('hidden');
+      Sfx.click(); haptic('light');
+      grynaPlusEvent('result_card_shown', { profileNick:profile.nick });
+    }catch(e){ showToast('Nie udało się zrobić karty'); }
+  }
+  /* Każde udostępnienie niesie teraz ZIARNO mapy, więc kolega dostaje
+     ten sam teren i ten sam poziom, a nie „jakąś mapę". Bez tego
+     „pobijesz?" jest pustym zaproszeniem. */
   function doShare(){
     const mapName = (MAPS.find(m=>m.id===currentMapId)||{}).name || '';
-    const txt = lastBankedAmount>0
-      ? 'Zebrałem '+fmt(lastBankedAmount)+' kaucji na mapie "'+mapName+'" w Łowcy Kaucji! Pobijesz?'
-      : 'Gram w Łowcę Kaucji — zbieram butelki i puszki. Dołączysz?';
+    let txt, link;
+    if(lastBankedAmount>0 && runSeed){
+      txt = 'Zgarnąłem '+fmt(lastBankedAmount)+' na mapie „'+mapName+'" (poziom '+playedLevel+') w Łowcy Kaucji. '
+          + 'Ten link daje ci DOKŁADNIE tę samą mapę — pobijesz?';
+      link = linkWyzwania(currentMapId, playedLevel, runSeed, lastBankedAmount);
+    } else {
+      txt = 'Gram w Łowcę Kaucji — zbieram butelki i puszki po osiedlu. Wpadaj, obaj dostaniemy bonus na start.';
+      link = linkPolecajacy();
+    }
     haptic('light');
     if(TG && TG.openTelegramLink){
-      TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(GAME_LINK)+'&text='+encodeURIComponent(txt));
+      TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(txt));
     } else {
-      try{ navigator.clipboard.writeText(txt+' '+GAME_LINK); showToast('Skopiowano do schowka'); }
+      try{ navigator.clipboard.writeText(txt+' '+link); showToast('Skopiowano do schowka'); }
       catch(e){ showToast(txt); }
     }
+    grynaPlusEvent('share', { withSeed:!!(lastBankedAmount>0 && runSeed), profileNick:profile.nick });
   }
   document.getElementById('shareBtn').addEventListener('click', doShare);
+  document.getElementById('cardBtn').addEventListener('click', pokazKarteWyniku);
+  document.getElementById('replayBtn').addEventListener('click', wlaczPowtorke);
+  document.getElementById('replayCloseBtn').addEventListener('click', ()=>{ Sfx.click(); wylaczPowtorke('extractOverlay'); });
+  document.getElementById('cardShareBtn').addEventListener('click', doShare);
+  document.getElementById('cardCloseBtn').addEventListener('click', ()=>{
+    Sfx.click(); document.getElementById('cardOverlay').classList.add('hidden');
+  });
+  document.getElementById('cardSaveBtn').addEventListener('click', ()=>{
+    // Telegram nie pozwala mini-appce wrzucić pliku na czat, więc zostaje
+    // pobranie. Na części telefonów i tak zadziała tylko zrzut ekranu —
+    // dlatego karta jest przede wszystkim DO POKAZANIA, a zapis to dodatek.
+    try{
+      const a = document.createElement('a');
+      a.href = document.getElementById('cardImg').src;
+      a.download = 'lowca-kaucji-'+Math.round(lastBankedAmount*100)+'.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast('Zapisano — jeśli nic się nie stało, zrób zrzut ekranu');
+    }catch(e){ showToast('Zrób zrzut ekranu — tak jest najpewniej'); }
+  });
+
+  /* =========================================================
+     POJEDYNEK — ekran powitalny dla kogoś, kto przyszedł z linku
+     ========================================================= */
+  function pokazWyzwanie(){
+    if(!wyzwanie) return;
+    const m = MAPS.find(x=>x.id===wyzwanie.mapId) || MAPS[0];
+    document.getElementById('duelTarget').textContent = fmt(wyzwanie.cel);
+    document.getElementById('duelWhere').innerHTML =
+      m.icon+' <b>'+m.name+'</b> &middot; poziom <b>'+wyzwanie.lvl+'</b><br>'
+      + 'Zasady: <b>'+(levelMods(m.id, wyzwanie.lvl).map(modLabel).join(', ') || 'brak')+'</b>';
+    document.getElementById('duelSub').textContent =
+      pierwszaDoba() ? 'Ktoś rzucił ci rękawicę. Pierwszego dnia grasz bez limitu — próbuj do skutku.'
+                     : 'Ktoś rzucił ci rękawicę.';
+    document.getElementById('duelOverlay').classList.remove('hidden');
+  }
+  function graczWchodziWWyzwanie(){
+    if(!wyzwanie) return;
+    currentMapId = wyzwanie.mapId;
+    profile.lastMapId = currentMapId;
+    document.getElementById('duelOverlay').classList.add('hidden');
+    attemptStart();
+  }
+  document.getElementById('duelPlayBtn').addEventListener('click', ()=>{ Sfx.click(); graczWchodziWWyzwanie(); });
+  document.getElementById('duelSkipBtn').addEventListener('click', ()=>{
+    Sfx.click();
+    document.getElementById('duelOverlay').classList.add('hidden');
+    // wyzwanie zostaje pod ręką: karta mapy pokaże przycisk, żeby do niego wrócić
+    renderMapSelector();
+  });
+
+  /* =========================================================
+     LIGA TYGODNIOWA I POLECENIA — strona kliencka
+
+     Wszystko tu jest NIEOBOWIĄZKOWE: bez Telegrama (czyli bez initData)
+     albo przy niedostępnym backendzie gra działa dokładnie jak dotąd,
+     a liga po prostu się nie pokazuje. Żaden z tych wywołań nie może
+     zablokować rozgrywki, więc każdy jest owinięty w try/catch.
+     ========================================================= */
+  function backendDostepny(){ return !!(TG && TG.initData); }
+  function naglowkiApi(){
+    return { 'Content-Type':'application/json', 'Authorization':'tma ' + (TG && TG.initData ? TG.initData : '') };
+  }
+  async function zglosWynik(banked){
+    if(!backendDostepny() || !(banked>0)) return;
+    try{
+      await fetch(API_BASE+'/score', { method:'POST', headers:naglowkiApi(),
+        body: JSON.stringify({ banked: Number(banked.toFixed(2)), nick: profile.nick }) });
+    }catch(e){ /* liga to dodatek — cisza */ }
+  }
+  async function zglosPolecenie(){
+    if(!backendDostepny() || !profile.invitedBy || profile.refSent) return;
+    try{
+      const r = await fetch(API_BASE+'/referral', { method:'POST', headers:naglowkiApi(),
+        body: JSON.stringify({ inviter: profile.invitedBy }) });
+      if(r.ok){ profile.refSent = true; await saveProfile(); }
+    }catch(e){}
+  }
+  async function renderLiga(){
+    const box = document.getElementById('leagueBox');
+    if(!box) return;
+    if(!backendDostepny()){
+      box.innerHTML = '<div class="mod-none">Liga działa w Telegramie — tam gra wie, kto jest kim.</div>';
+      return;
+    }
+    try{
+      const r = await fetch(API_BASE+'/league', { headers:naglowkiApi() });
+      if(!r.ok) throw new Error('kod '+r.status);
+      const d = await r.json();
+      if(!d.top || !d.top.length){
+        box.innerHTML = '<div class="mod-none">Tydzień dopiero się zaczął — pierwsza wyprawa i jesteś na szczycie.</div>';
+        return;
+      }
+      let html = '';
+      d.top.forEach(w=>{
+        const medal = w.miejsce===1?'🥇':(w.miejsce===2?'🥈':(w.miejsce===3?'🥉':w.miejsce+'.'));
+        html += '<div class="lg-row'+(w.ja?' me':'')+'">'
+             +  '<span class="lg-no">'+medal+'</span>'
+             +  '<span class="lg-nick">'+String(w.nick||'—').replace(/[<>&]/g,'')+'</span>'
+             +  '<span class="lg-val">'+fmt(w.best)+'</span></div>';
+      });
+      if(d.moj && d.moj.miejsce && d.moj.miejsce > d.top.length){
+        html += '<div class="lg-me">Twoje miejsce: <b>'+d.moj.miejsce+'</b> &middot; najlepsza wyprawa <b>'+fmt(d.moj.best)+'</b></div>';
+      }
+      html += '<div class="lg-me">Liczy się NAJLEPSZA wyprawa tygodnia. Reset w poniedziałek.</div>';
+      box.innerHTML = html;
+    }catch(e){
+      box.innerHTML = '<div class="mod-none">Nie udało się wczytać ligi. Spróbuj za chwilę.</div>';
+    }
+  }
+  document.getElementById('inviteBtn').addEventListener('click', ()=>{
+    Sfx.click(); haptic('light');
+    const txt = 'Gram w Łowcę Kaucji — zbieram butelki i puszki po osiedlu, uciekając sąsiadom. '
+              + 'Wpadaj z tego linku, obaj dostaniemy po '+fmt(ZAPROSZENIE_BONUS)+' na start.';
+    const link = linkPolecajacy();
+    if(TG && TG.openTelegramLink){
+      TG.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(link)+'&text='+encodeURIComponent(txt));
+    } else {
+      try{ navigator.clipboard.writeText(txt+' '+link); showToast('Skopiowano link'); }
+      catch(e){ showToast(link); }
+    }
+    grynaPlusEvent('invite_sent', { profileNick:profile.nick });
+  });
 
   function wireEnergyAdButton(id){
     const btn=document.getElementById(id);
@@ -4379,11 +5070,20 @@
       refreshProfileUI();
     }
     await loadDaily();
+    // link z zewnątrz czytamy DOPIERO po wczytaniu profilu: polecenie
+    // dopisuje się do profilu, a wyzwanie musi znać odblokowane mapy
+    const zLinku = zastosujStartParam();
     regenTick();
     renderMapSelector();
     renderShop();
     renderPayouts();
     await checkDailyStreak();
+    if(zLinku === 'polecenie'){
+      refreshProfileUI();
+      showToast('🤝 Wpadłeś z polecenia — masz '+fmt(ZAPROSZENIE_BONUS)+' na start!');
+    }
+    zglosPolecenie();   // zapraszający dostaje swoje przez backend
+    if(zLinku === 'wyzwanie') setTimeout(pokazWyzwanie, 400);
   })();
 })();
 </script>
