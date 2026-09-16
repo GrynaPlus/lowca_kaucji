@@ -174,6 +174,16 @@
   .lvl-tile .lt-no{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:800;font-size:17px;color:var(--ink);line-height:1;}
   .lvl-tile .lt-st{font-size:9px;color:var(--gold-dark);letter-spacing:1px;line-height:1;}
   .lvl-tile .lt-q{font-size:8.5px;font-weight:700;color:#8A6A3A;line-height:1;}
+  /* Zasady jako żetony: pełny opis rozpychał kartę o 285 px i spychał
+     GRAJ pod dolną krawędź na 320x568. Dotknięcie żetonu pokazuje opis. */
+  .tasks-box .t-title.t-sep{margin-top:9px;padding-top:8px;border-top:2px dashed rgba(138,106,58,0.35);}
+  .mod-chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .mod-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:2px solid var(--ink);
+    border-radius:999px;background:linear-gradient(180deg,#FFF6DE,#FFE3A8);box-shadow:0 2px 0 rgba(0,0,0,0.16);
+    font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:11px;color:var(--ink);cursor:pointer;}
+  .mod-chip:active{transform:translateY(1px);box-shadow:none;}
+  .mod-none{font-size:11px;color:#5C4522;padding:3px 0;}
+  .map-card .mc-mods{font-size:14px;letter-spacing:3px;margin-top:3px;line-height:1;}
   .lvl-tile.sel{background:linear-gradient(180deg,#FFE3A8,#FFC94F);}
   .lvl-tile.locked{background:#E7DCC6;opacity:0.55;cursor:default;box-shadow:none;}
   .lvl-tile.locked .lt-no{color:#9A8C74;}
@@ -321,7 +331,13 @@
     #levelOverlay .card{padding:16px 14px 14px;}
     #levelOverlay h1{font-size:21px;}
     #levelOverlay .sub{margin-bottom:8px;}
-    #levelOverlay .footnote{font-size:9px;line-height:1.35;}
+    #levelOverlay .footnote{display:none;}
+    #levelOverlay h1{font-size:19px;}
+    #levelOverlay .task-row{font-size:10px;padding:2px 0;}
+    #levelOverlay .task-check{width:15px;height:15px;font-size:9px;}
+    #levelOverlay .mod-chip{font-size:10px;padding:3px 8px;}
+    #lvlPlayBtn{font-size:16px !important;padding:10px !important;}
+    #lvlCloseBtn{font-size:12px !important;padding:8px !important;}
     #levelOverlay .tasks-box{padding:8px 10px;margin-bottom:9px;}
     /* pasek dziesiątek dołożył wysokości — na 320x568 karta wychodziła
        o 9 px poza ekran, więc ściskamy go razem z siatką */
@@ -604,6 +620,8 @@
       <div class="tasks-box">
         <div class="t-title" id="lvlGoalsTitle">🎯 Gwiazdki poziomu</div>
         <div id="lvlGoals"></div>
+        <div class="t-title t-sep" id="lvlModsTitle">⚡ Zasady</div>
+        <div id="lvlMods" class="mod-chips"></div>
       </div>
       <button class="primary" id="lvlPlayBtn">GRAJ TEN POZIOM</button>
       <button class="secondary" id="lvlCloseBtn">Zamknij</button>
@@ -1265,7 +1283,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 15';
+  const APP_VERSION = '2026-09-16 · 16';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -1290,6 +1308,51 @@
   // przypada ich 150, ale progi zostają nisko: więcej poziomów ma dawać
   // głębię, a nie dłuższy mur przed nową mapą.
   const MAP_STAR_GATE = { miasto:8, festyn:16, row:26, blok:38 };
+
+  /* =========================================================
+     MODYFIKATORY POZIOMÓW
+
+     Same rosnące liczby nie wystarczą na pięćdziesiąt poziomów: poziom 40
+     różniłby się od 30 wyłącznie normą. Od szóstego poziomu dochodzi więc
+     dodatkowa ZASADA, która zmienia sposób grania.
+
+     Przydział jest stały dla danego poziomu — poziom 12 na osiedlu zawsze
+     ma to samo, więc da się go zaplanować i powtórzyć.
+     ========================================================= */
+  const MODS = {
+    smieciarka: { icon:'🚛', name:'Śmieciarka',
+                  desc:'Zabiera kosze sprzed nosa. Zdążysz do zaznaczonego, zanim przyjedzie?' },
+    konkurencja:{ icon:'🧓', name:'Konkurencja',
+                  desc:'Inny zbieracz chodzi po mapie i opróżnia kosze przed tobą.' },
+    deszcz:     { icon:'🌧️', name:'Deszcz',
+                  desc:'Deszcz zagłusza stukanie, ale grunt jest śliski, a przypał schodzi dużo wolniej.' },
+    pies:       { icon:'🐕', name:'Pies',
+                  desc:'Idzie twoim śladem — krzak go nie zmyli. Gubi trop dopiero, gdy się oddalisz.' }
+  };
+  // po trzy na mapę, dobrane pod jej klimat
+  const MAP_MODS = {
+    osiedle: ['smieciarka','konkurencja','pies'],
+    miasto:  ['smieciarka','konkurencja','deszcz'],
+    festyn:  ['konkurencja','smieciarka','deszcz'],
+    row:     ['deszcz','pies','konkurencja'],
+    blok:    ['pies','smieciarka','konkurencja']
+  };
+  const MOD_FROM = 6, MOD_TWO = 21, MOD_THREE = 41;
+  function levelMods(mapId, lvl){
+    const pool = MAP_MODS[mapId] || [];
+    if(lvl < MOD_FROM || !pool.length) return [];
+    let ile = 1;
+    if(lvl >= MOD_TWO) ile = 2;
+    if(lvl >= MOD_THREE) ile = 3;
+    ile = Math.min(ile, pool.length);
+    // obrót po puli — kolejne poziomy dają RÓŻNE zestawy, a nie ten sam
+    // modyfikator przez piętnaście poziomów z rzędu
+    const start = (lvl - MOD_FROM) % pool.length;
+    const out = [];
+    for(let i=0;i<ile;i++) out.push(pool[(start+i) % pool.length]);
+    return out;
+  }
+  function modLabel(id){ const m = MODS[id]; return m ? (m.icon+' '+m.name) : id; }
 
   /* =========================================================
      SKLEP — na to idzie zarobiona kaucja
@@ -1866,6 +1929,8 @@
              +  ' <span class="mcl-st">★ '+tot+'/'+mapStarMax()+'</span> ▾</button>';
         if(mapCompleted(m.id)) body += '<div class="mc-max">🏅 Komplet gwiazdek</div>';
         body += '<div class="mc-note">Norma: <b>'+fmt(levelQuota(m.id, lv))+'</b> z jednej wyprawy</div>';
+        const mm = levelMods(m.id, lv);
+        if(mm.length) body += '<div class="mc-mods">'+mm.map(id=>MODS[id].icon).join('')+'</div>';
       } else if(!canUnlock){
         const prev = MAPS[MAPS.findIndex(x=>x.id===m.id)-1];
         const need = MAP_STAR_GATE[m.id]||0;
@@ -1948,6 +2013,8 @@
       + ' &middot; ★ '+mapStarTotal(map.id)+'/'+mapStarMax()+'</b><br>'
       + 'Norma: <b>'+fmt(levelQuota(map.id,lvl))+'</b> z jednej wyprawy. Plecak: <b>'+fmt(backpackCapFor(map.id,lvl))+'</b>.<br>'
       + 'Na tym poziomie: <b>'+binCountFor(map.id,lvl)+'</b> koszy i <b>'+npcCountFor(map.id,lvl)+'</b> par oczu.';
+    const mm = levelMods(map.id, lvl);
+    html += '<br>Zasady: <b>'+(mm.length ? mm.map(modLabel).join(', ') : 'brak, czysta mapa')+'</b>.';
     if(mapCompleted(map.id)) html += '<br>🏅 Komplet gwiazdek — ta mapa jest wyczyszczona.';
     else if(levelStars(map.id,lvl)===0 && lvl<MAP_LEVEL_MAX) html += '<br>Wyrób normę, żeby otworzyć poziom '+(lvl+1)+'.';
     box.innerHTML = html;
@@ -2001,6 +2068,7 @@
     }
     document.getElementById('lvlGoalsTitle').textContent = '🎯 Gwiazdki poziomu '+lvlPickNo;
     renderGoalsList('lvlGoals', map.id, lvlPickNo);
+    renderModsList('lvlMods', map.id, lvlPickNo);
     const play = document.getElementById('lvlPlayBtn');
     const isCur = profile.mapsOwned.includes(map.id);
     play.disabled = !isCur || profile.energy<=0;
@@ -2468,6 +2536,25 @@
   // Poziom zamrażamy na starcie wyprawy. Bez tego zmiana wyboru w menu
   // w trakcie gry przeliczałaby normę i limit pod stopami gracza.
   let playedLevel = 1;
+  // Modyfikatory też zamrażamy na starcie — zmiana wyboru w menu w trakcie
+  // wyprawy nie może dołożyć psa w połowie skradania.
+  let playedMods = [];
+  function hasMod(id){ return playedMods.indexOf(id) >= 0; }
+  const RAIN_NOISE = 0.65;   // deszcz zagłusza stukanie
+  const RAIN_SPEED = 0.94;   // ale grunt jest mokry
+  /* Deszcz ma być tą ŻYCZLIWĄ zasadą — pomaga się skradać, kosztuje
+     umiarkowanie. Przy mnożniku 0,45 sam zabierał rowowi 32 punkty
+     udanych powrotów, czyli więcej niż piętnaście poziomów skalowania. */
+  const RAIN_COOL = 0.7;     // a raz zauważony schodzisz z oczu wolniej
+  const TRUCK_FIRST = 16, TRUCK_EVERY = 26, TRUCK_WARN = 7;
+  // Rywal ma opróżniać kosz WOLNIEJ, niż robi to gracz trzema stuknięciami
+  // — przy 2,6 s wyglądał jak odkurzacz, choć w liczbach kosztował tylko
+  // 1-2 zł na wyprawę.
+  const RIVAL_SPEED = 118, RIVAL_WORK = 3.6;
+  // Pies gubi trop, gdy się oddalisz — bez tego opis „trzeba się oddalić"
+  // był pustym słowem: szedł za tobą przez całą wyprawę bez końca.
+  const DOG_TRACK_SPEED = 178, DOG_TRACK_LAG = 1.2, DOG_GIVE_UP = 430;
+  let mods = { truckT:0, truckBin:null, truckWarn:0, rival:null, drops:[] };
   function backpackCap(){ return backpackCapFor(currentMapId, playedLevel); }
 
   /* Ile mapa zmienia się przez pięćdziesiąt poziomów.
@@ -2553,6 +2640,8 @@
   }
   function resetGame(){
     playedLevel = mapLevel(currentMapId);
+    playedMods = levelMods(currentMapId, playedLevel);
+    mods = { truckT:TRUCK_FIRST, truckBin:null, truckWarn:0, rival:null, drops:[] };
     loot=0; combo=1; comboTimer=0; elapsedSinceStart=0;
     items=[]; particles=[]; confettiParticles=[]; dog=null; spawnTimer=0;
     bins=[]; npcs=[]; npcSpawnTimer=0.4;
@@ -2690,7 +2779,7 @@
     if(keys['arrowdown']||keys['s']) dy+=1;
     if(keys['arrowleft']||keys['a']) dx-=1;
     if(keys['arrowright']||keys['d']) dx+=1;
-    const speed=playerSpeed();
+    const speed=playerSpeed()*(hasMod('deszcz')?RAIN_SPEED:1);
     let mx=0, my=0;
     // prędkość zadana jest w pikselach ekranu: w pionie trzeba pokonać
     // więcej świata, żeby przesunąć się o tyle samo na ekranie
@@ -2765,17 +2854,136 @@
     updateHUD();
   }
 
+  /* Śmieciarka — bierze kosz na cel i daje siedem sekund. Zdążysz go
+     opróżnić pierwszy albo zostanie ci pusty pojemnik. */
+  function updateTruck(dt){
+    if(!hasMod('smieciarka')) return;
+    if(mods.truckBin){
+      if(mods.truckBin.searched){            // zdążyłeś — kosz był twój
+        mods.truckBin=null; mods.truckT=TRUCK_EVERY; return;
+      }
+      mods.truckWarn -= dt;
+      if(mods.truckWarn<=0){
+        const b = mods.truckBin;
+        b.searched=true; b.empty=true; b.taken=true;
+        mods.truckBin=null; mods.truckT=TRUCK_EVERY;
+        Sfx.empty();
+        addFloatText(b.x,b.y,'🚛 Zabrane!','#FFC4A3');
+        showToast('🚛 Śmieciarka zabrała kosz');
+      }
+      return;
+    }
+    mods.truckT -= dt;
+    if(mods.truckT>0) return;
+    const wolne = bins.filter(b=>!b.searched);
+    if(!wolne.length){ mods.truckT = TRUCK_EVERY; return; }
+    mods.truckBin = wolne[Math.floor(Math.random()*wolne.length)];
+    mods.truckWarn = TRUCK_WARN;
+    Sfx.click();
+    showToast('🚛 Śmieciarka jedzie po zaznaczony kosz!');
+  }
+
+  /* Konkurencja — drugi zbieracz. Nie goni cię i nie wzywa nikogo;
+     po prostu opróżnia najbliższy sobie kosz, a każdy taki kosz to
+     kaucja, której już nie zobaczysz. */
+  function updateRival(dt){
+    if(!hasMod('konkurencja')) return;
+    if(!mods.rival){
+      mods.rival = { x: Math.random()*WORLD_W, y: playTop()+unprojY(60), cel:null, praca:0, wziete:0, krok:0 };
+    }
+    const r = mods.rival;
+    if(!r.cel || r.cel.searched){
+      r.cel=null; r.praca=0;
+      let best=null, bd=1e9;
+      for(const b of bins){
+        if(b.searched) continue;
+        const d=viewDist(r.x,r.y,b.x,b.y);
+        if(d<bd){ bd=d; best=b; }
+      }
+      r.cel=best;
+    }
+    if(!r.cel) return;
+    if(viewDist(r.x,r.y,r.cel.x,r.cel.y) > 22){
+      const dx=r.cel.x-r.x, dy=(r.cel.y-r.y)*VIEW_TILT, L=Math.hypot(dx,dy)||1;
+      const nx=r.x+(dx/L)*RIVAL_SPEED*dt, ny=r.y+(dy/L)*RIVAL_SPEED*dt*VIEW_UNTILT;
+      if(!pointInObstacle(nx, r.y, 8)) r.x=nx;
+      if(!pointInObstacle(r.x, ny, 8)) r.y=ny;
+      r.praca=0; r.krok += dt*9;
+    } else {
+      r.praca += dt;
+      r.cel.shakeTimer = 0.18;
+      if(r.praca >= RIVAL_WORK){
+        const b=r.cel;
+        b.searched=true; b.empty=true; b.taken=true;
+        r.wziete++; r.cel=null; r.praca=0;
+        Sfx.empty();
+        addFloatText(b.x,b.y,'🧓 Zdążył pierwszy','#FFD5A3');
+      }
+    }
+  }
+
+  /* Deszcz — krople lecą w przestrzeni EKRANU, nie świata: mają padać
+     na obiektyw, a nie jeździć razem z kamerą. */
+  function updateRain(dt){
+    if(!hasMod('deszcz')){ mods.drops.length=0; return; }
+    const ile = 90;
+    while(mods.drops.length < ile){
+      mods.drops.push({ x:Math.random()*W, y:Math.random()*H, v:620+Math.random()*420, d:8+Math.random()*10 });
+    }
+    for(const k of mods.drops){
+      k.y += k.v*dt; k.x += k.v*0.16*dt;
+      if(k.y > H){ k.y = -12; k.x = Math.random()*W; }
+      if(k.x > W) k.x -= W;
+    }
+  }
+
   function updateDog(dt){
-    if(currentMapId!=='osiedle'){ dog=null; return; }
-    if(!dog) dog={ x:Math.random()*WORLD_W, y:playTop()+unprojY(42)+Math.random()*(WORLD_H-unprojY(100)-playTop()-unprojY(42)), wanderT:Math.random()*Math.PI*2 };
-    dog.wanderT += dt*1.5;
-    dog.x += Math.sin(dog.wanderT)*60*dt;
-    dog.y += Math.cos(dog.wanderT*0.7)*40*dt*VIEW_UNTILT;
+    const tropi = hasMod('pies');
+    if(!tropi && currentMapId!=='osiedle'){ dog=null; return; }
+    if(!dog) dog={ x:Math.random()*WORLD_W, y:playTop()+unprojY(42)+Math.random()*(WORLD_H-unprojY(100)-playTop()-unprojY(42)), wanderT:Math.random()*Math.PI*2, trail:[], pause:0 };
+    if(tropi){
+      /* Pies nie patrzy — węszy. Idzie tam, gdzie gracz BYŁ 1,2 s temu,
+         więc krzak ani murek go nie zmylą, ale w biegu nie ma szans.
+         Groźny robi się dopiero, gdy staniesz nad koszem i stukasz. */
+      if(dog.pause>0) dog.pause -= dt;
+      else if(viewDist(player.x,player.y,dog.x,dog.y) > DOG_GIVE_UP){
+        // zgubił trop — kręci się w miejscu, dopóki znów nie podejdziesz
+        dog.trail.length = 0; dog.cel = null;
+        dog.wanderT += dt*1.5;
+        dog.x += Math.sin(dog.wanderT)*50*dt;
+        dog.y += Math.cos(dog.wanderT*0.7)*34*dt*VIEW_UNTILT;
+      }
+      else {
+        dog.trail.push({ x:player.x, y:player.y, t:elapsedSinceStart });
+        while(dog.trail.length && elapsedSinceStart - dog.trail[0].t > DOG_TRACK_LAG) dog.cel = dog.trail.shift();
+        const c = dog.cel;
+        if(c){
+          const dx=c.x-dog.x, dy=(c.y-dog.y)*VIEW_TILT, L=Math.hypot(dx,dy);
+          if(L>2){
+            const nx = dog.x + (dx/L)*DOG_TRACK_SPEED*dt;
+            const ny = dog.y + (dy/L)*DOG_TRACK_SPEED*dt*VIEW_UNTILT;
+            if(!pointInObstacle(nx, dog.y, 8)) dog.x=nx;
+            if(!pointInObstacle(dog.x, ny, 8)) dog.y=ny;
+          }
+        }
+      }
+    } else {
+      dog.wanderT += dt*1.5;
+      dog.x += Math.sin(dog.wanderT)*60*dt;
+      dog.y += Math.cos(dog.wanderT*0.7)*40*dt*VIEW_UNTILT;
+    }
     dog.x = Math.max(40,Math.min(WORLD_W-40,dog.x));
     dog.y = Math.max(playTop()+unprojY(32),Math.min(WORLD_H-unprojY(40),dog.y));
-    if(viewDist(player.x,player.y,dog.x,dog.y) < player.r+18 && (Date.now()-(dog.lastHit||0))>1500){
+    if(viewDist(player.x,player.y,dog.x,dog.y) < player.r+18 && (Date.now()-(dog.lastHit||0))>(tropi?1800:1500)){
       dog.lastHit=Date.now(); combo=1; comboTimer=0;
-      addFloatText(dog.x,dog.y,'Hau! combo stracone','#FF8A8A');
+      if(tropi){
+        // szczeka, więc ściąga na ciebie wszystkich w okolicy
+        dog.pause = 2.4;
+        player.heat = Math.min(100, player.heat + 26);
+        emitNoise(dog.x, dog.y);
+        addFloatText(dog.x,dog.y,'Hau hau! 🐕','#FF8A8A');
+      }
+      else addFloatText(dog.x,dog.y,'Hau! combo stracone','#FF8A8A');
       updateHUD();
     }
   }
@@ -2828,7 +3036,7 @@
   }
   function emitNoise(x,y){
     noiseRings.push({x,y,life:0.5});
-    player.noiseRadius = Math.min(420, player.noiseRadius+noisePerTap());
+    player.noiseRadius = Math.min(420, player.noiseRadius + noisePerTap()*(hasMod('deszcz')?RAIN_NOISE:1));
     player.heat = Math.min(100, player.heat+3);
   }
   function updateNoiseRings(dt){ noiseRings.forEach(r=>r.life-=dt); noiseRings=noiseRings.filter(r=>r.life>0); }
@@ -3098,6 +3306,9 @@
     updateCamera(dt);
     updateBushHide();
     updateDog(dt);
+    updateTruck(dt);
+    updateRival(dt);
+    updateRain(dt);
     updateConfetti(dt);
     updateBins(dt);
     const npcDetected = updateNPCs(dt);
@@ -3111,7 +3322,7 @@
     if(isDetected && !run.wasDetected){ Sfx.spotted(); haptic('heavy'); }
     run.wasDetected = isDetected;
     if(isDetected) player.heat = Math.min(100, player.heat + heatRate()*dt);
-    else player.heat = Math.max(0, player.heat - 24*dt);
+    else player.heat = Math.max(0, player.heat - 24*dt*(hasMod('deszcz')?RAIN_COOL:1));
     // Im dłużej siedzisz w terenie, tym bardziej się robi gorąco:
     // po 40s przypał przestaje spadać do zera (ludzie już Cię kojarzą).
     const lingerFloor = Math.min(45, Math.max(0, (elapsedSinceStart-40)*1.2));
@@ -3616,6 +3827,46 @@
     ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
     ctx.restore();
   }
+  function drawRival(){
+    const r = mods.rival;
+    if(!r) return;
+    const ry = projY(r.y);
+    const bob = Math.sin(r.krok)*2;
+    ctx.save();
+    ctx.translate(r.x, ry+bob);
+    ctx.font='26px serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('🧓', 0, 2);
+    ctx.font='15px serif';
+    ctx.fillText('🛍️', 11, 6);
+    ctx.restore();
+  }
+  /* Kosz na celowniku śmieciarki — obwódka i odliczanie, żeby dało się
+     podjąć decyzję „biegnę czy odpuszczam". */
+  function drawTruckMark(){
+    const b = mods.truckBin;
+    if(!b) return;
+    const by = projY(b.y);
+    const puls = 0.55 + 0.45*Math.sin(elapsedSinceStart*7);
+    ctx.save();
+    ctx.strokeStyle='rgba(255,140,60,'+puls.toFixed(2)+')'; ctx.lineWidth=3.5;
+    ctx.beginPath(); ctx.ellipse(b.x, by+4, 26, 26*VIEW_TILT, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.font='700 15px "Baloo 2","Segoe UI",Roboto,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.lineWidth=4; ctx.strokeStyle='rgba(30,20,8,0.9)';
+    const txt = '🚛 '+Math.max(0,Math.ceil(mods.truckWarn))+'s';
+    ctx.strokeText(txt, b.x, by-34); ctx.fillStyle='#FFD9A8'; ctx.fillText(txt, b.x, by-34);
+    ctx.restore();
+  }
+  function drawRain(){
+    if(!mods.drops.length) return;
+    ctx.save();
+    ctx.strokeStyle='rgba(200,225,255,0.45)'; ctx.lineWidth=1.6; ctx.lineCap='round';
+    ctx.beginPath();
+    for(const k of mods.drops){ ctx.moveTo(k.x,k.y); ctx.lineTo(k.x-k.d*0.16, k.y-k.d); }
+    ctx.stroke();
+    ctx.fillStyle='rgba(40,70,110,0.16)'; ctx.fillRect(0,0,W,H);
+    ctx.restore();
+  }
   function drawExitArrow(){
     if(state!=='playing') return;
     const ex = exitZone.x+exitZone.w/2, ey = exitZone.y+exitZone.h/2;
@@ -3704,6 +3955,7 @@
     npcs.forEach(n=> groundShadow(n.x, projY(n.y), 15, 22, 0.28));
     if(currentMapId==='row') cars.forEach(c=> groundShadow(c.x, projY(c.y), 26, 22, 0.30));
     if(dog) groundShadow(dog.x, projY(dog.y), 15, 14, 0.26);
+    if(mods.rival) groundShadow(mods.rival.x, projY(mods.rival.y), 15, 20, 0.26);
     groundShadow(player.x, projY(player.y), player.r+6, 26, player.hidden?0.16:0.32);
   }
   function draw(){
@@ -3728,13 +3980,16 @@
     npcs.forEach(n=> queueDepth(n.y, function(){ drawNPC(n); }));
     if(currentMapId==='row') cars.forEach(c=> queueDepth(c.y, function(){ drawCar(c); }));
     if(dog) queueDepth(dog.y, drawDog);
+    if(mods.rival) queueDepth(mods.rival.y, drawRival);
     queueDepth(player.y, drawPlayer);
     flushDepth();
+    drawTruckMark();
     // 3. nad światem — konfetti leci z góry, napisy mają być zawsze widoczne
     drawConfetti();
     drawParticles();
     ctx.restore();
     // --- ekran: efekty i sterowanie nie jeżdżą razem ze światem ---
+    drawRain();
     drawFlashlight();
     drawVignette();
     drawExitArrow();
@@ -3979,6 +4234,7 @@
     document.getElementById('caughtOverlay').classList.add('hidden');
     document.getElementById('pauseOverlay').classList.add('hidden');
     resetGame(); state='playing'; roundsPlayed+=1;
+    if(playedMods.length) setTimeout(()=>showToast('⚡ '+playedMods.map(modLabel).join(' · ')), 750);
     startTutorialIfNeeded();
     Music.start('game');
   }
@@ -4013,6 +4269,30 @@
     attemptStart();
   });
   document.getElementById('lvlCloseBtn').addEventListener('click', ()=>{ Sfx.click(); closeLevelPicker(); });
+  // opis zasad danego poziomu — to samo źródło w menu i w okienku wyboru
+  function renderModsList(containerId, mapId, lvl){
+    const c = document.getElementById(containerId);
+    if(!c) return;
+    c.innerHTML='';
+    const lista = levelMods(mapId, lvl);
+    if(!lista.length){
+      const d=document.createElement('div');
+      d.className='mod-none';
+      d.textContent = lvl < MOD_FROM
+        ? 'Czysta mapa. Pierwsze zasady dochodzą od poziomu '+MOD_FROM+'.'
+        : 'Czysta mapa.';
+      c.appendChild(d);
+      return;
+    }
+    lista.forEach(id=>{
+      const m = MODS[id]; if(!m) return;
+      const b=document.createElement('button');
+      b.type='button'; b.className='mod-chip';
+      b.textContent = m.icon+' '+m.name;
+      b.onclick = ()=>{ Sfx.click(); haptic('light'); showToast(m.icon+' '+m.name+' — '+m.desc); };
+      c.appendChild(b);
+    });
+  }
   function moveLvlPage(d){
     const n = lvlPage + d;
     if(n<0 || n>=lvlPageCount()) return;
