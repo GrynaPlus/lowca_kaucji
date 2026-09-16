@@ -38,7 +38,10 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:'Inter','Segoe UI',Roboto,sans-serif;background:linear-gradient(180deg, var(--bg-sky-a) 0%, var(--bg-sky-b) 60%, #1E7DBF 100%);touch-action:none;}
-  #game-wrap{position:relative;width:100%;height:100vh;display:flex;align-items:center;justify-content:center;}
+  /* 100dvh to wysokość AKTUALNIE widoczna; 100vh zostaje dla starszych
+     silników, które dvh nie znają. Na iOS te dwie liczby potrafią się
+     różnić o połowę ekranu. */
+  #game-wrap{position:relative;width:100%;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;}
   canvas{display:block;width:100%;height:100%;cursor:crosshair;}
 
   /* Trzy liczby opisujące górę ekranu, wszystkie ustawiane z JS w pikselach:
@@ -985,9 +988,31 @@
     // na niskim telefonie nie ma co zjadać terenu do grania
     return Math.max(96, Math.min(Math.round(H*0.25), Math.round(bottom) + 12));
   }
+  /* Płótno rysuje w SWOIM pudełku, nie w oknie.
+
+     Do tej pory szerokość i wysokość brały się z window.innerWidth/Height,
+     a pudełko płótna dostawało z CSS całą wysokość okna. W Telegramie na
+     iOS te dwie liczby potrafią się rozjechać — pasek aplikacji i
+     rozwinięcie mini-appki zmieniają jedną, nie ruszając drugiej. Gdy do
+     tego doszło, przeglądarka rozciągała gotową klatkę w pionie: przy 416
+     px zmierzonych i 874 px pudełka wszystko na płótnie robiło się 2,1x za
+     wysokie (żywopłot 30x330 px zamiast 30x155), a interfejs HTML zostawał
+     normalny. Mierzenie własnego pudełka likwiduje rozjazd u źródła.
+
+     Przy okazji: stare `canvas.clientWidth = ...` było przypisaniem do
+     własności tylko do odczytu, czyli cichym niewypałem. */
+  function syncCanvasSize(){
+    const r = canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.round(r.width)  || window.innerWidth);
+    const h = Math.max(1, Math.round(r.height) || window.innerHeight);
+    if(w===W && h===H && canvas.width===Math.round(w*DPR)) return false;
+    W=w; H=h;
+    canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    return true;
+  }
   function resize(){
-    W=canvas.clientWidth=window.innerWidth; H=canvas.clientHeight=window.innerHeight;
-    canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+    syncCanvasSize();
     applyTelegramHeader();
     const probeB = document.getElementById('safeProbeB');
     UI_BOTTOM = probeB ? Math.round(probeB.getBoundingClientRect().height) : 0;
@@ -1002,7 +1027,24 @@
     WORLD_H = Math.round((PLAY_SPAN + Math.max(0, UI_TOP-108)) * VIEW_UNTILT);
     generateEnvironment();
   }
-  window.addEventListener('resize', resize); resize();
+  /* W trakcie wyprawy poprawiamy WYŁĄCZNIE skalę płótna. Pełny resize
+     przelicza rozmiar świata i rozsypuje trawę na nowo, a to znaczyłoby
+     zmianę terenu pod stopami gracza w połowie skradania. */
+  function onViewportChange(){
+    if(state==='playing') syncCanvasSize(); else resize();
+  }
+  window.addEventListener('resize', onViewportChange);
+  window.addEventListener('orientationchange', onViewportChange);
+  resize();
+  /* Telegram potrafi zmienić wysokość okna już po starcie i bez zdarzenia
+     'resize' — dlatego pilnujemy samego płótna, a nie okna. */
+  if(window.ResizeObserver){
+    let pierwszePowiadomienie = true;
+    new ResizeObserver(()=>{
+      if(pierwszePowiadomienie){ pierwszePowiadomienie=false; return; }
+      onViewportChange();
+    }).observe(canvas);
+  }
 
   function shade(hex, percent){
     const num = parseInt(hex.replace('#',''),16);
@@ -1223,7 +1265,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 13';
+  const APP_VERSION = '2026-09-16 · 14';
   let currentMapId = 'osiedle';
 
   /* =========================================================
