@@ -285,6 +285,11 @@
   button.secondary.reward{background:linear-gradient(180deg,#FFAED8,var(--combo));border-color:#B81E63;color:#fff;box-shadow:0 4px 0 #B81E63;}
   button.secondary.danger{color:#fff;background:linear-gradient(180deg,#FF8A8A,var(--danger));border-color:#B8232F;box-shadow:0 4px 0 #B8232F;}
   button.secondary:disabled{opacity:0.45;cursor:default;}
+  /* Klasa `hidden` była zdefiniowana tylko dla .overlay, .replay-bar
+     i .tab-panel, więc na przycisku nie robiła nic. Reguła musi stać ZA
+     button.secondary{display:flex} — ma tę samą specyficzność, więc
+     rozstrzyga kolejność w pliku. */
+  button.hidden{display:none;}
   button.ghost{background:none;border:none;color:#8A6A3A;font-size:11px;text-decoration:underline;cursor:pointer;font-family:'Inter','Segoe UI',Roboto,sans-serif;}
 
   .result-amount{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:40px;color:var(--gold-dark);margin:4px 0 2px;text-shadow:0 2px 0 rgba(255,255,255,0.5);}
@@ -1363,7 +1368,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 19';
+  const APP_VERSION = '2026-09-16 · 20';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -1846,10 +1851,14 @@
     if(!profile.firstSeen) return true;
     return (Date.now() - profile.firstSeen) < DOBA;
   }
-  function energyMax(){
-    if(pierwszaDoba()) return 99;
-    let m=3; if(profile.level>=5) m=4; if(profile.level>=10) m=5; return m;
-  }
+  /* energyMax to LICZBA SERDUSZEK, nie przepustka.
+
+     Zwracało tu 99 przez pierwszą dobę i wychodziły z tego dwie rzeczy:
+     pasek rysował dziewięćdziesiąt dziewięć serduszek przez pół ekranu,
+     a przycisk „reklama → +1 gra" podbijał energię ponad 10, na co
+     backend odpowiada odrzuceniem zapisu („nieprawidłowa energia").
+     Brak limitu pierwszej doby załatwia teraz sama bramka startu. */
+  function energyMax(){ let m=3; if(profile.level>=5) m=4; if(profile.level>=10) m=5; return m; }
   function addXP(amount){
     profile.xp += amount; let leveled=false;
     while(profile.xp >= xpToNext(profile.level)){ profile.xp -= xpToNext(profile.level); profile.level++; leveled=true; }
@@ -1902,7 +1911,9 @@
     const noteEl = document.getElementById('energyNoteStart');
     if(heartsEl){
       heartsEl.innerHTML='';
-      for(let i=0;i<max;i++){ const s=document.createElement('span'); s.className='heart'+(i<profile.energy?' full':''); s.textContent='❤️'; heartsEl.appendChild(s); }
+      // pierwszej doby serduszka świecą wszystkie — i tak nic z nich nie schodzi
+      const pelne = pierwszaDoba() ? max : profile.energy;
+      for(let i=0;i<max;i++){ const s=document.createElement('span'); s.className='heart'+(i<pelne?' full':''); s.textContent='❤️'; heartsEl.appendChild(s); }
       if(pierwszaDoba()){ noteEl.textContent = '🎉 Pierwszy dzień — gra bez limitu!'; noteEl.classList.remove('warn'); }
       else if(profile.energy>=max){ noteEl.textContent = max+'/'+max+' gry dziś dostępne'; noteEl.classList.remove('warn'); }
       else{
@@ -2070,6 +2081,9 @@
   let stageIdx = 0;
   function stageMap(){ return MAPS[Math.max(0,Math.min(MAPS.length-1,stageIdx))]; }
   function updatePlayButton(){
+    const adBtn = document.getElementById('energyAdBtnStart');
+    // przez pierwszą dobę nie ma czego doładowywać
+    if(adBtn) adBtn.classList.toggle('hidden', pierwszaDoba());
     const btn = document.getElementById('startBtn');
     if(!btn) return;
     const m = stageMap();
@@ -2080,7 +2094,7 @@
       else { btn.disabled=false; btn.textContent='🔓 KUP ZA '+m.cost+' ZŁ'; btn.classList.add('buy-mode'); }
       return;
     }
-    if(profile.energy<=0){ btn.disabled=true; btn.textContent='BRAK ENERGII'; }
+    if(!pierwszaDoba() && profile.energy<=0){ btn.disabled=true; btn.textContent='BRAK ENERGII'; }
     else { btn.disabled=false; btn.textContent='GRAJ'; }
   }
   // Trzymamy referencję do przycisku GRAJ: renderMapSelector nadpisuje
@@ -2246,8 +2260,9 @@
     renderModsList('lvlMods', map.id, lvlPickNo);
     const play = document.getElementById('lvlPlayBtn');
     const isCur = profile.mapsOwned.includes(map.id);
-    play.disabled = !isCur || profile.energy<=0;
-    play.textContent = profile.energy<=0 ? 'BRAK ENERGII' : ('GRAJ POZIOM '+lvlPickNo);
+    const bezEnergii = !pierwszaDoba() && profile.energy<=0;
+    play.disabled = !isCur || bezEnergii;
+    play.textContent = bezEnergii ? 'BRAK ENERGII' : ('GRAJ POZIOM '+lvlPickNo);
   }
 
   /* =========================================================
@@ -4736,7 +4751,7 @@
   }
   function attemptStart(){
     regenTick();
-    if(profile.energy<=0){ showToast('Brak energii — poczekaj lub obejrzyj reklamę ↓'); return; }
+    if(!pierwszaDoba() && profile.energy<=0){ showToast('Brak energii — poczekaj lub obejrzyj reklamę ↓'); return; }
     const proceed = async ()=>{
       if(!pierwszaDoba()) profile.energy-=1;   // pierwszej doby nie liczymy
       await saveProfile(); renderEnergy(); beginRound();
