@@ -1283,7 +1283,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 16';
+  const APP_VERSION = '2026-09-16 · 17';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2823,9 +2823,15 @@
     }
     const bp = document.getElementById('binsProgress');
     if(bp){
-      const done = bins.filter(b=>b.searched).length;
-      bp.textContent = '🗑️ '+done+'/'+bins.length;
-      bp.style.color = (bins.length>0 && done>=bins.length) ? '#1E9E52' : '#5C4522';
+      /* Kosze zabrane przez śmieciarkę albo konkurencję NIE są twoim
+         dorobkiem. Licznik liczył je razem z twoimi i pokazywał „1/13",
+         kiedy nie tknąłeś jeszcze żadnego. Teraz mianownik kurczy się o
+         to, co przepadło, a licznik pokazuje wyłącznie twoje kosze. */
+      const zabrane = bins.filter(b=>b.taken).length;
+      const moje = bins.filter(b=>b.searched && !b.taken).length;
+      const doWziecia = bins.length - zabrane;
+      bp.textContent = '🗑️ '+moje+'/'+doWziecia + (zabrane ? ' (−'+zabrane+')' : '');
+      bp.style.color = (doWziecia>0 && moje>=doWziecia) ? '#1E9E52' : '#5C4522';
     }
   }
 
@@ -2903,7 +2909,9 @@
       r.cel=best;
     }
     if(!r.cel) return;
-    if(viewDist(r.x,r.y,r.cel.x,r.cel.y) > 22){
+    // 36 px, nie 22: przy ciaśniejszym dystansie rywal stawał dokładnie na
+    // koszu i zasłaniał to, co rzekomo robi
+    if(viewDist(r.x,r.y,r.cel.x,r.cel.y) > 36){
       const dx=r.cel.x-r.x, dy=(r.cel.y-r.y)*VIEW_TILT, L=Math.hypot(dx,dy)||1;
       const nx=r.x+(dx/L)*RIVAL_SPEED*dt, ny=r.y+(dy/L)*RIVAL_SPEED*dt*VIEW_UNTILT;
       if(!pointInObstacle(nx, r.y, 8)) r.x=nx;
