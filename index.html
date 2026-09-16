@@ -155,6 +155,14 @@
     font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--ink);}
   .mc-lvlbtn .mcl-st{color:var(--gold-dark);}
   .mc-lvlbtn:active{transform:translateY(1px);box-shadow:none;}
+  /* pasek dziesiątek nad siatką poziomów */
+  .lvl-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .lvl-pager .lp-nav{flex-shrink:0;width:32px;height:32px;border-radius:50%;border:2.5px solid var(--ink);
+    background:linear-gradient(180deg,#FFFFFF,#FFF3D6);box-shadow:0 3px 0 rgba(0,0,0,0.2);cursor:pointer;padding:0;
+    font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:19px;line-height:0;color:var(--ink);}
+  .lvl-pager .lp-nav:disabled{opacity:0.35;cursor:default;}
+  .lvl-pager .lp-lab{flex:1;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:13px;color:var(--ink);}
+  .lvl-pager .lp-lab small{display:block;font-size:10px;font-weight:600;color:var(--gold-dark);}
   /* siatka poziomów w okienku wyboru */
   .lvl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:12px;}
   .lvl-tile{position:relative;padding:7px 2px 6px;border:2.5px solid var(--ink);border-radius:13px;cursor:pointer;
@@ -312,7 +320,12 @@
     #levelOverlay .sub{margin-bottom:8px;}
     #levelOverlay .footnote{font-size:9px;line-height:1.35;}
     #levelOverlay .tasks-box{padding:8px 10px;margin-bottom:9px;}
-    .lvl-grid{gap:5px;margin-bottom:9px;}
+    /* pasek dziesiątek dołożył wysokości — na 320x568 karta wychodziła
+       o 9 px poza ekran, więc ściskamy go razem z siatką */
+    .lvl-pager{margin-bottom:6px;}
+    .lvl-pager .lp-nav{width:28px;height:28px;font-size:17px;}
+    .lvl-pager .lp-lab{font-size:12px;}
+    .lvl-grid{gap:5px;margin-bottom:8px;}
     .lvl-tile{padding:5px 1px 4px;}
     .lvl-tile .lt-no{font-size:15px;}
     .map-scene{max-height:min(130px,17vh);}
@@ -579,6 +592,11 @@
     <div class="card">
       <h1 id="lvlTitle">POZIOMY</h1>
       <p class="sub" id="lvlSub">Wybierz poziom</p>
+      <div class="lvl-pager">
+        <button class="lp-nav" id="lvlPagePrev" type="button">‹</button>
+        <div class="lp-lab" id="lvlPageLab">Poziomy 1–10<small>&nbsp;</small></div>
+        <button class="lp-nav" id="lvlPageNext" type="button">›</button>
+      </div>
       <div class="lvl-grid" id="lvlGrid"></div>
       <div class="tasks-box">
         <div class="t-title" id="lvlGoalsTitle">🎯 Gwiazdki poziomu</div>
@@ -1148,8 +1166,8 @@
     osiedle:  { bottle:32, can:32, plastic:16, trash:16 },
     miasto:   { bottle:28, can:32, plastic:16, trash:20 },
     festyn:   { bottle:28, can:24, plastic:18, trash:10 },
-    row:      { bottle:34, can:34, plastic:16, trash:14 },
-    blok:     { bottle:30, can:28, plastic:14, trash:22 }
+    row:      { bottle:34, can:34, plastic:18, trash:12 },
+    blok:     { bottle:32, can:30, plastic:16, trash:14 }
   };
   // Liczby dobrane pod ŚWIAT WIĘKSZY NIŻ EKRAN (ok. 2,9x powierzchni):
   // przy starych wartościach mapa byłaby pusta, a cel "opróżnij wszystkie
@@ -1182,12 +1200,16 @@
   function homeKind(){ return HOMES[profile.home] || HOMES.miasto; }
   function stashItems(){ return Math.round((profile.stash||0)/DEPOSIT_PER_ITEM); }
 
+  /* Im dalsza mapa, tym bogatsze kosze — inaczej ostatnie mapy są zarazem
+     najgroźniejsze i najbiedniejsze, a to zniechęca do wracania na nie.
+     Klimatycznie też trzyma się kupy: w rowie przy drodze i pod blokiem
+     nocą nikt tych puszek nie sprząta. */
   const BIN_CONFIG = {
     osiedle:  { count:12, emptyChance:0.28 },
-    miasto:   { count:15, emptyChance:0.35 },
+    miasto:   { count:15, emptyChance:0.30 },
     festyn:   { count:13, emptyChance:0.20 },
-    row:      { count:12, emptyChance:0.35 },
-    blok:     { count:13, emptyChance:0.40 }
+    row:      { count:13, emptyChance:0.26 },
+    blok:     { count:15, emptyChance:0.22 }
   };
   const MAP_HAZARDS = {
     osiedle:  { npcCount:3, vision:85,  chase:80,  wander:38, emojis:['👵'] },
@@ -1201,7 +1223,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 12';
+  const APP_VERSION = '2026-09-16 · 13';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -1222,25 +1244,55 @@
   };
   function star2For(mapId){ return LEVEL_STAR2[mapId] || LEVEL_STAR2.osiedle; }
   const STAR_BONUS_KAUCJA = 4; // premia w kaucji za każdą nową gwiazdkę
-  // ile gwiazdek na poprzedniej mapie otwiera zakup następnej
-  const MAP_STAR_GATE = { miasto:5, festyn:9, row:13, blok:17 };
+  // Ile gwiazdek na poprzedniej mapie otwiera zakup następnej. Na mapę
+  // przypada ich 150, ale progi zostają nisko: więcej poziomów ma dawać
+  // głębię, a nie dłuższy mur przed nową mapą.
+  const MAP_STAR_GATE = { miasto:8, festyn:16, row:26, blok:38 };
 
   /* =========================================================
      SKLEP — na to idzie zarobiona kaucja
      ========================================================= */
+  /* =========================================================
+     SPRZĘT — pięć poziomów, każdy kolejny słabszy od poprzedniego.
+
+     Do wersji 12 bonusy rosły liniowo i mnożyły się przez siebie:
+     komplet ulepszeń dawał 36% prędkości więcej, jedno stuknięcie
+     zamiast trzech, jedną trzecią hałasu i połowę przypału. Pomiar
+     botem: gracz z pełnym sprzętem wracał z łupem w 91-100% wypraw
+     na KAŻDYM poziomie KAŻDEJ mapy — drabinka poziomów przestawała
+     dla niego istnieć. Gołe 2% na ostatnim poziomie bloku skakało
+     do 91%.
+
+     Teraz każdy poziom dokłada ułamek tego, co zostało do sufitu.
+     Sprzęt nadal robi ogromną różnicę na starcie, ale nigdy nie
+     zbliża się do nietykalności, więc wyższe poziomy zostają
+     wyzwaniem także dla kogoś, kto wydał wszystko.
+     ========================================================= */
   const UPGRADES = [
-    { id:'boots',  icon:'👟', name:'Buty',           desc:'Szybsze poruszanie',            costs:[8,20,40]  },
-    { id:'gloves', icon:'🧤', name:'Rękawice',       desc:'Mniej stukania w kosz',         costs:[12,28,55] },
-    { id:'quiet',  icon:'🤫', name:'Ciche podejście',desc:'Mniejszy zasięg hałasu',        costs:[10,25,50] },
-    { id:'hood',   icon:'🧥', name:'Kaptur',         desc:'Wolniej rośnie przypał',        costs:[14,32,60] },
-    { id:'cart',   icon:'🛒', name:'Wózek',          desc:'Więcej sztuk z jednego kosza',  costs:[18,40,75] }
+    { id:'boots',  icon:'👟', name:'Buty',           desc:'Szybsze poruszanie',            costs:[8,20,40,75,130]  },
+    { id:'gloves', icon:'🧤', name:'Rękawice',       desc:'Mniej stukania w kosz',         costs:[12,28,55,95,160] },
+    { id:'quiet',  icon:'🤫', name:'Ciche podejście',desc:'Mniejszy zasięg hałasu',        costs:[10,25,50,90,150] },
+    { id:'hood',   icon:'🧥', name:'Kaptur',         desc:'Wolniej rośnie przypał',        costs:[14,32,60,105,175] },
+    { id:'cart',   icon:'🛒', name:'Wózek',          desc:'Więcej sztuk z jednego kosza',  costs:[18,40,75,125,200] }
   ];
+  const UPGRADE_MAX = 5;
   function upLevel(id){ return (profile.upgrades && profile.upgrades[id]) || 0; }
-  // mnożniki wynikające z ulepszeń
-  function playerSpeed(){ return 320 * (1 + upLevel('boots')*0.12); }
-  function tapsNeededBase(){ return Math.max(1, 3 - Math.floor(upLevel('gloves')*0.7)); }
-  function noisePerTap(){ return 170 * (1 - upLevel('quiet')*0.22); }
-  function heatRate(){ return 42 * (1 - upLevel('hood')*0.15); }
+  /* Ułamek drogi do sufitu po `lvl` zakupach. Każdy poziom domyka
+     `krok` tego, co jeszcze zostało — stąd malejące zyski. */
+  function upCurve(id, krok){ return 1 - Math.pow(1-krok, upLevel(id)); }
+
+  // 320 -> 358 -> 381 -> 394 -> 402 -> 407 (sufit +30%)
+  function playerSpeed(){ return 320 * (1 + 0.30*upCurve('boots', 0.40)); }
+  // oczekiwana liczba stuknięć: 3 -> 2,46 -> 2,16 -> 2,00 -> 1,91 -> 1,85
+  // (ułamek rozgrywamy losowo, bo stuknięć nie da się mieć pół)
+  function tapsNeededBase(){
+    const base = 3 - 1.20*upCurve('gloves', 0.45);
+    return Math.max(1, Math.floor(base) + (Math.random() < (base % 1) ? 1 : 0));
+  }
+  // 170 -> 132 -> 113 -> 103 -> 99 -> 96 (sufit -45%)
+  function noisePerTap(){ return 170 * (1 - 0.45*upCurve('quiet', 0.50)); }
+  // 42 -> 34 -> 29 -> 27 -> 26 -> 25 (sufit -40%)
+  function heatRate(){ return 42 * (1 - 0.40*upCurve('hood', 0.50)); }
   /* =========================================================
      DŹWIĘK — generowany proceduralnie (Web Audio), bez plików.
      Inicjalizuje się przy pierwszym dotknięciu ekranu, bo
@@ -1396,7 +1448,12 @@
       if(state!=='playing') Music.start('menu');
     }, { passive:true }));
 
-  function cartBonus(){ return upLevel('cart'); }
+  // Wózek: +0,9 -> +1,5 -> +1,9 -> +2,2 -> +2,3 sztuki z kosza (sufit +2,5).
+  // Ułamek rozgrywamy losowo, żeby średnia wyszła dokładnie taka.
+  function cartBonus(){
+    const b = 2.5*upCurve('cart', 0.35);
+    return Math.floor(b) + (Math.random() < (b % 1) ? 1 : 0);
+  }
 
   /* =========================================================
      WYMIANA KAUCJI NA PUNKTY GRYNAPLUS
@@ -1858,10 +1915,13 @@
      WYBÓR POZIOMU — siatka 10 kafelków. Każdy otwarty poziom
      można powtarzać, żeby dobić brakujące gwiazdki.
      ========================================================= */
-  let lvlPickMapId = 'osiedle', lvlPickNo = 1;
+  let lvlPickMapId = 'osiedle', lvlPickNo = 1, lvlPage = 0;
+  function lvlPageCount(){ return Math.ceil(MAP_LEVEL_MAX/LEVELS_PER_PAGE); }
+  function pageOf(lvl){ return Math.floor((lvl-1)/LEVELS_PER_PAGE); }
   function openLevelPicker(mapId){
     if(!profile.mapsOwned.includes(mapId)) return;
     lvlPickMapId = mapId; lvlPickNo = mapLevel(mapId);
+    lvlPage = pageOf(lvlPickNo);          // otwieramy na dziesiątce z wybranym poziomem
     renderLevelPicker();
     Sfx.click(); haptic('light');
     document.getElementById('levelOverlay').classList.remove('hidden');
@@ -1875,9 +1935,18 @@
     document.getElementById('lvlTitle').textContent = map.icon+' '+map.name.toUpperCase();
     document.getElementById('lvlSub').textContent =
       'Zdobyte gwiazdki: ★ '+mapStarTotal(map.id)+'/'+mapStarMax();
+    // pasek dziesiątek: ile gwiazdek zebrano w tej dziesiątce
+    const from = lvlPage*LEVELS_PER_PAGE + 1;
+    const to = Math.min(MAP_LEVEL_MAX, from + LEVELS_PER_PAGE - 1);
+    let pageStars = 0;
+    for(let l=from; l<=to; l++) pageStars += levelStars(map.id, l);
+    document.getElementById('lvlPageLab').innerHTML =
+      'Poziomy '+from+'–'+to+'<small>★ '+pageStars+'/'+((to-from+1)*3)+'</small>';
+    document.getElementById('lvlPagePrev').disabled = lvlPage<=0;
+    document.getElementById('lvlPageNext').disabled = lvlPage>=lvlPageCount()-1;
     const grid = document.getElementById('lvlGrid');
     grid.innerHTML='';
-    for(let l=1; l<=MAP_LEVEL_MAX; l++){
+    for(let l=from; l<=to; l++){
       const open = levelUnlocked(map.id, l), st = levelStars(map.id, l);
       const b = document.createElement('button');
       b.type='button';
@@ -2330,14 +2399,19 @@
      przynieść z jednej wyprawy, żeby go zaliczyć. Plecak nadal rośnie,
      ale jako sufit nad normą, a nie jako nagroda sama w sobie.
      ========================================================= */
-  const MAP_LEVEL_MAX = 10;
+  const MAP_LEVEL_MAX = 50;
+  const LEVELS_PER_PAGE = 10;   // siatka wyboru pokazuje dziesiątkę naraz
   // norma na poziomie 1; pozostałe poziomy skalują się od niej
-  const MAP_QUOTA_BASE = { osiedle:7, miasto:7, festyn:8, row:6, blok:4.5 };
-  // +6% bazy na poziom (poziom 10 = 1,54x normy z pierwszego). Celowo
-  // wolniej, niż rośnie zasobność mapy: wyżej i tak trudniej jest wyjść
-  // z łupem, więc norma nie może gonić samej zawartości koszy.
-  const QUOTA_STEP = 0.06;
-  // 0 na poziomie 1, 1 na poziomie 10 — wspólny suwak dla wszystkiego,
+  // Bazy to ok. 78% średniego łupu udanej wyprawy gołego gracza na
+  // pierwszym poziomie danej mapy — zmierzonego, nie zgadniętego.
+  const MAP_QUOTA_BASE = { osiedle:7, miasto:7.5, festyn:8, row:7.5, blok:6 };
+  /* +9% bazy na poziom: poziom 50 wymaga 5,4x tego, co pierwszy.
+     Liczba wzięta z pomiaru — norma ma sięgać ok. 78% tego, co przynosi
+     udana wyprawa gracza z typowym na danym etapie sprzętem. Dzięki temu
+     pierwsza gwiazdka zostaje nagrodą za wyjście z łupem, a trzecia
+     (norma x1,5) jest prawdziwym sprawdzianem. */
+  const QUOTA_STEP = 0.09;
+  // 0 na pierwszym poziomie, 1 na ostatnim — wspólny suwak dla wszystkiego,
   // co ma rosnąć razem z poziomem
   function lvlT(lvl){ return (Math.max(1,Math.min(MAP_LEVEL_MAX,lvl))-1)/(MAP_LEVEL_MAX-1); }
   function levelQuota(mapId, lvl){
@@ -2354,31 +2428,38 @@
   let playedLevel = 1;
   function backpackCap(){ return backpackCapFor(currentMapId, playedLevel); }
 
-  /* Ile mapa zmienia się z poziomem. Mnożniki dobrane tak, żeby poziom 10
-     dawał ok. 2,2x łupu poziomu 1 — przy patrolu większym o połowę. */
+  /* Ile mapa zmienia się przez pięćdziesiąt poziomów.
+
+     Rosną głównie ZASOBNOŚĆ koszy, a dopiero potem ich liczba: mapa ma
+     stałą powierzchnię, więc sypanie kolejnych koszy wydłużałoby wyprawę
+     zamiast ją zagęszczać. Pięćdziesiąty poziom to ok. 6x łupu pierwszego
+     przy patrolu prawie dwukrotnie liczniejszym. */
   function binCountFor(mapId, lvl){
     const base = (BIN_CONFIG[mapId]||BIN_CONFIG.row).count;
-    return Math.round(base*(1 + 0.30*lvlT(lvl)));
+    return Math.round(base*(1 + 0.55*lvlT(lvl)));
   }
   function emptyChanceFor(mapId, lvl){
     const base = (BIN_CONFIG[mapId]||BIN_CONFIG.row).emptyChance;
-    return base*(1 - 0.30*lvlT(lvl));
+    return base*(1 - 0.75*lvlT(lvl));
   }
-  // Dodatkowa sztuka z kosza wchodzi płynnie: na poziomie 1 nigdy,
-  // na 10. zawsze. Próg „od szóstego poziomu" robił w pomiarze skok
-  // średniego łupu o połowę w jednym kroku.
-  function binPieceBonus(lvl){ return Math.random() < lvlT(lvl) ? 1 : 0; }
+  /* Dodatkowe sztuki z kosza narastają płynnie, od 0 do +4. Ułamek
+     rozgrywamy losowo — próg skokowy robił w pomiarze skok średniego
+     łupu o połowę w jednym kroku. */
+  function binPieceBonus(lvl){
+    const b = 4*lvlT(lvl);
+    return Math.floor(b) + (Math.random() < (b % 1) ? 1 : 0);
+  }
   function npcCountFor(mapId, lvl){
     const base = (MAP_HAZARDS[mapId]||{npcCount:3}).npcCount;
-    return Math.round(base*(1 + 0.40*lvlT(lvl)));
+    return Math.round(base*(1 + 0.90*lvlT(lvl)));
   }
   function npcVisionFor(mapId, lvl){
     const base = (MAP_HAZARDS[mapId]||{vision:90}).vision;
-    return base*(1 + 0.15*lvlT(lvl));
+    return base*(1 + 0.35*lvlT(lvl));
   }
   function npcChaseFor(mapId, lvl){
     const base = (MAP_HAZARDS[mapId]||{chase:100}).chase;
-    return base*(1 + 0.14*lvlT(lvl));
+    return base*(1 + 0.28*lvlT(lvl));
   }
   const TYPES = [
     { key:'bottle', value:0.5, r:14, color:'#1E88E5', dark:'#125A97' },
@@ -3877,6 +3958,14 @@
     attemptStart();
   });
   document.getElementById('lvlCloseBtn').addEventListener('click', ()=>{ Sfx.click(); closeLevelPicker(); });
+  function moveLvlPage(d){
+    const n = lvlPage + d;
+    if(n<0 || n>=lvlPageCount()) return;
+    lvlPage = n; Sfx.click(); haptic('light');
+    renderLevelPicker();
+  }
+  document.getElementById('lvlPagePrev').addEventListener('click', ()=> moveLvlPage(-1));
+  document.getElementById('lvlPageNext').addEventListener('click', ()=> moveLvlPage(1));
   document.getElementById('mapPrev').addEventListener('click', ()=> moveStage(-1));
   document.getElementById('mapNext').addEventListener('click', ()=> moveStage(1));
   document.getElementById('burgerBtn').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('profil'); });
