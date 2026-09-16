@@ -149,6 +149,25 @@
   .map-card .mc-lvl{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--gold-dark);margin-top:2px;}
   .map-card .mc-note{font-size:10px;color:#8A6A3A;margin-top:5px;line-height:1.4;font-weight:600;}
   .map-card .mc-max{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--green);margin-top:3px;}
+  /* pasek poziomu na karcie mapy jest przyciskiem — otwiera wybór poziomu */
+  .mc-lvlbtn{display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:4px 11px;border:2.5px solid var(--ink);border-radius:999px;
+    background:linear-gradient(180deg,#FFF6DE,#FFE3A8);box-shadow:0 2px 0 rgba(0,0,0,0.18);cursor:pointer;
+    font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--ink);}
+  .mc-lvlbtn .mcl-st{color:var(--gold-dark);}
+  .mc-lvlbtn:active{transform:translateY(1px);box-shadow:none;}
+  /* siatka poziomów w okienku wyboru */
+  .lvl-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:12px;}
+  .lvl-tile{position:relative;padding:7px 2px 6px;border:2.5px solid var(--ink);border-radius:13px;cursor:pointer;
+    background:linear-gradient(180deg,#FFFFFF,#FFF0CE);box-shadow:0 3px 0 rgba(0,0,0,0.18);
+    display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .lvl-tile .lt-no{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:800;font-size:17px;color:var(--ink);line-height:1;}
+  .lvl-tile .lt-st{font-size:9px;color:var(--gold-dark);letter-spacing:1px;line-height:1;}
+  .lvl-tile .lt-q{font-size:8.5px;font-weight:700;color:#8A6A3A;line-height:1;}
+  .lvl-tile.sel{background:linear-gradient(180deg,#FFE3A8,#FFC94F);}
+  .lvl-tile.locked{background:#E7DCC6;opacity:0.55;cursor:default;box-shadow:none;}
+  .lvl-tile.locked .lt-no{color:#9A8C74;}
+  .lvl-tile.full{border-color:#1E9E52;}
+  .lvl-tile:active:not(.locked){transform:translateY(1px);box-shadow:none;}
   .map-dots{display:flex;justify-content:center;gap:6px;}
   .map-dots .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.55);border:2px solid var(--ink);}
   .map-dots .dot.on{background:var(--gold);width:20px;border-radius:5px;}
@@ -288,6 +307,14 @@
      wcześniej — na ekranie 320x568 karta urosła i GRAJ wypadał pod pasek
      zakładek. Na niskich ekranach ścinamy. */
   @media (max-height: 700px){
+    #levelOverlay .card{padding:16px 14px 14px;}
+    #levelOverlay h1{font-size:21px;}
+    #levelOverlay .sub{margin-bottom:8px;}
+    #levelOverlay .footnote{font-size:9px;line-height:1.35;}
+    #levelOverlay .tasks-box{padding:8px 10px;margin-bottom:9px;}
+    .lvl-grid{gap:5px;margin-bottom:9px;}
+    .lvl-tile{padding:5px 1px 4px;}
+    .lvl-tile .lt-no{font-size:15px;}
     .map-scene{max-height:min(130px,17vh);}
     .play-cta{font-size:20px !important;padding:9px 14px !important;margin:8px 0 6px !important;}
     .map-card .mc-name{font-size:15px;}
@@ -413,7 +440,7 @@
           </div>
 
           <div class="info-panel" id="panelGoals">
-            <div class="t-title">🎯 Cele tej mapy</div>
+            <div class="t-title" id="goalsStartTitle">🎯 Gwiazdki tego poziomu</div>
             <div id="goalsListStart"></div>
             <div class="legend">
               <div class="item"><div class="swatch" style="background:#1E88E5"></div>0,50 zł<br>butelka</div>
@@ -536,7 +563,7 @@
       <p class="sub" style="margin:0 0 6px;">🛍️ trafia do wora — oddaj w sklepie, żeby zamienić na gotówkę</p>
       <p class="result-tier" id="resultTier"></p>
       <div class="tasks-box">
-        <div class="t-title">🎯 Cele mapy</div>
+        <div class="t-title" id="goalsEndTitle">🎯 Gwiazdki poziomu</div>
         <div id="goalsListEnd"></div>
       </div>
       <button class="secondary reward" id="rewardDoubleBtn">🎬 Obejrzyj reklamę → podwój ten łup</button>
@@ -544,6 +571,22 @@
       <button class="secondary" id="shareBtn">📢 Pochwal się wynikiem</button>
       <button class="secondary" id="menuBtnEnd">🏠 Wróć do menu</button>
       <div class="footnote">To tylko gra — prawdziwe butelki i puszki oddawaj do automatu lub sklepu.</div>
+    </div>
+  </div>
+
+  <!-- WYBÓR POZIOMU -->
+  <div class="overlay hidden" id="levelOverlay">
+    <div class="card">
+      <h1 id="lvlTitle">POZIOMY</h1>
+      <p class="sub" id="lvlSub">Wybierz poziom</p>
+      <div class="lvl-grid" id="lvlGrid"></div>
+      <div class="tasks-box">
+        <div class="t-title" id="lvlGoalsTitle">🎯 Gwiazdki poziomu</div>
+        <div id="lvlGoals"></div>
+      </div>
+      <button class="primary" id="lvlPlayBtn">GRAJ TEN POZIOM</button>
+      <button class="secondary" id="lvlCloseBtn">Zamknij</button>
+      <div class="footnote">Normę zaliczasz kaucją przyniesioną z jednej wyprawy. Każdy poziom możesz powtarzać, żeby dobić brakujące gwiazdki.</div>
     </div>
   </div>
 
@@ -1158,41 +1201,29 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 11';
+  const APP_VERSION = '2026-09-16 · 12';
   let currentMapId = 'osiedle';
 
   /* =========================================================
-     CELE MAP — 3 gwiazdki na mapę. 2 gwiazdki odblokowują
-     możliwość kupna następnej mapy (poza samą kasą).
+     GWIAZDKI — trzy na KAŻDY poziom, nie trzy na mapę.
+       ⭐  norma wyrobiona
+       ⭐⭐ norma + warunek charakterystyczny dla mapy
+       ⭐⭐⭐ norma z półtorakrotnym zapasem
+     Druga i trzecia są od siebie niezależne — kto rozbije normę,
+     ale narobi hałasu, wychodzi z dwiema.
+     10 poziomów x 3 gwiazdki = 30 na mapę, 150 w całej grze.
      ========================================================= */
-  const MAP_GOALS = {
-    osiedle: [
-      { id:'bank5',   label:'Zbankuj 5 zł w jednej wyprawie',       check:r=> r.banked>=5 },
-      { id:'bins5',   label:'Opróżnij 5 koszy w jednej wyprawie',   check:r=> r.binsEmptied>=5 },
-      { id:'calm',    label:'Wróć z łupem, nie przekraczając 50% przypału', check:r=> r.maxHeat<50 && r.banked>0 }
-    ],
-    miasto: [
-      { id:'bank8',   label:'Zbankuj 8 zł w jednej wyprawie',       check:r=> r.banked>=8 },
-      { id:'bins7',   label:'Opróżnij 7 koszy w jednej wyprawie',   check:r=> r.binsEmptied>=7 },
-      { id:'combo5',  label:'Zdobądź combo x5',                     check:r=> r.comboMax>=5 }
-    ],
-    festyn: [
-      { id:'bank12',  label:'Zbankuj 12 zł w jednej wyprawie',      check:r=> r.banked>=12 },
-      { id:'bins6f',  label:'Opróżnij 6 koszy w jednej wyprawie',    check:r=> r.binsEmptied>=6 },
-      { id:'combo6',  label:'Zdobądź combo x6',                     check:r=> r.comboMax>=6 }
-    ],
-    row: [
-      { id:'bank8r',  label:'Zbankuj 8 zł w jednej wyprawie',       check:r=> r.banked>=8 },
-      { id:'noCar',   label:'Wróć z łupem, nie dając się oświetlić autu', check:r=> r.banked>0 && !r.spottedByCar },
-      { id:'bins4',   label:'Opróżnij 4 kosze w jednej wyprawie',   check:r=> r.binsEmptied>=4 }
-    ],
-    blok: [
-      { id:'bank10',  label:'Zbankuj 10 zł w jednej wyprawie',      check:r=> r.banked>=10 },
-      { id:'ghost',   label:'Wróć z łupem, nie budząc strażnika',   check:r=> r.banked>0 && !r.guardAlerted },
-      { id:'bins5b',  label:'Opróżnij 5 koszy w jednej wyprawie',   check:r=> r.binsEmptied>=5 }
-    ]
+  const LEVEL_STAR2 = {
+    osiedle: { label:'Norma bez przekroczenia 50% przypału', check:r=> r.maxHeat<50 },
+    miasto:  { label:'Norma z combo co najmniej x5',         check:r=> r.comboMax>=5 },
+    festyn:  { label:'Norma z combo co najmniej x6',         check:r=> r.comboMax>=6 },
+    row:     { label:'Norma bez oświetlenia przez auto',     check:r=> !r.spottedByCar },
+    blok:    { label:'Norma bez budzenia strażnika',         check:r=> !r.guardAlerted }
   };
-  const STAR_BONUS_KAUCJA = 8; // premia w kaucji za każdą zdobytą gwiazdkę
+  function star2For(mapId){ return LEVEL_STAR2[mapId] || LEVEL_STAR2.osiedle; }
+  const STAR_BONUS_KAUCJA = 4; // premia w kaucji za każdą nową gwiazdkę
+  // ile gwiazdek na poprzedniej mapie otwiera zakup następnej
+  const MAP_STAR_GATE = { miasto:5, festyn:9, row:13, blok:17 };
 
   /* =========================================================
      SKLEP — na to idzie zarobiona kaucja
@@ -1534,7 +1565,7 @@
     totalEarned:0, gamesPlayed:0, grynaPoints:0, bestScore:0,
     energy:3, lastEnergyTs: Date.now(),
     streak:0, lastPlayDate:'', wallet:0, mapsOwned:['osiedle'], lastMapId:'osiedle',
-    mapProgress:{}, upgrades:{}, mapLevels:{},
+    mapProgress:{}, upgrades:{}, mapLevels:{}, mapSel:{},
     stash:0,            // kaucja w worze — czeka na oddanie w sklepie
     home:'miasto'       // decyduje, jakie punkty skupu masz pod ręką
   };
@@ -1554,6 +1585,23 @@
     profile.mapsOwned = profile.mapsOwned.filter(id=> MAPS.some(m=>m.id===id));
     if(!profile.mapProgress || typeof profile.mapProgress!=='object') profile.mapProgress={};
     if(!profile.upgrades || typeof profile.upgrades!=='object') profile.upgrades={};
+    if(!profile.mapSel || typeof profile.mapSel!=='object') profile.mapSel={};
+    if(!profile.mapLevels || typeof profile.mapLevels!=='object') profile.mapLevels={};
+    /* Migracja z wersji <=11: było 5 poziomów podnoszących wyłącznie limit
+       plecaka i 3 gwiazdki na całą mapę. Teraz poziomów jest 10 i każdy ma
+       własne trzy gwiazdki. Nikt nie zaczyna od zera: stary poziom L znaczy,
+       że normy do L-1 były do wyrobienia, więc zaliczamy je po jednej
+       gwiazdce, a dawne cele mapy lądują na poziomie L. */
+    MAPS.forEach(m=>{
+      const prog = profile.mapProgress[m.id] || (profile.mapProgress[m.id] = {});
+      if(prog.lv && typeof prog.lv === 'object') return;   // już po migracji
+      const oldLvl = Math.max(1, Math.min(5, profile.mapLevels[m.id] || 1));
+      const oldStars = Array.isArray(prog.stars) ? prog.stars.length : 0;
+      prog.lv = {};
+      for(let l=1; l<oldLvl; l++) prog.lv[l] = 1;
+      if(oldStars > 0) prog.lv[oldLvl] = Math.min(3, oldStars);
+      delete prog.stars;
+    });
     currentMapId = profile.mapsOwned.includes(profile.lastMapId) ? profile.lastMapId : 'osiedle';
     refreshProfileUI();
   }
@@ -1713,12 +1761,17 @@
       let body = '<div class="map-scene'+(owned?'':' locked')+'">'+mapSceneSVG(m.id)+(owned?'':'<span class="scene-lock">🔒</span>')+'</div>'
                + '<div class="mc-name">'+m.name+'</div>';
       if(owned){
-        body += '<div class="mc-lvl">Poziom '+mapLevel(m.id)+'/'+MAP_LEVEL_MAX+'</div>';
-        if(mapLevel(m.id) >= MAP_LEVEL_MAX) body += '<div class="mc-max">🏅 W pełni rozwinięta</div>';
-        else body += '<div class="mc-note">Limit łupu: '+fmt(backpackCapFor(m.id))+'</div>';
+        const lv = mapLevel(m.id), tot = mapStarTotal(m.id);
+        // pasek poziomu jest przyciskiem — klik otwiera siatkę 10 poziomów
+        body += '<button class="mc-lvlbtn" type="button">Poziom '+lv+'/'+MAP_LEVEL_MAX
+             +  ' <span class="mcl-st">★ '+tot+'/'+mapStarMax()+'</span> ▾</button>';
+        if(mapCompleted(m.id)) body += '<div class="mc-max">🏅 Komplet gwiazdek</div>';
+        body += '<div class="mc-note">Norma: <b>'+fmt(levelQuota(m.id, lv))+'</b> z jednej wyprawy</div>';
       } else if(!canUnlock){
         const prev = MAPS[MAPS.findIndex(x=>x.id===m.id)-1];
-        body += '<div class="mc-note">🔒 Najpierw awansuj na poziom 2<br>na mapie: '+(prev?prev.name:'')+'</div>';
+        const need = MAP_STAR_GATE[m.id]||0;
+        body += '<div class="mc-note">🔒 Zdobądź ★ '+need+' na mapie<br>'+(prev?prev.name:'')
+             +  ' — masz ★ '+(prev?mapStarTotal(prev.id):0)+'</div>';
       } else {
         body += '<div class="mc-note">Odblokuj za '+fmt(m.cost)+' &middot; masz '+fmt(profile.wallet)+'</div>';
       }
@@ -1743,7 +1796,10 @@
       currentMapId=m.id; profile.lastMapId=m.id; saveProfile();
     }
     renderStash();
-    renderGoalsList('goalsListStart', m.id);
+    const selLvl = mapLevel(m.id);
+    const gTitle = document.getElementById('goalsStartTitle');
+    if(gTitle) gTitle.textContent = owned ? ('🎯 Gwiazdki poziomu '+selLvl) : '🎯 Gwiazdki poziomu';
+    renderGoalsList('goalsListStart', m.id, selLvl);
     renderMapLevelInfo();
     updatePlayButton();
     updateTabBadges();
@@ -1760,7 +1816,8 @@
     if(profile.mapsOwned.includes(m.id)) return false;
     if(!mapUnlockable(m.id)){
       const prev = MAPS[MAPS.findIndex(x=>x.id===m.id)-1];
-      showToast('Najpierw awansuj na poziom 2 na: '+(prev?prev.name:''));
+      const need = MAP_STAR_GATE[m.id]||0;
+      showToast('Trzeba ★ '+need+' na mapie: '+(prev?prev.name:'')+' (masz ★ '+(prev?mapStarTotal(prev.id):0)+')');
       return true;
     }
     if(profile.wallet < m.cost){
@@ -1780,14 +1837,63 @@
     const box = document.getElementById('mapLevelInfo');
     if(!box) return;
     const map = stageMap();
-    const lvl = mapLevel(map.id);
-    const cap = backpackCapFor(map.id);
-    if(lvl >= MAP_LEVEL_MAX){
-      box.innerHTML = '<b style="color:var(--gold-dark);">'+map.name+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+' (max)</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>. Ta mapa jest w pełni rozwinięta.';
-    } else {
-      const nextCap = levelCapsFor(map.id)[lvl];
-      box.innerHTML = '<b style="color:var(--gold-dark);">'+map.name+' — poziom '+lvl+'/'+MAP_LEVEL_MAX+'</b><br>Limit łupu na wyprawę: <b>'+fmt(cap)+'</b>.<br>Opróżnij <b>WSZYSTKIE</b> kosze i wróć z łupem, żeby awansować na poziom '+(lvl+1)+' (limit wzrośnie do '+fmt(nextCap)+').';
+    const idx = MAPS.findIndex(x=>x.id===map.id);
+    if(!profile.mapsOwned.includes(map.id)){
+      const prev = MAPS[idx-1], need = MAP_STAR_GATE[map.id]||0;
+      box.innerHTML = 'Mapa zamknięta. Otwiera ją <b>★ '+need+'</b> na mapie <b>'+(prev?prev.name:'')
+        + '</b> (masz <b>★ '+(prev?mapStarTotal(prev.id):0)+'</b>) oraz <b>'+fmt(map.cost)+'</b> kaucji.';
+      return;
     }
+    const lvl = mapLevel(map.id);
+    let html = '<b style="color:var(--gold-dark);">'+map.name+' — poziom '+lvl+'/'+MAP_LEVEL_MAX
+      + ' &middot; ★ '+mapStarTotal(map.id)+'/'+mapStarMax()+'</b><br>'
+      + 'Norma: <b>'+fmt(levelQuota(map.id,lvl))+'</b> z jednej wyprawy. Plecak: <b>'+fmt(backpackCapFor(map.id,lvl))+'</b>.<br>'
+      + 'Na tym poziomie: <b>'+binCountFor(map.id,lvl)+'</b> koszy i <b>'+npcCountFor(map.id,lvl)+'</b> par oczu.';
+    if(mapCompleted(map.id)) html += '<br>🏅 Komplet gwiazdek — ta mapa jest wyczyszczona.';
+    else if(levelStars(map.id,lvl)===0 && lvl<MAP_LEVEL_MAX) html += '<br>Wyrób normę, żeby otworzyć poziom '+(lvl+1)+'.';
+    box.innerHTML = html;
+  }
+
+  /* =========================================================
+     WYBÓR POZIOMU — siatka 10 kafelków. Każdy otwarty poziom
+     można powtarzać, żeby dobić brakujące gwiazdki.
+     ========================================================= */
+  let lvlPickMapId = 'osiedle', lvlPickNo = 1;
+  function openLevelPicker(mapId){
+    if(!profile.mapsOwned.includes(mapId)) return;
+    lvlPickMapId = mapId; lvlPickNo = mapLevel(mapId);
+    renderLevelPicker();
+    Sfx.click(); haptic('light');
+    document.getElementById('levelOverlay').classList.remove('hidden');
+  }
+  function closeLevelPicker(){
+    document.getElementById('levelOverlay').classList.add('hidden');
+    renderMapSelector();
+  }
+  function renderLevelPicker(){
+    const map = MAPS.find(x=>x.id===lvlPickMapId) || MAPS[0];
+    document.getElementById('lvlTitle').textContent = map.icon+' '+map.name.toUpperCase();
+    document.getElementById('lvlSub').textContent =
+      'Zdobyte gwiazdki: ★ '+mapStarTotal(map.id)+'/'+mapStarMax();
+    const grid = document.getElementById('lvlGrid');
+    grid.innerHTML='';
+    for(let l=1; l<=MAP_LEVEL_MAX; l++){
+      const open = levelUnlocked(map.id, l), st = levelStars(map.id, l);
+      const b = document.createElement('button');
+      b.type='button';
+      b.className = 'lvl-tile'+(open?'':' locked')+(l===lvlPickNo?' sel':'')+(st>=3?' full':'');
+      b.dataset.lvl = l;
+      b.innerHTML = '<span class="lt-no">'+l+'</span>'
+                  + '<span class="lt-st">'+(open?('★'.repeat(st)+'☆'.repeat(3-st)):'🔒')+'</span>'
+                  + '<span class="lt-q">'+(open?fmt(levelQuota(map.id,l)):'&nbsp;')+'</span>';
+      grid.appendChild(b);
+    }
+    document.getElementById('lvlGoalsTitle').textContent = '🎯 Gwiazdki poziomu '+lvlPickNo;
+    renderGoalsList('lvlGoals', map.id, lvlPickNo);
+    const play = document.getElementById('lvlPlayBtn');
+    const isCur = profile.mapsOwned.includes(map.id);
+    play.disabled = !isCur || profile.energy<=0;
+    play.textContent = profile.energy<=0 ? 'BRAK ENERGII' : ('GRAJ POZIOM '+lvlPickNo);
   }
 
   /* =========================================================
@@ -2187,7 +2293,7 @@
   });
 
   function goToMenu(){
-    ['caughtOverlay','extractOverlay','pauseOverlay'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+    ['caughtOverlay','extractOverlay','pauseOverlay','levelOverlay'].forEach(id=>document.getElementById(id).classList.add('hidden'));
     state='idle';
     refreshProfileUI();
     switchTab('graj');
@@ -2211,23 +2317,69 @@
   // statystyki bieżącej wyprawy — na ich podstawie oceniane są cele mapy
   let run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
 
-  // Pojemność plecaka rośnie z poziomem KAŻDEJ mapy (1-5), osobno dla
-  // każdej mapy — bo mapy różnią się liczbą koszy i ich zamożnością.
-  // Poziom 1 na każdej mapie jest tak dobrany, żeby realnie starczał na
-  // JEDNO pełne wyczyszczenie (kosze + to, co zbierzesz po drodze z ziemi)
-  // z zapasem, a nie "na styk" — inaczej nigdy nie dałoby się awansować.
-  const MAP_LEVEL_CAPS = {
-    osiedle: [20, 27, 34, 42, 50],
-    miasto:  [23, 31, 39, 48, 57],
-    festyn:  [24, 32, 40, 49, 58],
-    row:     [18, 24, 31, 38, 46],
-    blok:    [18, 24, 31, 38, 46]
-  };
-  const MAP_LEVEL_MAX = 5;
-  function mapLevel(mapId){ return (profile.mapLevels && profile.mapLevels[mapId]) || 1; }
-  function levelCapsFor(mapId){ return MAP_LEVEL_CAPS[mapId] || MAP_LEVEL_CAPS.osiedle; }
-  function backpackCapFor(mapId){ return levelCapsFor(mapId)[mapLevel(mapId)-1]; }
-  function backpackCap(){ return backpackCapFor(currentMapId); }
+  /* =========================================================
+     POZIOMY MAP — 10 na każdej mapie.
+
+     Do wersji 11 poziom podnosił wyłącznie limit plecaka, a limit i tak
+     nigdy nie wchodził w grę: pomiar botem pokazał, że na osiedlu da się
+     zebrać najwyżej ~15,50 zł przy limicie 20 zł na pierwszym poziomie.
+     Poziomy nie zmieniały więc absolutnie niczego.
+
+     Teraz poziom zmienia MAPĘ: więcej koszy, pełniejsze kosze i gęstszy
+     patrol. Do tego każdy poziom ma własną NORMĘ — tyle kaucji trzeba
+     przynieść z jednej wyprawy, żeby go zaliczyć. Plecak nadal rośnie,
+     ale jako sufit nad normą, a nie jako nagroda sama w sobie.
+     ========================================================= */
+  const MAP_LEVEL_MAX = 10;
+  // norma na poziomie 1; pozostałe poziomy skalują się od niej
+  const MAP_QUOTA_BASE = { osiedle:7, miasto:7, festyn:8, row:6, blok:4.5 };
+  // +6% bazy na poziom (poziom 10 = 1,54x normy z pierwszego). Celowo
+  // wolniej, niż rośnie zasobność mapy: wyżej i tak trudniej jest wyjść
+  // z łupem, więc norma nie może gonić samej zawartości koszy.
+  const QUOTA_STEP = 0.06;
+  // 0 na poziomie 1, 1 na poziomie 10 — wspólny suwak dla wszystkiego,
+  // co ma rosnąć razem z poziomem
+  function lvlT(lvl){ return (Math.max(1,Math.min(MAP_LEVEL_MAX,lvl))-1)/(MAP_LEVEL_MAX-1); }
+  function levelQuota(mapId, lvl){
+    const base = MAP_QUOTA_BASE[mapId] || 6;
+    return Math.round(base*(1+QUOTA_STEP*(lvl-1))*2)/2;   // równo do 0,50 zł
+  }
+  // plecak: 1,8x normy — nie przeszkadza w wyrobieniu jej z zapasem,
+  // ale na wysokich poziomach potrafi wymusić decyzję "wracam czy ryzykuję"
+  function backpackCapFor(mapId, lvl){
+    return Math.ceil(levelQuota(mapId, lvl===undefined?mapLevel(mapId):lvl)*1.8*2)/2;
+  }
+  // Poziom zamrażamy na starcie wyprawy. Bez tego zmiana wyboru w menu
+  // w trakcie gry przeliczałaby normę i limit pod stopami gracza.
+  let playedLevel = 1;
+  function backpackCap(){ return backpackCapFor(currentMapId, playedLevel); }
+
+  /* Ile mapa zmienia się z poziomem. Mnożniki dobrane tak, żeby poziom 10
+     dawał ok. 2,2x łupu poziomu 1 — przy patrolu większym o połowę. */
+  function binCountFor(mapId, lvl){
+    const base = (BIN_CONFIG[mapId]||BIN_CONFIG.row).count;
+    return Math.round(base*(1 + 0.30*lvlT(lvl)));
+  }
+  function emptyChanceFor(mapId, lvl){
+    const base = (BIN_CONFIG[mapId]||BIN_CONFIG.row).emptyChance;
+    return base*(1 - 0.30*lvlT(lvl));
+  }
+  // Dodatkowa sztuka z kosza wchodzi płynnie: na poziomie 1 nigdy,
+  // na 10. zawsze. Próg „od szóstego poziomu" robił w pomiarze skok
+  // średniego łupu o połowę w jednym kroku.
+  function binPieceBonus(lvl){ return Math.random() < lvlT(lvl) ? 1 : 0; }
+  function npcCountFor(mapId, lvl){
+    const base = (MAP_HAZARDS[mapId]||{npcCount:3}).npcCount;
+    return Math.round(base*(1 + 0.40*lvlT(lvl)));
+  }
+  function npcVisionFor(mapId, lvl){
+    const base = (MAP_HAZARDS[mapId]||{vision:90}).vision;
+    return base*(1 + 0.15*lvlT(lvl));
+  }
+  function npcChaseFor(mapId, lvl){
+    const base = (MAP_HAZARDS[mapId]||{chase:100}).chase;
+    return base*(1 + 0.14*lvlT(lvl));
+  }
   const TYPES = [
     { key:'bottle', value:0.5, r:14, color:'#1E88E5', dark:'#125A97' },
     { key:'can',    value:0.5, r:13, color:'#C9D1D6', dark:'#8B949B' },
@@ -2277,6 +2429,7 @@
     }
   }
   function resetGame(){
+    playedLevel = mapLevel(currentMapId);
     loot=0; combo=1; comboTimer=0; elapsedSinceStart=0;
     items=[]; particles=[]; confettiParticles=[]; dog=null; spawnTimer=0;
     bins=[]; npcs=[]; npcSpawnTimer=0.4;
@@ -2322,9 +2475,9 @@
     return { x:x, y:y };
   }
   function spawnBins(){
-    const cfg = BIN_CONFIG[currentMapId] || BIN_CONFIG.row;
     const margin=60;
-    for(let i=0;i<cfg.count;i++){
+    const want = binCountFor(currentMapId, playedLevel);
+    for(let i=0;i<want;i++){
       let spot=null;
       if(currentMapId==='row' && bushes.length){
         // Przy rowie kosze stoją w krzakach — ale krzak potrafi zostać
@@ -2511,9 +2664,8 @@
   }
 
   function awardBinLoot(bin){
-    const cfg = BIN_CONFIG[currentMapId] || BIN_CONFIG.row;
     run.binsEmptied += 1;
-    if(Math.random() < cfg.emptyChance){
+    if(Math.random() < emptyChanceFor(currentMapId, playedLevel)){
       bin.empty=true; combo=1; comboTimer=0;
       Sfx.empty();
       addFloatText(bin.x, bin.y, 'Pusto... 😕', '#E0A9A9');
@@ -2523,7 +2675,7 @@
       addFloatText(bin.x, bin.y, '🎒 Plecak pełny!', '#FF9B7A');
       updateHUD(); return;
     }
-    const pieces = 1+Math.floor(Math.random()*3) + cartBonus();
+    const pieces = 1+Math.floor(Math.random()*3) + cartBonus() + binPieceBonus(playedLevel);
     comboTimer=1.1; combo=Math.min(6, combo+pieces);
     if(combo>daily.comboMax) daily.comboMax=combo;
     if(combo>run.comboMax) run.comboMax=combo;
@@ -2718,7 +2870,7 @@
     const cfg = MAP_HAZARDS[currentMapId];
     if(!cfg){ npcs=[]; return false; }
     npcSpawnTimer -= dt;
-    if(npcs.length < cfg.npcCount && npcSpawnTimer<=0){
+    if(npcs.length < npcCountFor(currentMapId, playedLevel) && npcSpawnTimer<=0){
       npcSpawnTimer = 1+Math.random()*2;
       const lane = cfg.lane ? sidewalkRect() : null;
       // każdy przechodzień trzyma swój własny tor na płycie, żeby po
@@ -2730,7 +2882,7 @@
         y: playTop()+unprojY(42)+Math.random()*(WORLD_H-unprojY(110)-playTop()-unprojY(42)),
         vx: lane ? 0 : (Math.random()<0.5?-1:1)*cfg.wander,
         vy: (Math.random()<0.5?-1:1)*cfg.wander*VIEW_UNTILT,
-        vision:cfg.vision, alert:false, lane:!!lane,
+        vision:npcVisionFor(currentMapId, playedLevel), alert:false, lane:!!lane,
         emoji:cfg.emojis[Math.floor(Math.random()*cfg.emojis.length)] });
     }
     let detected=false;
@@ -2752,7 +2904,8 @@
       }
       if(n.alert){
         const dx=player.x-n.x, dy=(player.y-n.y)*VIEW_TILT, dist=Math.hypot(dx,dy)||1;
-        const nx=n.x+(dx/dist)*cfg.chase*dt, ny=n.y+(dy/dist)*cfg.chase*dt*VIEW_UNTILT;
+        const chase = npcChaseFor(currentMapId, playedLevel);
+        const nx=n.x+(dx/dist)*chase*dt, ny=n.y+(dy/dist)*chase*dt*VIEW_UNTILT;
         // sąsiad też nie przenika przez mury — obchodzi je
         if(!pointInObstacle(nx, n.y, 8)) n.x=nx;
         if(!pointInObstacle(n.x, ny, 8)) n.y=ny;
@@ -3507,49 +3660,102 @@
     goToMenu();
   });
 
-  function mapStars(mapId){
-    const p = profile.mapProgress[mapId];
-    return (p && Array.isArray(p.stars)) ? p.stars : [];
+  /* --- dorobek gracza na poziomach: mapProgress[mapa].lv = { poziom: 0..3 } --- */
+  function levelBook(mapId){
+    let p = profile.mapProgress[mapId];
+    if(!p) p = profile.mapProgress[mapId] = {};
+    if(!p.lv || typeof p.lv !== 'object') p.lv = {};
+    return p.lv;
   }
-  function starCount(mapId){ return mapStars(mapId).length; }
-  function mapCompleted(mapId){
-    const goals = MAP_GOALS[mapId] || [];
-    return goals.length>0 && starCount(mapId) >= goals.length;
+  function levelStars(mapId, lvl){ return levelBook(mapId)[lvl] || 0; }
+  function mapStarTotal(mapId){
+    let sum=0;
+    for(let l=1;l<=MAP_LEVEL_MAX;l++) sum += levelStars(mapId,l);
+    return sum;
   }
-  // następną mapę można kupić dopiero, gdy poprzednia ma min. 2 gwiazdki
+  function mapStarMax(){ return MAP_LEVEL_MAX*3; }
+  // poziom otwiera się wyrobieniem normy na poprzednim — jedna gwiazdka wystarczy
+  function levelUnlocked(mapId, lvl){
+    if(lvl<=1) return true;
+    if(lvl>MAP_LEVEL_MAX) return false;
+    return levelStars(mapId, lvl-1) >= 1;
+  }
+  // najwyższy otwarty poziom mapy
+  function topLevel(mapId){
+    let l=1;
+    while(l<MAP_LEVEL_MAX && levelStars(mapId,l)>=1) l++;
+    return l;
+  }
+  // poziom WYBRANY do gry: gracz może wrócić na dowolny otwarty,
+  // żeby dobić brakujące gwiazdki
+  function mapLevel(mapId){
+    const sel = profile.mapSel && profile.mapSel[mapId];
+    if(sel && levelUnlocked(mapId, sel)) return Math.min(sel, MAP_LEVEL_MAX);
+    return topLevel(mapId);
+  }
+  function selectLevel(mapId, lvl){
+    if(!levelUnlocked(mapId, lvl)) return false;
+    if(!profile.mapSel) profile.mapSel = {};
+    profile.mapSel[mapId] = lvl;
+    saveProfile();
+    return true;
+  }
+  function mapCompleted(mapId){ return mapStarTotal(mapId) >= mapStarMax(); }
+  // następną mapę otwierają GWIAZDKI na poprzedniej — dzięki temu powrót
+  // na starą mapę po brakujące gwiazdki jest drogą naprzód, a nie sentymentem
   function mapUnlockable(mapId){
     const idx = MAPS.findIndex(m=>m.id===mapId);
     if(idx<=0) return true;
-    return mapLevel(MAPS[idx-1].id) >= 2;
+    return mapStarTotal(MAPS[idx-1].id) >= (MAP_STAR_GATE[mapId]||0);
   }
-  function evaluateGoals(banked){
-    const goals = MAP_GOALS[currentMapId] || [];
-    if(!profile.mapProgress[currentMapId]) profile.mapProgress[currentMapId] = { stars:[] };
-    const owned = profile.mapProgress[currentMapId].stars;
+  // trzy gwiazdki poziomu, policzone z wyniku jednej wyprawy
+  function levelStarsFrom(mapId, lvl, r){
+    const q = levelQuota(mapId, lvl);
+    if(!(r.banked >= q)) return 0;
+    let n = 1;
+    if(star2For(mapId).check(r)) n++;
+    if(r.banked >= q*1.5) n++;
+    return n;
+  }
+  // opisy trzech gwiazdek danego poziomu — używane w menu i po wyprawie
+  function levelStarDefs(mapId, lvl){
+    const q = levelQuota(mapId, lvl);
+    return [
+      { label:'Norma: przynieś '+fmt(q)+' z wyprawy' },
+      { label:star2For(mapId).label },
+      { label:'Norma z zapasem: '+fmt(Math.round(q*1.5*2)/2) }
+    ];
+  }
+  function evaluateLevel(banked){
+    const mapId = currentMapId, lvl = playedLevel;
     const ctxRun = Object.assign({}, run, { banked });
-    const newly = [];
-    goals.forEach(g=>{
-      if(owned.includes(g.id)) return;
-      if(g.check(ctxRun)){ owned.push(g.id); newly.push(g); }
-    });
-    if(newly.length){
-      const bonus = newly.length*STAR_BONUS_KAUCJA;
+    const got = levelStarsFrom(mapId, lvl, ctxRun);
+    const had = levelStars(mapId, lvl);
+    const gained = Math.max(0, got-had);
+    if(gained>0){
+      levelBook(mapId)[lvl] = got;
+      const bonus = gained*STAR_BONUS_KAUCJA;
       profile.wallet += bonus;
       setTimeout(()=>{ Sfx.star(); hapticNotify('success'); }, 500);
-      newly.forEach(g=> showToast('⭐ Cel zaliczony: '+g.label+' (+'+bonus/newly.length+' zł)'));
-      grynaPlusEvent('map_goals_completed', { mapId:currentMapId, goals:newly.map(g=>g.id), bonusKaucja:bonus, profileNick:profile.nick });
-      if(mapCompleted(currentMapId)) showToast('⭐ Wszystkie cele mapy zdobyte!');
+      showToast('⭐'.repeat(got)+' Poziom '+lvl+': +'+fmt(bonus));
+      grynaPlusEvent('level_stars', { mapId:mapId, level:lvl, stars:got, bonusKaucja:bonus, profileNick:profile.nick });
     }
-    return newly;
+    // norma wyrobiona po raz pierwszy => otwiera się następny poziom
+    const opened = (had===0 && got>=1 && lvl<MAP_LEVEL_MAX);
+    if(opened) selectLevel(mapId, lvl+1);
+    if(mapCompleted(mapId)) showToast('🏅 Komplet gwiazdek na tej mapie!');
+    return { stars:got, gained:gained, opened:opened, quota:levelQuota(mapId,lvl) };
   }
-  function renderGoalsList(containerId, mapId){
+  // lista trzech gwiazdek poziomu; `res` (wynik świeżej wyprawy) podświetla
+  // te zdobyte przed chwilą, a bez niego pokazujemy stan zapisany
+  function renderGoalsList(containerId, mapId, lvl, res){
     const c = document.getElementById(containerId);
     if(!c) return;
     c.innerHTML='';
-    const goals = MAP_GOALS[mapId] || [];
-    const owned = mapStars(mapId);
-    goals.forEach(g=>{
-      const done = owned.includes(g.id);
+    lvl = lvl || mapLevel(mapId);
+    const have = res ? res.stars : levelStars(mapId, lvl);
+    levelStarDefs(mapId, lvl).forEach((g, i)=>{
+      const done = i < have;
       const row=document.createElement('div');
       row.className='task-row'+(done?' done':'');
       row.innerHTML='<span class="task-check">'+(done?'★':'☆')+'</span><span>'+g.label+'</span>';
@@ -3576,16 +3782,10 @@
     const isNewBest = banked>profile.bestScore;
     if(isNewBest) profile.bestScore=banked;
     leveledThisRound = addXP(Math.round(banked*8)+5);
-    evaluateGoals(banked);
-
-    // Poziom TEJ mapy rośnie tylko gdy w tej wyprawie opróżniono WSZYSTKIE
-    // kosze i udało się wrócić z łupem — to steruje tempem zarabiania:
-    // pierwsze poziomy pierwszych map dają mało, ostatnie poziomy dają dużo.
-    let mapLeveledUp = false;
-    if(run.allCleared && mapLevel(currentMapId) < MAP_LEVEL_MAX){
-      profile.mapLevels[currentMapId] = mapLevel(currentMapId) + 1;
-      mapLeveledUp = true;
-    }
+    // Poziom zaliczasz NORMĄ, nie kompletem koszy: liczy się, ile kaucji
+    // przyniosłeś z wyprawy. Dróg do normy jest kilka — można biegać
+    // szybko i zachłannie albo cicho i dokładnie.
+    const lvlRes = evaluateLevel(banked);
 
     await saveDaily(); await saveProfile();
     checkTasks();
@@ -3597,8 +3797,14 @@
     document.getElementById('recordBanner').classList.toggle('show', isNewBest);
     document.getElementById('levelBanner').classList.toggle('show', leveledThisRound);
     const mapLvlBanner = document.getElementById('mapLevelBanner');
-    if(mapLeveledUp){
-      mapLvlBanner.textContent = '🧹 Poziom mapy: '+mapLevel(currentMapId)+'/'+MAP_LEVEL_MAX+'! Nowy limit łupu: '+fmt(backpackCap());
+    if(lvlRes.opened){
+      mapLvlBanner.textContent = '🔓 Norma wyrobiona! Otwarty poziom '+(playedLevel+1)+'/'+MAP_LEVEL_MAX;
+      mapLvlBanner.classList.add('show');
+    } else if(lvlRes.gained>0){
+      mapLvlBanner.textContent = '⭐'.repeat(lvlRes.stars)+' Poziom '+playedLevel+' — nowa gwiazdka!';
+      mapLvlBanner.classList.add('show');
+    } else if(banked < lvlRes.quota){
+      mapLvlBanner.textContent = '🎯 Norma poziomu '+playedLevel+': '+fmt(lvlRes.quota)+' — zabrakło '+fmt(lvlRes.quota-banked);
       mapLvlBanner.classList.add('show');
     } else {
       mapLvlBanner.classList.remove('show');
@@ -3607,7 +3813,8 @@
     document.getElementById('rewardDoubleBtn').textContent='🎬 Obejrzyj reklamę → podwój ten łup';
     doubleUsedThisRound=false;
     document.getElementById('extractOverlay').classList.remove('hidden');
-    renderGoalsList('goalsListEnd', currentMapId);
+    document.getElementById('goalsEndTitle').textContent = '🎯 Gwiazdki poziomu '+playedLevel;
+    renderGoalsList('goalsListEnd', currentMapId, playedLevel, lvlRes);
     renderMapSelector();
     renderShop();
     renderPayouts();
@@ -3630,6 +3837,7 @@
   });
 
   function beginRound(){
+    document.getElementById('levelOverlay').classList.add('hidden');
     document.getElementById('startOverlay').classList.add('hidden');
     document.getElementById('extractOverlay').classList.add('hidden');
     document.getElementById('caughtOverlay').classList.add('hidden');
@@ -3649,6 +3857,26 @@
     if(buyStageMap()) return; // mapa nieposiadana → przycisk kupuje zamiast startować
     attemptStart();
   });
+  // pasek poziomu żyje wewnątrz przepisywanego innerHTML karty, więc
+  // słuchamy kliknięć na samej karcie zamiast wiązać się z elementem
+  document.getElementById('mapCard').addEventListener('click', (e)=>{
+    if(e.target.closest('.mc-lvlbtn')) openLevelPicker(stageMap().id);
+  });
+  document.getElementById('lvlGrid').addEventListener('click', (e)=>{
+    const t = e.target.closest('.lvl-tile');
+    if(!t || t.classList.contains('locked')) return;
+    const l = parseInt(t.dataset.lvl, 10);
+    if(!selectLevel(lvlPickMapId, l)) return;
+    lvlPickNo = l; Sfx.click(); haptic('light');
+    renderLevelPicker();
+  });
+  document.getElementById('lvlPlayBtn').addEventListener('click', ()=>{
+    selectLevel(lvlPickMapId, lvlPickNo);
+    document.getElementById('levelOverlay').classList.add('hidden');
+    renderMapSelector();
+    attemptStart();
+  });
+  document.getElementById('lvlCloseBtn').addEventListener('click', ()=>{ Sfx.click(); closeLevelPicker(); });
   document.getElementById('mapPrev').addEventListener('click', ()=> moveStage(-1));
   document.getElementById('mapNext').addEventListener('click', ()=> moveStage(1));
   document.getElementById('burgerBtn').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); switchTab('profil'); });
