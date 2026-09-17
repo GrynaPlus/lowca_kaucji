@@ -804,6 +804,21 @@
     return data;
   }
 
+  // apiCall wyżej obsługuje POST; liga potrzebuje GET-a. Jeden bliźniak
+  // zamiast trzeciego własnego sposobu na to samo.
+  async function apiGet(path){
+    if(!TG || !TG.initData){
+      throw new Error('Dostępne tylko w Telegramie — otwórz grę przez bota.');
+    }
+    const res = await fetch(API_BASE + path, {
+      headers:{ 'Authorization':'tma '+TG.initData }
+    });
+    let data = {};
+    try{ data = await res.json(); }catch(e){}
+    if(!res.ok) throw new Error(data.error || ('Błąd serwera (HTTP '+res.status+')'));
+    return data;
+  }
+
   const LocalDB = (function(){
     function apiUsable(){
       // bez initData backend i tak odrzuci każde zapytanie (401),
@@ -1368,7 +1383,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-16 · 20';
+  const APP_VERSION = '2026-09-17 · 21';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -4990,22 +5005,16 @@
      zablokować rozgrywki, więc każdy jest owinięty w try/catch.
      ========================================================= */
   function backendDostepny(){ return !!(TG && TG.initData); }
-  function naglowkiApi(){
-    return { 'Content-Type':'application/json', 'Authorization':'tma ' + (TG && TG.initData ? TG.initData : '') };
-  }
   async function zglosWynik(banked){
     if(!backendDostepny() || !(banked>0)) return;
-    try{
-      await fetch(API_BASE+'/score', { method:'POST', headers:naglowkiApi(),
-        body: JSON.stringify({ banked: Number(banked.toFixed(2)), nick: profile.nick }) });
-    }catch(e){ /* liga to dodatek — cisza */ }
+    try{ await apiCall('/score', { banked: Number(banked.toFixed(2)), nick: profile.nick }); }
+    catch(e){ /* liga to dodatek — nie przerywa niczego graczowi */ }
   }
   async function zglosPolecenie(){
     if(!backendDostepny() || !profile.invitedBy || profile.refSent) return;
     try{
-      const r = await fetch(API_BASE+'/referral', { method:'POST', headers:naglowkiApi(),
-        body: JSON.stringify({ inviter: profile.invitedBy }) });
-      if(r.ok){ profile.refSent = true; await saveProfile(); }
+      await apiCall('/referral', { inviter: profile.invitedBy });
+      profile.refSent = true; await saveProfile();
     }catch(e){}
   }
   async function renderLiga(){
@@ -5016,9 +5025,7 @@
       return;
     }
     try{
-      const r = await fetch(API_BASE+'/league', { headers:naglowkiApi() });
-      if(!r.ok) throw new Error('kod '+r.status);
-      const d = await r.json();
+      const d = await apiGet('/league');
       if(!d.top || !d.top.length){
         box.innerHTML = '<div class="mod-none">Tydzień dopiero się zaczął — pierwsza wyprawa i jesteś na szczycie.</div>';
         return;
