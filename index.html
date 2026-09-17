@@ -290,6 +290,18 @@
      button.secondary{display:flex} — ma tę samą specyficzność, więc
      rozstrzyga kolejność w pliku. */
   button.hidden{display:none;}
+  /* Mrugnięcie guzikiem reklamy, gdy gracz odbije się od braku energii —
+     inaczej nie ma szans zauważyć, że przewinęliśmy do niego ekran. */
+  @keyframes zerkniecie{
+    0%,100%{ transform:scale(1); box-shadow:0 0 0 0 rgba(255,184,0,0); }
+    30%{ transform:scale(1.045); box-shadow:0 0 0 7px rgba(255,184,0,.42); }
+    60%{ transform:scale(1); box-shadow:0 0 0 0 rgba(255,184,0,0); }
+  }
+  button.zerka{ animation:zerkniecie 800ms ease-in-out 3; }
+  /* GRAJ w trybie „skończyła się energia" — ma wyglądać na nagrodę,
+     a nie na zwykły start, żeby gracz nie wszedł w reklamę przez pomyłkę. */
+  #startBtn.energy-mode{ background:linear-gradient(180deg,#FFD166,#FFA502); color:#4A2E10; }
+  @media (prefers-reduced-motion: reduce){ button.zerka{ animation:none; outline:3px solid var(--gold); } }
   button.ghost{background:none;border:none;color:#8A6A3A;font-size:11px;text-decoration:underline;cursor:pointer;font-family:'Inter','Segoe UI',Roboto,sans-serif;}
 
   .result-amount{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:40px;color:var(--gold-dark);margin:4px 0 2px;text-shadow:0 2px 0 rgba(255,255,255,0.5);}
@@ -900,6 +912,9 @@
      ========================================================= */
   const MONETAG_ZONE = '11784973';
   const AD_CONFIG = { showInterstitialEveryNRounds: 2 };
+  // Ile czekamy na SDK, zanim uznamy, że reklama nie przyjdzie. Zwykły
+  // rewarded trwa 15–30 s, więc 45 s nie ucina niczego prawdziwego.
+  const AD_TIMEOUT = 45000;
 
   const Ads = (function(){
     function sdk(){ return window['show_'+MONETAG_ZONE] || null; }
@@ -932,19 +947,37 @@
       onClosed && onClosed();
     }
 
-    // Rewarded Interstitial: nagroda TYLKO gdy Promise się rozwiąże.
+    /* Rewarded Interstitial: nagroda TYLKO gdy Promise się rozwiąże.
+
+       Bywa, że SDK nie rozwiązuje obietnicy ani jej nie odrzuca — przy
+       braku reklamy do pokazania potrafi milczeć w nieskończoność. Guzik
+       zostawał wtedy na zawsze wyszarzony na „Odtwarzanie reklamy…",
+       czyli dla gracza reklamy przestawały działać do końca sesji.
+
+       Po AD_TIMEOUT oddajemy więc guzik do ponownego użycia, ale NIE
+       zamykamy sprawy: gdy spóźniona odpowiedź jednak przyjdzie, nagroda
+       zostanie wypłacona. Nikt nie traci nagrody za obejrzaną reklamę. */
     async function showRewarded(onReward, onClosed, placement){
       const fn = sdk();
       if(!fn){ return mockAd('rewarded', onReward, onClosed); }
+      let zamkniete = false;
+      const zamknij = (udane)=>{ if(zamkniete) return; zamkniete = true; onClosed && onClosed(udane); };
+      const budzik = setTimeout(()=>{
+        if(zamkniete) return;
+        console.warn('[ads] rewarded bez odpowiedzi przez '+AD_TIMEOUT+' ms — oddaję guzik');
+        zamknij(false);
+      }, AD_TIMEOUT);
       try{
         await fn({ ymid: tgUserId(), requestVar: placement || 'reward' });
-        onReward && onReward();
+        clearTimeout(budzik);
+        onReward && onReward();     // także gdy odpowiedź się spóźniła
         preloadNext();
-        onClosed && onClosed(true);
+        zamknij(true);
       }catch(e){
+        clearTimeout(budzik);
         console.warn('[ads] rewarded nieudany/przerwany', e);
         preloadNext();
-        onClosed && onClosed(false);
+        zamknij(false);
       }
     }
 
@@ -1383,7 +1416,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-17 · 22';
+  const APP_VERSION = '2026-09-17 · 23';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2113,8 +2146,10 @@
   function stageMap(){ return MAPS[Math.max(0,Math.min(MAPS.length-1,stageIdx))]; }
   function updatePlayButton(){
     const adBtn = document.getElementById('energyAdBtnStart');
-    // przez pierwszą dobę nie ma czego doładowywać
-    if(adBtn) adBtn.classList.toggle('hidden', pierwszaDoba());
+    // Chowamy, gdy nie ma czego doładowywać: przez pierwszą dobę gra jest
+    // bez limitu, a przy komplecie żyć reklama nic by nie dała — a guzik
+    // i tak ją odtwarzał, więc gracz oglądał całość i nie dostawał nic.
+    if(adBtn) adBtn.classList.toggle('hidden', pierwszaDoba() || profile.energy >= energyMax());
     const btn = document.getElementById('startBtn');
     if(!btn) return;
     const m = stageMap();
@@ -2125,7 +2160,18 @@
       else { btn.disabled=false; btn.textContent='🔓 KUP ZA '+m.cost+' ZŁ'; btn.classList.add('buy-mode'); }
       return;
     }
-    if(!pierwszaDoba() && profile.energy<=0){ btn.disabled=true; btn.textContent='BRAK ENERGII'; }
+    /* Przy zerowej energii ten guzik był po prostu martwy („BRAK ENERGII",
+       disabled). Gracz stukał w niego i nie działo się nic, a jedyne wyjście
+       — guzik z reklamą — leży jakieś 300 px niżej, poza ekranem telefonu,
+       na dole przewijanej zakładki. Nie było więc ŻADNEJ drogi od „skończyła
+       mi się energia" do reklamy: dla gracza reklamy nie działały.
+       Teraz sam guzik GRAJ staje się tym wezwaniem. */
+    btn.classList.remove('energy-mode');
+    if(!pierwszaDoba() && profile.energy<=0){
+      btn.disabled=false;
+      btn.textContent='🎬 REKLAMA → +1 GRA';
+      btn.classList.add('energy-mode');
+    }
     else { btn.disabled=false; btn.textContent='GRAJ'; }
   }
   // Trzymamy referencję do przycisku GRAJ: renderMapSelector nadpisuje
@@ -4782,7 +4828,7 @@
   }
   function attemptStart(){
     regenTick();
-    if(!pierwszaDoba() && profile.energy<=0){ showToast('Brak energii — poczekaj lub obejrzyj reklamę ↓'); return; }
+    if(!pierwszaDoba() && profile.energy<=0){ showToast('Brak energii — poczekaj lub obejrzyj reklamę ↓'); pokazGuzikReklamy(); return; }
     const proceed = async ()=>{
       if(!pierwszaDoba()) profile.energy-=1;   // pierwszej doby nie liczymy
       await saveProfile(); renderEnergy(); beginRound();
@@ -4790,8 +4836,9 @@
     const shouldAd = roundsPlayed>0 && roundsPlayed % AD_CONFIG.showInterstitialEveryNRounds === 0;
     if(shouldAd) Ads.showInterstitial(()=>proceed()); else proceed();
   }
-  document.getElementById('startBtn').addEventListener('click', ()=>{
+  document.getElementById('startBtn').addEventListener('click', (e)=>{
     if(buyStageMap()) return; // mapa nieposiadana → przycisk kupuje zamiast startować
+    if(brakEnergii()){ reklamaZaEnergie(e.currentTarget, '🎬 REKLAMA → +1 GRA'); return; }
     attemptStart();
   });
   // pasek poziomu żyje wewnątrz przepisywanego innerHTML karty, więc
@@ -5077,17 +5124,51 @@
     grynaPlusEvent('invite_sent', { profileNick:profile.nick });
   });
 
+  /* Guzik „reklama → +1 gra" siedzi na samym dole przewijanej zakładki,
+     jakieś 300 px pod krawędzią telefonu. Gracz, któremu skończyła się
+     energia, widział komunikat ze strzałką w dół i guzik, do którego
+     musiał się domyślić, że trzeba przewinąć — czyli dla niego reklamy
+     po prostu nie było. Dowozimy go tam sami i mrugamy guzikiem. */
+  function pokazGuzikReklamy(){
+    const btn = document.getElementById('energyAdBtnStart');
+    if(!btn || btn.classList.contains('hidden')) return;
+    try{ btn.scrollIntoView({ behavior:'smooth', block:'center' }); }
+    catch(e){ btn.scrollIntoView(false); }
+    btn.classList.remove('zerka');
+    void btn.offsetWidth;            // wymuś restart animacji przy kolejnym stuknięciu
+    btn.classList.add('zerka');
+    setTimeout(()=>btn.classList.remove('zerka'), 2400);
+  }
+
+  function brakEnergii(){ return !pierwszaDoba() && profile.energy<=0; }
+
+  /* Jedna droga do reklamy za energię, używana i przez guzik GRAJ, i przez
+     ten na dole zakładki. `napisWyjsciowy` wraca na guzik, gdy reklamy nie
+     było — ale tylko jeśli przebieg nie zdążył już przemalować guzika czym
+     innym (po nagrodzie renderEnergy robi z GRAJ z powrotem „GRAJ"). */
+  function reklamaZaEnergie(btn, napisWyjsciowy){
+    if(!btn || btn.disabled) return;
+    btn.disabled=true; btn.textContent='Odtwarzanie reklamy…';
+    Ads.showRewarded(
+      async ()=>{
+        profile.energy=Math.min(energyMax(), profile.energy+1);
+        await saveProfile(); renderEnergy();
+        showToast('🔋 +1 gra!');
+        grynaPlusEvent('rewarded_energy', { profileNick:profile.nick });
+      },
+      (udane)=>{
+        btn.disabled=false;
+        if(!udane){ btn.textContent=napisWyjsciowy; showToast('Reklama się nie wyświetliła — spróbuj za chwilę'); }
+        renderEnergy();   // przywraca właściwy napis obu guzikom
+      },
+      'extra_energy'
+    );
+  }
+
   function wireEnergyAdButton(id){
     const btn=document.getElementById(id);
     if(!btn) return;
-    btn.addEventListener('click', ()=>{
-      btn.disabled=true; btn.textContent='Odtwarzanie reklamy…';
-      Ads.showRewarded(
-        async ()=>{ profile.energy=Math.min(energyMax(), profile.energy+1); await saveProfile(); renderEnergy(); showToast('🔋 +1 gra!'); grynaPlusEvent('rewarded_energy', { profileNick:profile.nick }); },
-        ()=>{ btn.disabled=false; btn.textContent='🎬 Obejrzyj reklamę → +1 gra teraz'; },
-        'extra_energy'
-      );
-    });
+    btn.addEventListener('click', ()=>reklamaZaEnergie(btn, '🎬 Obejrzyj reklamę → +1 gra teraz'));
   }
   wireEnergyAdButton('energyAdBtnStart');
 
