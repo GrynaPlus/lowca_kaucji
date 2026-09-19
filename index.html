@@ -297,7 +297,7 @@
     30%{ transform:scale(1.045); box-shadow:0 0 0 7px rgba(255,184,0,.42); }
     60%{ transform:scale(1); box-shadow:0 0 0 0 rgba(255,184,0,0); }
   }
-  button.zerka{ animation:zerkniecie 800ms ease-in-out 3; }
+  button.zerka, .stash-box.zerka{ animation:zerkniecie 800ms ease-in-out 3; }
   /* GRAJ w trybie „skończyła się energia" — ma wyglądać na nagrodę,
      a nie na zwykły start, żeby gracz nie wszedł w reklamę przez pomyłkę. */
   #startBtn.energy-mode{ background:linear-gradient(180deg,#FFD166,#FFA502); color:#4A2E10; }
@@ -645,6 +645,21 @@
     <div class="card" id="returnCard"></div>
   </div>
 
+  <div class="overlay hidden" id="worOverlay">
+    <div class="card">
+      <h1 style="font-size:22px;">🛍️ Łup jest w worze</h1>
+      <p class="sub" style="text-align:left;">
+        Butelki i puszki z wyprawy trafiają do <b>wora</b>, a nie od razu do portfela.<br><br>
+        Żeby zrobić z nich gotówkę, trzeba je <b>oddać w punkcie skupu</b>: wybierasz sklep,
+        dojeżdżasz, wrzucasz butelki do butelkomatu i z paragonem idziesz do kasy.<br><br>
+        Dopiero wtedy kaucja ląduje w portfelu i możesz za nią kupować ulepszenia i mapy.
+      </p>
+      <div class="result-amount" id="worIle">0,00 zł</div>
+      <button class="primary" id="worPokazBtn">POKAŻ, GDZIE ODDAĆ</button>
+      <button class="secondary" id="worPozniejBtn">Później</button>
+    </div>
+  </div>
+
   <div class="overlay hidden" id="setOverlay">
     <div class="card">
       <h1 style="font-size:22px;">⚙️ Ustawienia</h1>
@@ -685,8 +700,8 @@
 
   <div class="overlay hidden" id="streakOverlay">
     <div class="card">
-      <h1 style="font-size:24px;">📅 Dzień <span id="streakDay">1</span> z rzędu!</h1>
-      <p class="sub">Bonus za powrót do gry:</p>
+      <h1 style="font-size:24px;" id="streakTytul">📅 Dzień <span id="streakDay">1</span> z rzędu!</h1>
+      <p class="sub" id="streakPodpis">Bonus za powrót do gry:</p>
       <div class="result-amount" id="streakVal">0,00 zł</div>
       <button class="secondary reward" id="streakAdBtn">🎬 Obejrzyj reklamę → podwój bonus</button>
       <button class="primary" id="streakTakeBtn">ODBIERAM</button>
@@ -1565,7 +1580,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-19 · 26';
+  const APP_VERSION = '2026-09-19 · 27';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2058,6 +2073,11 @@
     invitedBy:'',       // kto go przyprowadził
     invited:0,          // ilu sam przyprowadził
     refSent:false,      // czy backend wie już, kto go zaprosił
+    /* tutWor CELOWO nie ma wśród wartości domyślnych. Profil powstaje przez
+       Object.assign(domyślne, wczytane), więc domyślne `false` przykryłoby
+       brak tego pola w starym zapisie i migracja poniżej nigdy by nie
+       zadziałała — a wtedy gracz z pięćdziesięcioma wyprawami dostawałby
+       samouczek dla nowych. Brak pola musi zostać brakiem. */
     starProg:0,         // ile progów nagród za gwiazdki już wypłacono
     avatary:[],         // awatary zdobyte gwiazdkami, poza zestawem bazowym
     stash:0,            // kaucja w worze — czeka na oddanie w sklepie
@@ -2135,6 +2155,9 @@
     });
     currentMapId = profile.mapsOwned.includes(profile.lastMapId) ? profile.lastMapId : 'osiedle';
     if(!Array.isArray(profile.avatary)) profile.avatary = [];
+    /* Kto ma już wyprawy za sobą, dawno to rozgryzł — nie wyskakujemy mu
+       z samouczkiem po tygodniu grania. */
+    if(profile.tutWor === undefined) profile.tutWor = (profile.gamesPlayed||0) > 0;
     // dorobek sprzed tej wersji: progi zaliczamy wstecz, kasę z limitem
     sprawdzNagrodyGwiazdek(150);
     refreshProfileUI();
@@ -2183,7 +2206,16 @@
       const ad = document.getElementById('streakAdBtn');
       const ok = document.getElementById('streakTakeBtn');
       if(!ov || !ad || !ok){ showToast('📅 Dzień '+dzien+' z rzędu! +'+nagroda+' zł kaucji'); return gotowe(nagroda); }
-      document.getElementById('streakDay').textContent = dzien;
+      /* Ktoś, kto właśnie zainstalował grę, nigdzie nie wracał — „bonus za
+         powrót" i „dzień 1 z rzędu" brzmią wtedy jak pomyłka. Rozpoznajemy
+         go po tym, że nie ma za sobą ani jednej wyprawy. */
+      const swiezy = (profile.gamesPlayed || 0) === 0;
+      document.getElementById('streakTytul').innerHTML = swiezy
+        ? '🎁 Witaj w grze!'
+        : '📅 Dzień <span id="streakDay">' + dzien + '</span> z rzędu!';
+      document.getElementById('streakPodpis').textContent = swiezy
+        ? 'Prezent na start:'
+        : 'Bonus za powrót do gry:';
       document.getElementById('streakVal').textContent = fmt(nagroda);
       ad.disabled = false; ad.textContent = '🎬 Obejrzyj reklamę → podwój bonus';
       ov.classList.remove('hidden');
@@ -3222,6 +3254,10 @@
   document.getElementById('setCloseBtn').addEventListener('click', ()=>{
     Sfx.click(); document.getElementById('setOverlay').classList.add('hidden');
   });
+  document.getElementById('worPokazBtn').addEventListener('click', ()=>{ Sfx.click(); pokazGdzieOddac(); });
+  document.getElementById('worPozniejBtn').addEventListener('click', ()=>{
+    Sfx.click(); document.getElementById('worOverlay').classList.add('hidden');
+  });
 
   /* --- zgłoszenia --- */
   let fbKind = 'usterka';
@@ -3280,6 +3316,10 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-19 · 27', linie:[
+      '🛍️ Po pierwszej wyprawie gra tłumaczy, po co jest wór i gdzie go oddać.',
+      '🎁 Nowi gracze dostają powitanie zamiast „bonusu za powrót".'
+    ]},
     { v:'2026-09-19 · 25', linie:[
       '⭐ Gwiazdki wreszcie coś dają — nagrody na progach co 25 sztuk.',
       '🏆 Liga podzielona na koszyki po 25 osób. Teraz da się wygrać.',
@@ -3341,6 +3381,32 @@
     refreshProfileUI();
     switchTab('graj');
     Music.start('menu');
+    wytlumaczWor();
+  }
+
+  /* Droga wór → sklep → butelkomat → kasa to najbardziej nietypowa rzecz
+     w tej grze i jedyna, której nie da się odgadnąć. Okno wyniku ma o niej
+     jedną linijkę, ale ginie ona wśród banerów o rekordzie i awansie.
+     Po PIERWSZEJ udanej wyprawie tłumaczymy to raz, porządnie, i pokazujemy
+     palcem guzik. Samego procesu oddawania nie ruszamy. */
+  function wytlumaczWor(){
+    if(profile.tutWor) return;
+    if((profile.stash||0) <= 0) return;      // nie ma jeszcze czego tłumaczyć
+    profile.tutWor = true; saveProfile();
+    const el = document.getElementById('worIle');
+    if(el) el.textContent = fmt(profile.stash||0);
+    const ov = document.getElementById('worOverlay');
+    if(ov) setTimeout(()=>ov.classList.remove('hidden'), 450);
+  }
+  function pokazGdzieOddac(){
+    document.getElementById('worOverlay').classList.add('hidden');
+    switchTab('graj');
+    const box = document.getElementById('stashBox');
+    if(!box) return;
+    try{ box.scrollIntoView({ behavior:'smooth', block:'center' }); }
+    catch(e){ box.scrollIntoView(false); }
+    box.classList.remove('zerka'); void box.offsetWidth; box.classList.add('zerka');
+    setTimeout(()=>box.classList.remove('zerka'), 2600);
   }
 
   let state='idle';
