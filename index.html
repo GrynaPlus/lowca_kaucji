@@ -1565,7 +1565,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-19 · 25';
+  const APP_VERSION = '2026-09-19 · 26';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -5227,6 +5227,10 @@
   }
   function onCaught(){
     state='caught';
+    /* Bez tego w danych widać wyłącznie wyprawy zakończone powrotem do
+       bazy, a przecież najciekawsze jest to, ilu graczy wpada. */
+    grynaPlusEvent('round_failed', { mapId:currentMapId, poziomMapy:playedLevel,
+      stracone:Number(loot.toFixed(2)), profileNick:profile.nick });
     document.getElementById('tutorialBox').classList.remove('show');
     Sfx.caught(); hapticNotify('error');
     document.getElementById('caughtLootVal').textContent = fmt(loot);
@@ -5473,7 +5477,14 @@
     checkTasks();
     refreshProfileUI();
     zglosWynik(banked);     // do ligi tygodniowej; nie blokuje niczego
-    grynaPlusEvent('round_finished', { earned:Number(banked.toFixed(2)), level:profile.level, mapId:currentMapId, newBest:isNewBest, profileNick:profile.nick });
+    /* `level` to poziom GRACZA (doświadczenie), a `poziomMapy` to poziom
+       mapy, na którym toczyła się wyprawa. Bez tego drugiego nie dało się
+       odpowiedzieć na najważniejsze pytanie z danych: na którym poziomie
+       ludzie przestają grać. `norma` pozwala od razu policzyć, czy wyprawa
+       się udała, bez sięgania po wzory po stronie zapytania. */
+    grynaPlusEvent('round_finished', { earned:Number(banked.toFixed(2)), level:profile.level,
+      mapId:currentMapId, poziomMapy:playedLevel, norma:levelQuota(currentMapId, playedLevel),
+      udana:banked >= levelQuota(currentMapId, playedLevel), newBest:isNewBest, profileNick:profile.nick });
 
     document.getElementById('resultAmount').textContent = fmt(banked + premia);
     if(premia>0) setTimeout(()=>showToast('🌅 Pierwsza wyprawa dnia: +50% (+'+fmt(premia)+')'), 900);
