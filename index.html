@@ -539,6 +539,7 @@
             <div class="energy-note" id="energyNoteStart">3/3 gry dziś dostępne</div>
           </div>
 
+          <button class="secondary reward hidden" id="boostAdBtn">🎬 REKLAMA → +25% ŁUPU</button>
           <button class="secondary reward" id="energyAdBtnStart">🎬 Obejrzyj reklamę → +1 gra teraz</button>
         </div>
 
@@ -623,6 +624,16 @@
        i pyta, zanim cokolwiek przepadnie. -->
   <div class="overlay hidden" id="returnOverlay">
     <div class="card" id="returnCard"></div>
+  </div>
+
+  <div class="overlay hidden" id="streakOverlay">
+    <div class="card">
+      <h1 style="font-size:24px;">📅 Dzień <span id="streakDay">1</span> z rzędu!</h1>
+      <p class="sub">Bonus za powrót do gry:</p>
+      <div class="result-amount" id="streakVal">0,00 zł</div>
+      <button class="secondary reward" id="streakAdBtn">🎬 Obejrzyj reklamę → podwój bonus</button>
+      <button class="primary" id="streakTakeBtn">ODBIERAM</button>
+    </div>
   </div>
 
   <div class="overlay hidden" id="pauseOverlay">
@@ -912,6 +923,9 @@
      ========================================================= */
   const MONETAG_ZONE = '11784973';
   const AD_CONFIG = { showInterstitialEveryNRounds: 2 };
+  // Dobrowolne reklamy: gracz sam po nie sięga, bo coś z nich ma.
+  const BOOST_LUPU = 0.25;    // bonus startowy do łupu z najbliższej wyprawy
+  const BOOST_KASY = 0.20;    // dopłata przy odbiorze kaucji w kasie
   // Ile czekamy na SDK, zanim uznamy, że reklama nie przyjdzie. Zwykły
   // rewarded trwa 15–30 s, więc 45 s nie ucina niczego prawdziwego.
   const AD_TIMEOUT = 45000;
@@ -1416,7 +1430,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-17 · 23';
+  const APP_VERSION = '2026-09-19 · 24';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -1992,6 +2006,52 @@
   }
   setInterval(regenTick, 1000);
 
+  /* Powitanie po powrocie do gry — czyli dokładnie ten moment, w którym
+     gracz jest najbardziej skłonny coś obejrzeć. Bonus należy mu się tak
+     czy inaczej; reklama go tylko podwaja. Okno czeka na decyzję, więc
+     reszta rozruchu (np. wyzwanie z linku) rusza dopiero po nim. */
+  function pokazSerie(dzien, nagroda){
+    return new Promise((gotowe)=>{
+      const ov = document.getElementById('streakOverlay');
+      const ad = document.getElementById('streakAdBtn');
+      const ok = document.getElementById('streakTakeBtn');
+      if(!ov || !ad || !ok){ showToast('📅 Dzień '+dzien+' z rzędu! +'+nagroda+' zł kaucji'); return gotowe(nagroda); }
+      document.getElementById('streakDay').textContent = dzien;
+      document.getElementById('streakVal').textContent = fmt(nagroda);
+      ad.disabled = false; ad.textContent = '🎬 Obejrzyj reklamę → podwój bonus';
+      ov.classList.remove('hidden');
+      let zamkniete = false;
+      const zamknij = (kwota)=>{
+        if(zamkniete) return; zamkniete = true;
+        ov.classList.add('hidden');
+        gotowe(kwota);
+      };
+      ok.onclick = ()=>{ Sfx.click(); zamknij(nagroda); };
+      ad.onclick = ()=>{
+        Sfx.click();
+        ad.disabled = true; ad.textContent = 'Odtwarzanie reklamy…';
+        let podwojone = false;
+        Ads.showRewarded(
+          ()=>{
+            podwojone = true;
+            grynaPlusEvent('rewarded_streak', { day:dzien, bonusKaucja:nagroda, profileNick:profile.nick });
+          },
+          (udane)=>{
+            if(podwojone){
+              document.getElementById('streakVal').textContent = fmt(nagroda*2);
+              showToast('📅 Bonus podwojony: +'+fmt(nagroda*2));
+              setTimeout(()=>zamknij(nagroda*2), 900);
+            } else {
+              ad.disabled = false; ad.textContent = '🎬 Obejrzyj reklamę → podwój bonus';
+              if(!udane) showToast('Reklama się nie wyświetliła — spróbuj za chwilę');
+            }
+          },
+          'streak_double'
+        );
+      };
+    });
+  }
+
   async function checkDailyStreak(){
     const today = todayStr();
     if(profile.lastPlayDate === today) return;
@@ -1999,9 +2059,9 @@
     profile.lastPlayDate = today;
     const table=[2,2,4,4,6,6,12];
     const reward = table[Math.min(profile.streak-1, table.length-1)];
-    profile.wallet += reward;
-    grynaPlusEvent('daily_streak', { day:profile.streak, bonusKaucja:reward, profileNick:profile.nick });
-    showToast('📅 Dzień '+profile.streak+' z rzędu! +'+reward+' zł kaucji');
+    const wyplata = await pokazSerie(profile.streak, reward);
+    profile.wallet += wyplata;
+    grynaPlusEvent('daily_streak', { day:profile.streak, bonusKaucja:wyplata, profileNick:profile.nick });
     await saveProfile(); refreshProfileUI();
   }
 
@@ -2150,6 +2210,17 @@
     // bez limitu, a przy komplecie żyć reklama nic by nie dała — a guzik
     // i tak ją odtwarzał, więc gracz oglądał całość i nie dostawał nic.
     if(adBtn) adBtn.classList.toggle('hidden', pierwszaDoba() || profile.energy >= energyMax());
+    /* Bonus startowy ma sens tylko wtedy, gdy jest w co wchodzić: mapa
+       kupiona i jest czym zagrać. Przy braku energii ustępuje miejsca
+       reklamie za energię, żeby nie stawiać obok siebie dwóch reklam. */
+    if(boostBtnEl){
+      const mapaMoja = profile.mapsOwned.includes(stageMap().id);
+      boostBtnEl.classList.toggle('hidden', !mapaMoja || brakEnergii());
+      if(!boostBtnEl.textContent.startsWith('Odtwarzanie')){
+        boostBtnEl.disabled = premiaReklamy;
+        boostBtnEl.textContent = premiaReklamy ? '✅ +25% łupu w tej wyprawie' : BOOST_NAPIS;
+      }
+    }
     const btn = document.getElementById('startBtn');
     if(!btn) return;
     const m = stageMap();
@@ -2177,6 +2248,11 @@
   // Trzymamy referencję do przycisku GRAJ: renderMapSelector nadpisuje
   // innerHTML karty, a przenoszony element zachowuje podpięte zdarzenie.
   const playBtnEl = document.getElementById('startBtn');
+  // Bonus startowy mieszka w tej samej karcie, więc dzieli los guzika GRAJ:
+  // renderMapSelector nadpisuje jej wnętrze i doczepia oba z powrotem.
+  const boostBtnEl = document.getElementById('boostAdBtn');
+  const BOOST_NAPIS = '🎬 REKLAMA → +25% ŁUPU';
+  let premiaReklamy = false;   // trzyma się do momentu, aż naprawdę zapłaci
   function renderMapSelector(){
     // karuzela: jedna mapa naraz, strzałki po bokach
     const idx = MAPS.findIndex(m=>m.id===currentMapId);
@@ -2207,6 +2283,7 @@
       }
       card.innerHTML = body;
       if(playBtnEl) card.appendChild(playBtnEl); // wraca po nadpisaniu wnętrza
+      if(boostBtnEl) card.appendChild(boostBtnEl);
     }
     const dots = document.getElementById('mapDots');
     if(dots){
@@ -2416,7 +2493,7 @@
     }
     function open(){
       if(stashItems()<=0){ showToast('Wór pusty — najpierw przynieś butelki'); return; }
-      shop=null; inserted=0; rejected=0; waits=0; jam=0; streak=0;
+      shop=null; inserted=0; rejected=0; waits=0; jam=0; streak=0; dolozone=false;
       document.getElementById('returnOverlay').classList.remove('hidden');
       pickShop();
     }
@@ -2587,12 +2664,35 @@
       card().querySelector('[data-act="cash"]').addEventListener('click', ()=>{ Sfx.click(); cashier(sum); });
     }
 
+    /* Kasa to najlepszy moment na dobrowolną reklamę: kwota jest już na
+       ekranie, więc dopłata ma konkretną wartość, a gracz sam decyduje.
+       `dolozone` pilnuje, żeby dało się to zrobić tylko raz na wypłatę. */
+    let dolozone = false;
     async function cashier(sum){
       stop();
       card().innerHTML = '<h1 style="font-size:22px;">💰 Kasa</h1>'
         + '<p class="sub">Podajesz paragon. Kasjerka odlicza gotówkę.</p>'
         + '<div class="receipt"><span class="r-sum">'+fmt(sum)+'</span></div>'
+        + (dolozone ? '<div class="mc-note">✅ Doliczono +'+Math.round(BOOST_KASY*100)+'% z reklamy</div>'
+                    : '<button class="secondary reward" data-act="boost">🎬 Reklama → '+fmt(sum*(1+BOOST_KASY))+'</button>')
         + '<button class="primary" data-act="take">ODBIERAM '+fmt(sum).toUpperCase()+'</button>';
+      const bb = card().querySelector('[data-act="boost"]');
+      if(bb) bb.addEventListener('click', ()=>{
+        Sfx.click();
+        bb.disabled=true; bb.textContent='Odtwarzanie reklamy…';
+        Ads.showRewarded(
+          ()=>{
+            dolozone = true;
+            grynaPlusEvent('rewarded_cashier', { przed:Number(sum.toFixed(2)), profileNick:profile.nick });
+          },
+          (udane)=>{
+            if(!udane){ showToast('Reklama się nie wyświetliła — spróbuj za chwilę'); }
+            // przerysowujemy kasę: albo z doliczoną dopłatą, albo bez
+            cashier(udane ? Math.round(sum*(1+BOOST_KASY)*100)/100 : sum);
+          },
+          'cashier_boost'
+        );
+      });
       card().querySelector('[data-act="take"]').addEventListener('click', async (ev)=>{
         // pozycję przycisku bierzemy PRZED zamknięciem okienka — potem
         // element już nie istnieje i nie da się z niego wystartować monet
@@ -4729,6 +4829,16 @@
       daily.premiaUzyta = true;
       premia = Math.round(banked*0.5*2)/2;
     }
+    /* Bonus z reklamy dolicza się tą samą drogą co premia pierwszej
+       wyprawy: OSOBNO do wora i poza normą poziomu, żeby nie dało się
+       kupować gwiazdek oglądaniem reklam. Znika dopiero, gdy naprawdę
+       zapłaci — przypał z zerowym łupem go nie przepala. */
+    let bonusReklamy = 0;
+    if(premiaReklamy && banked>0){
+      premiaReklamy = false;
+      bonusReklamy = Math.round(banked*BOOST_LUPU*2)/2;
+      premia += bonusReklamy;
+    }
     profile.stash = (profile.stash||0) + banked + premia;
     profile.totalEarned += banked + premia;
     daily.earn += banked;
@@ -5165,6 +5275,25 @@
     );
   }
 
+  if(boostBtnEl) boostBtnEl.addEventListener('click', ()=>{
+    if(premiaReklamy || boostBtnEl.disabled) return;
+    boostBtnEl.disabled=true; boostBtnEl.textContent='Odtwarzanie reklamy…';
+    Ads.showRewarded(
+      ()=>{
+        premiaReklamy = true;
+        showToast('💪 +25% łupu w najbliższej wyprawie!');
+        grynaPlusEvent('rewarded_boost', { profileNick:profile.nick });
+      },
+      (udane)=>{
+        boostBtnEl.disabled=false;
+        boostBtnEl.textContent = BOOST_NAPIS;     // updatePlayButton ustawi właściwy
+        if(!udane) showToast('Reklama się nie wyświetliła — spróbuj za chwilę');
+        updatePlayButton();
+      },
+      'loot_boost'
+    );
+  });
+
   function wireEnergyAdButton(id){
     const btn=document.getElementById(id);
     if(!btn) return;
@@ -5205,13 +5334,18 @@
     renderMapSelector();
     renderShop();
     renderPayouts();
-    await checkDailyStreak();
     if(zLinku === 'polecenie'){
       refreshProfileUI();
       showToast('🤝 Wpadłeś z polecenia — masz '+fmt(ZAPROSZENIE_BONUS)+' na start!');
     }
     zglosPolecenie();   // zapraszający dostaje swoje przez backend
-    if(zLinku === 'wyzwanie') setTimeout(pokazWyzwanie, 400);
+    /* Okno serii dni czeka na decyzję gracza, więc NIE może stać na drodze
+       zgłoszeniu polecenia — inaczej ktoś, kto zostawi je otwarte, pozbawia
+       zapraszającego nagrody. Wyzwanie z linku ustawia się za nim w kolejce,
+       żeby dwa okna nie nachodziły na siebie. */
+    checkDailyStreak().then(()=>{
+      if(zLinku === 'wyzwanie') setTimeout(pokazWyzwanie, 400);
+    });
   })();
 })();
 </script>
