@@ -1627,7 +1627,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-20 · 29';
+  const APP_VERSION = '2026-09-20 · 30';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3016,7 +3016,7 @@
           + (left>0 ? '<button class="secondary reward" data-act="skip">🎬 Obejrzyj reklamę → bez kolejki</button>' : '')
           + '<button class="secondary danger" data-act="home">Odpuszczam, wracam z worem</button>';
         const sk = card().querySelector('[data-act="skip"]');
-        if(sk) sk.addEventListener('click', ()=>{ Sfx.click(); stop(); Ads.showRewarded(()=>{ left=0; machine(); }, ()=>{}); });
+        if(sk) sk.addEventListener('click', ()=>{ Sfx.click(); stop(); Ads.showRewarded(()=>{ left=0; machine(); }, ()=>{}, 'kolejka_skip'); });
         card().querySelector('[data-act="home"]').addEventListener('click', ()=>{ Sfx.click(); close(); });
       };
       draw();
