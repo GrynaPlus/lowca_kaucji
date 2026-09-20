@@ -1019,6 +1019,10 @@
      puchła w nieskończoność), a przy zamykaniu aplikacji lecimy
      sendBeacon-em, bo zwykły fetch nie zdąży.
      ========================================================= */
+  /* Bilet ostatnio wyświetlonej reklamy — dołączamy go przy odbiorze kodu
+     bonusowego, żeby serwer mógł sprawdzić u Monetaga, że reklama była. */
+  let ostatniBilet = null;
+
   const TELE_MAX = 200;        // sufit kolejki
   const TELE_PACZKA = 25;      // ile wysyłamy naraz
   const TELE_CO_MS = 20000;    // jak często zaglądamy do kolejki
@@ -1139,7 +1143,19 @@
        Po AD_TIMEOUT oddajemy więc guzik do ponownego użycia, ale NIE
        zamykamy sprawy: gdy spóźniona odpowiedź jednak przyjdzie, nagroda
        zostanie wypłacona. Nikt nie traci nagrody za obejrzaną reklamę. */
+    /* Jednorazowy bilet na KAŻDE wyświetlenie. Wcześniej jako ymid szedł
+       numer gracza, ten sam przy każdej reklamie — nie dało się odróżnić
+       jednej obejrzanej reklamy od dziesięciu zgłoszeń tej samej. Teraz
+       Monetag odsyła ten bilet naszemu serwerowi i dopiero wtedy nagroda
+       warta prawdziwych pieniędzy staje się należna. */
+    function nowyBilet(){
+      return tgUserId() + '-' + Date.now().toString(36) + '-' +
+             Math.random().toString(36).slice(2, 10);
+    }
+
     async function showRewarded(onReward, onClosed, placement){
+      const bilet = nowyBilet();
+      ostatniBilet = bilet;
       const fn = sdk();
       if(!fn){
         /* Brak SDK = brak reklamy = brak nagrody. Atrapa jest WYŁĄCZNIE do
@@ -1163,7 +1179,7 @@
         zamknij(false);
       }, AD_TIMEOUT);
       try{
-        await fn({ ymid: tgUserId(), requestVar: placement || 'reward' });
+        await fn({ ymid: bilet, requestVar: placement || 'reward' });
         clearTimeout(budzik);
         onReward && onReward();     // także gdy odpowiedź się spóźniła
         preloadNext();
@@ -1611,7 +1627,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-20 · 28';
+  const APP_VERSION = '2026-09-20 · 29';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2022,7 +2038,8 @@
   async function grantPayout(tier){
     let result;
     try{
-      result = await apiCall('/claim-code', { tierId: tier.id });
+      // bilet z reklamy obejrzanej przed chwilą — serwer sprawdzi go u Monetaga
+      result = await apiCall('/claim-code', { tierId: tier.id, ymid: ostatniBilet });
     }catch(e){
       showToast(e.message || 'Nie udało się odebrać kodu — spróbuj później');
       return;
