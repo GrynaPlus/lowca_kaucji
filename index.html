@@ -341,6 +341,27 @@
 
   /* Awatara zmienia się raz, a siatka zajmowała 214 px na stałe — teraz
      mieszka w nakładce, a w profilu zostaje sam kafelek z ołówkiem. */
+  /* SORTOWNIA — plansza ma stałą wysokość, żeby taśma nie skakała,
+     gdy odpad zmienia szerokość. Kosze są duże: to cel dla kciuka. */
+  /* .hidden w tej grze działa tylko na .overlay, .tab-panel, .replay-bar
+     i button — zwykły <div class="hidden"> NIE chowa się wcale. Bez tej
+     reguły wszystkie trzy ekrany sortowni wyświetlały się naraz. */
+  .sort-ekran.hidden{display:none;}
+  .sort-rekord{font-size:13px;color:#5C4522;margin-bottom:12px;}
+  .sort-hud{display:flex;justify-content:space-between;align-items:center;
+    font-size:13px;color:#5C4522;margin-bottom:6px;}
+  .sort-tasma{position:relative;height:180px;border:3px solid var(--ink);border-radius:12px;
+    background:linear-gradient(180deg,#EAF3FA,#CFE2F0);overflow:hidden;margin-bottom:10px;}
+  .sort-item{position:absolute;left:50%;transform:translateX(-50%);top:0;font-size:34px;line-height:1;}
+  .sort-kosze{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+  .sort-kosz{display:flex;flex-direction:column;align-items:center;gap:2px;
+    font-family:inherit;font-size:28px;line-height:1;padding:10px 0;cursor:pointer;
+    background:var(--panel-2);border:3px solid var(--ink);border-radius:12px;
+    box-shadow:0 3px 0 rgba(0,0,0,0.25);}
+  .sort-kosz span{font-size:11px;font-weight:700;color:#5C4522;}
+  .sort-kosz:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.25);}
+  .sort-kosz.zle{background:#F6C6C6;}
+  .sort-kosz.dobrze{background:#C8ECC8;}
   .tozsamosc{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
   .tozsamosc .nick-input{margin-bottom:0;flex:1;min-width:0;text-align:left;}
   .avatar-tile.duzy{width:56px;height:56px;border-radius:16px;}
@@ -534,6 +555,11 @@
               <div class="map-dots" id="mapDots"></div>
               <button class="map-nav" id="mapNext">›</button>
             </div>
+            <!-- Sortownia stoi TUTAJ, a nie na dole zakładki: wszystko poniżej
+                 karty mapy leży poza ekranem telefonu, więc guzik na dole nie
+                 istniałby dla gracza — ten sam błąd mieliśmy już z reklamą za
+                 energię i z wejściem do ustawień. -->
+            <button class="secondary" id="sortowniaBtn">🗑️ SORTOWNIA — gra bez energii</button>
           </div>
 
           <div class="stash-box" id="stashBox">
@@ -678,6 +704,40 @@
       <div class="result-amount" id="worIle">0,00 zł</div>
       <button class="primary" id="worPokazBtn">POKAŻ, GDZIE ODDAĆ</button>
       <button class="secondary" id="worPozniejBtn">Później</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="sortOverlay">
+    <div class="card">
+      <div id="sortStart" class="sort-ekran">
+        <h1 style="font-size:22px;">🗑️ Sortownia</h1>
+        <p class="sub">Stuknij pojemnik, zanim odpad spadnie z taśmy.<br>Energii nie kosztuje — graj, ile chcesz.</p>
+        <div class="sort-rekord">Twój rekord: <b id="sortRekord">0</b></div>
+        <button class="primary" id="sortPlayBtn">ZACZYNAM ZMIANĘ</button>
+        <button class="secondary" id="sortExitBtn">Wracam</button>
+      </div>
+
+      <div id="sortGra" class="sort-ekran hidden">
+        <div class="sort-hud">
+          <span>Posortowane: <b id="sortWynik">0</b></span>
+          <span id="sortZycia">❤️❤️❤️</span>
+        </div>
+        <div class="sort-tasma" id="sortTasma"></div>
+        <div class="sort-kosze">
+          <button class="sort-kosz" data-typ="szklo">🍾<span>szkło</span></button>
+          <button class="sort-kosz" data-typ="metal">🥫<span>metal</span></button>
+          <button class="sort-kosz" data-typ="plastik">🧴<span>plastik</span></button>
+        </div>
+      </div>
+
+      <div id="sortKoniec" class="sort-ekran hidden">
+        <h1 style="font-size:22px;" id="sortKoniecTytul">🧹 Koniec zmiany</h1>
+        <div class="result-amount"><span id="sortKoniecWynik">0</span></div>
+        <p class="sub" id="sortKoniecTekst"></p>
+        <button class="secondary reward" id="sortAdBtn">🎬 Reklama → wracam z jednym życiem</button>
+        <button class="primary" id="sortJeszczeBtn">JESZCZE RAZ</button>
+        <button class="secondary" id="sortWyjdzBtn">Wracam do gry</button>
+      </div>
     </div>
   </div>
 
@@ -1649,7 +1709,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-20 · 32';
+  const APP_VERSION = '2026-09-20 · 33';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2187,6 +2247,7 @@
        brak tego pola w starym zapisie i migracja poniżej nigdy by nie
        zadziałała — a wtedy gracz z pięćdziesięcioma wyprawami dostawałby
        samouczek dla nowych. Brak pola musi zostać brakiem. */
+    sortRekord:0,       // najlepszy wynik w sortowni; 0 jest prawdziwe dla każdego, kto nie grał
     starProg:0,         // ile progów nagród za gwiazdki już wypłacono
     avatary:[],         // awatary zdobyte gwiazdkami, poza zestawem bazowym
     stash:0,            // kaucja w worze — czeka na oddanie w sklepie
@@ -3428,6 +3489,11 @@
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
     ]},
+    { v:'2026-09-20 · 33', linie:[
+      '🗑️ SORTOWNIA — nowa gra na taśmie, wrzucasz odpady do właściwych pojemników.',
+      '⚡ Nie kosztuje energii, więc grasz, ile chcesz — także wtedy, gdy wypraw już nie masz.',
+      '🏅 Za wynik odblokowujesz nowe awatary: ♻️ 🦺 🚛'
+    ]},
     { v:'2026-09-20 · 32', linie:[
       '🎬 Kupony kosztują teraz kaucję ORAZ obejrzane reklamy — przy każdym progu widzisz swój licznik.',
       '📈 Wymóg wchodzi łagodnie: rośnie przez dwa tygodnie, więc uzbierana kaucja nie przepada.',
@@ -3485,6 +3551,171 @@
     await saveProfile(); refreshProfileUI();
     showToast(profile.home==='wies' ? '🌾 Mieszkasz na wsi' : '🏙️ Mieszkasz w mieście');
   }));
+  /* =========================================================
+     SORTOWNIA — druga aktywność, celowo poza ekonomią
+     Nie daje ani kaucji, ani XP. XP byłoby boczną furtką: podnosi
+     poziom, poziom podnosi maksymalną energię, a energia to więcej
+     wypraw, czyli znowu kaucja. Zostaje rekord i awatary za progi —
+     rzeczy, które nic nie kosztują, a mają wartość dla gracza.
+     Gra nie zużywa energii: jej zadaniem jest zatkać dziurę
+     „skończyła mi się energia, wychodzę".
+     ========================================================= */
+  const SORT_TYPY = [
+    { typ:'szklo',   ikony:['🍾','🍶','🫙'], sfx:()=>Sfx.bottle()  },
+    { typ:'metal',   ikony:['🥫','🥤'],      sfx:()=>Sfx.can()     },
+    { typ:'plastik', ikony:['🧴','🧃'],      sfx:()=>Sfx.plastic() }
+  ];
+  const SORT_AWATARY = [ { wynik:40, av:'♻️' }, { wynik:100, av:'🦺' }, { wynik:200, av:'🚛' } ];
+  const SORT_TEMPO_0 = 2600;   // ms na spadnięcie pierwszego odpadu
+  const SORT_TEMPO_MIN = 850;  // szybciej już się nie da uczciwie zdążyć
+  let sortStan = null;
+
+  function sortEl(id){ return document.getElementById(id); }
+
+  function sortHud(){
+    if(!sortStan) return;
+    sortEl('sortWynik').textContent = sortStan.wynik;
+    sortEl('sortZycia').textContent = '❤️'.repeat(Math.max(0, sortStan.zycia))
+                                    + '🖤'.repeat(Math.max(0, 3 - sortStan.zycia));
+  }
+
+  function sortNastepny(){
+    const g = SORT_TYPY[Math.floor(Math.random()*SORT_TYPY.length)];
+    const el = document.createElement('div');
+    el.className = 'sort-item';
+    el.textContent = g.ikony[Math.floor(Math.random()*g.ikony.length)];
+    const tasma = sortEl('sortTasma');
+    tasma.innerHTML = '';
+    tasma.appendChild(el);
+    sortStan.el = el;
+    sortStan.typ = g.typ;
+    sortStan.t0 = performance.now();
+  }
+
+  function sortPetla(){
+    if(!sortStan || !sortStan.gra) return;
+    const post = (performance.now() - sortStan.t0) / sortStan.tempo;
+    if(post >= 1) sortPudlo();
+    else if(sortStan.el) sortStan.el.style.top = (post * 86) + '%';
+    if(sortStan && sortStan.gra) sortStan.raf = requestAnimationFrame(sortPetla);
+  }
+
+  function sortMignij(typ, klasa){
+    const b = document.querySelector('.sort-kosz[data-typ="'+typ+'"]');
+    if(!b) return;
+    b.classList.add(klasa);
+    setTimeout(()=>b.classList.remove(klasa), 180);
+  }
+
+  function sortWybor(typ){
+    if(!sortStan || !sortStan.gra) return;
+    if(typ === sortStan.typ){
+      sortStan.wynik++;
+      sortStan.tempo = Math.max(SORT_TEMPO_MIN, SORT_TEMPO_0 - sortStan.wynik*45);
+      const g = SORT_TYPY.find(x=>x.typ===typ);
+      try{ g.sfx(); }catch(e){}
+      haptic('light');
+      sortMignij(typ, 'dobrze');
+      sortNastepny();
+    } else {
+      sortMignij(typ, 'zle');
+      sortPudlo();
+    }
+    sortHud();
+  }
+
+  /* Pudło i przegapienie to ta sama kara — inaczej opłacałoby się czekać,
+     aż odpad spadnie, zamiast ryzykować stuknięcie. */
+  function sortPudlo(){
+    if(!sortStan || !sortStan.gra) return;
+    sortStan.zycia--;
+    try{ Sfx.empty(); }catch(e){}
+    haptic('heavy');
+    if(sortStan.zycia <= 0) sortKoniec();
+    else sortNastepny();
+    sortHud();
+  }
+
+  function sortKoniec(){
+    sortStan.gra = false;
+    cancelAnimationFrame(sortStan.raf);
+    const wynik = sortStan.wynik;
+    const bylRekord = (profile.sortRekord || 0);
+    const nowyRekord = wynik > bylRekord;
+    if(nowyRekord) profile.sortRekord = wynik;
+
+    if(!Array.isArray(profile.avatary)) profile.avatary = [];
+    const zdobyte = [];
+    SORT_AWATARY.forEach(a=>{
+      if(wynik >= a.wynik && profile.avatary.indexOf(a.av) < 0){
+        profile.avatary.push(a.av); zdobyte.push(a.av);
+      }
+    });
+    saveProfile();
+    grynaPlusEvent('sortownia_koniec', { wynik:wynik, rekord:profile.sortRekord,
+      zReklama: !!sortStan.zReklama, profileNick:profile.nick });
+
+    sortEl('sortKoniecWynik').textContent = wynik;
+    sortEl('sortKoniecTytul').textContent = nowyRekord ? '🏅 Nowy rekord!' : '🧹 Koniec zmiany';
+    let tekst = nowyRekord ? 'Lepiej niż kiedykolwiek. Poprzednio: '+bylRekord+'.'
+                           : 'Twój rekord to '+profile.sortRekord+'.';
+    if(zdobyte.length) tekst += ' Nowy awatar: ' + zdobyte.join(' ') + '!';
+    sortEl('sortKoniecTekst').textContent = tekst;
+    if(nowyRekord){ try{ Sfx.star(); }catch(e){} hapticNotify('success'); }
+
+    /* Reklama za dodatkowe życie tylko raz na rundę — inaczej dałoby się
+       ciągnąć jedną rundę w nieskończoność. */
+    sortEl('sortAdBtn').classList.toggle('hidden', !!sortStan.zReklama);
+    sortEl('sortAdBtn').disabled = false;
+    sortEl('sortAdBtn').textContent = '🎬 Reklama → wracam z jednym życiem';
+    sortEkran('sortKoniec');
+  }
+
+  function sortEkran(id){
+    ['sortStart','sortGra','sortKoniec'].forEach(x=>
+      sortEl(x).classList.toggle('hidden', x !== id));
+  }
+
+  function sortZagraj(wynik, zycia, zReklama){
+    sortStan = { wynik:wynik||0, zycia:zycia||3, tempo:SORT_TEMPO_0,
+                 el:null, typ:null, t0:0, raf:0, gra:true, zReklama:!!zReklama };
+    sortStan.tempo = Math.max(SORT_TEMPO_MIN, SORT_TEMPO_0 - sortStan.wynik*45);
+    sortEkran('sortGra');
+    sortHud();
+    sortNastepny();
+    sortStan.raf = requestAnimationFrame(sortPetla);
+  }
+
+  function sortZamknij(){
+    if(sortStan){ sortStan.gra = false; cancelAnimationFrame(sortStan.raf); sortStan = null; }
+    sortEl('sortOverlay').classList.add('hidden');
+  }
+
+  sortEl('sortowniaBtn').addEventListener('click', ()=>{
+    Sfx.click();
+    sortEl('sortRekord').textContent = profile.sortRekord || 0;
+    sortEkran('sortStart');
+    sortEl('sortOverlay').classList.remove('hidden');
+    grynaPlusEvent('sortownia_start', { rekord:profile.sortRekord||0, profileNick:profile.nick });
+  });
+  sortEl('sortPlayBtn').addEventListener('click', ()=>{ Sfx.click(); sortZagraj(0,3,false); });
+  sortEl('sortJeszczeBtn').addEventListener('click', ()=>{ Sfx.click(); sortZagraj(0,3,false); });
+  sortEl('sortExitBtn').addEventListener('click', ()=>{ Sfx.click(); sortZamknij(); });
+  sortEl('sortWyjdzBtn').addEventListener('click', ()=>{ Sfx.click(); sortZamknij(); });
+  document.querySelectorAll('.sort-kosz').forEach(b=>
+    b.addEventListener('click', ()=>sortWybor(b.getAttribute('data-typ'))));
+  sortEl('sortAdBtn').addEventListener('click', (e)=>{
+    const wynik = sortStan ? sortStan.wynik : 0;
+    e.target.disabled = true; e.target.textContent = 'Odtwarzanie reklamy…';
+    Ads.showRewarded(
+      ()=>{ sortZagraj(wynik, 1, true); },
+      (udane)=>{ if(!udane){ e.target.disabled = false;
+        e.target.textContent = '🎬 Reklama → wracam z jednym życiem';
+        showToast('Reklama się nie wyświetliła — spróbuj za chwilę'); } },
+      'sortownia_zycie'
+    );
+  });
+
   /* Siatkę rysujemy przy KAŻDYM otwarciu, nie raz na starcie — inaczej
      awatar zdobyty przed chwilą za gwiazdki nie pojawiłby się do przeładowania. */
   document.getElementById('avatarPickBtn').addEventListener('click', ()=>{
