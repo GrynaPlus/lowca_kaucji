@@ -645,6 +645,14 @@
     <div class="card" id="returnCard"></div>
   </div>
 
+  <div class="overlay hidden" id="banOverlay">
+    <div class="card">
+      <h1 style="font-size:22px;">🚫 Konto zablokowane</h1>
+      <p class="sub">To konto zostało zablokowane za łamanie zasad gry.<br><br>
+        Jeśli uważasz, że to pomyłka, napisz do nas przez bota.</p>
+    </div>
+  </div>
+
   <div class="overlay hidden" id="worOverlay">
     <div class="card">
       <h1 style="font-size:22px;">🛍️ Łup jest w worze</h1>
@@ -934,6 +942,11 @@
     return data;
   }
 
+  /* Serwer odpowiada 403 na kontach zablokowanych. Zapamiętujemy to,
+     żeby rozruch mógł zatrzymać grę zamiast po cichu wrócić do kopii
+     lokalnej i udawać, że wszystko gra. */
+  let kontoZablokowane = false;
+
   const LocalDB = (function(){
     function apiUsable(){
       // bez initData backend i tak odrzuci każde zapytanie (401),
@@ -959,6 +972,7 @@
         }
         try{
           const res = await fetch(url, { method:'GET', headers: authHeaders() });
+          if(res.status === 403){ kontoZablokowane = true; return null; }
           if(!res.ok){
             console.warn('[api] GET '+key+' -> HTTP '+res.status+' — używam lokalnej kopii');
             try{ return localStorage.getItem(key); }catch(e){ return null; }
@@ -1101,7 +1115,11 @@
     // Gra rusza dalej niezależnie od tego, czy obejrzał do końca.
     async function showInterstitial(onClosed){
       const fn = sdk();
-      if(!fn){ return mockAd('interstitial', null, onClosed); }
+      if(!fn){
+        // przerywnik niczego nie daje, więc po prostu przepuszczamy dalej
+        if(TG && TG.initData){ onClosed && onClosed(); return; }
+        return mockAd('interstitial', null, onClosed);
+      }
       try{
         await fn('pop');
       }catch(e){
@@ -1123,7 +1141,20 @@
        zostanie wypłacona. Nikt nie traci nagrody za obejrzaną reklamę. */
     async function showRewarded(onReward, onClosed, placement){
       const fn = sdk();
-      if(!fn){ return mockAd('rewarded', onReward, onClosed); }
+      if(!fn){
+        /* Brak SDK = brak reklamy = brak nagrody. Atrapa jest WYŁĄCZNIE do
+           pracy nad grą poza Telegramem. Wcześniej wchodziła zawsze, więc
+           wystarczyło zablokować libtl.com w DNS albo mieć dowolną wtyczkę
+           blokującą reklamy, żeby dostawać wszystkie nagrody za darmo —
+           z kodami bonusowymi włącznie — przy zerowym przychodzie. */
+        if(TG && TG.initData){
+          showToast('Reklama się nie wczytała. Wyłącz blokadę reklam i spróbuj ponownie.');
+          grynaPlusEvent('ad_blocked', { placement: placement || 'reward' });
+          onClosed && onClosed(false);
+          return;
+        }
+        return mockAd('rewarded', onReward, onClosed);
+      }
       let zamkniete = false;
       const zamknij = (udane)=>{ if(zamkniete) return; zamkniete = true; onClosed && onClosed(udane); };
       const budzik = setTimeout(()=>{
@@ -1580,7 +1611,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-19 · 27';
+  const APP_VERSION = '2026-09-20 · 28';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3316,6 +3347,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-20 · 28', linie:[
+      '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
+    ]},
     { v:'2026-09-19 · 27', linie:[
       '🛍️ Po pierwszej wyprawie gra tłumaczy, po co jest wór i gdzie go oddać.',
       '🎁 Nowi gracze dostają powitanie zamiast „bonusu za powrót".'
@@ -6031,6 +6065,13 @@
                                //     wyprawy i zepsuć skradanie — patrz komentarz
                                //     przy enableInAppAuto)
     await loadProfile();
+    /* Zablokowany nie idzie dalej: żadnych wypraw, żadnych kodów, żadnej
+       ligi. Blokady pilnuje serwer, więc wyłączenie tego okna w
+       przeglądarce i tak niczego nie da — to tylko uczciwa informacja. */
+    if(kontoZablokowane){
+      document.getElementById('banOverlay').classList.remove('hidden');
+      return;
+    }
     // pierwszy raz w Telegramie: weź nick z konta zamiast losowego
     if(tgUser && !profile.nickSet){
       profile.nick = (tgUser.username || tgUser.first_name || profile.nick).slice(0,16);
