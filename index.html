@@ -1627,7 +1627,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-20 · 30';
+  const APP_VERSION = '2026-09-20 · 31';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2001,6 +2001,8 @@
     if(pointsClaimedToday() + tier.pointsReward > PAYOUT_CONFIG.dailyPointsCap){
       return { ok:false, reason:'Dzienny limit' };
     }
+    const r = wymogReklam(tier);
+    if(r && r.ma < r.trzeba) return { ok:false, reason:'🎬 '+r.ma+'/'+r.trzeba };
     return { ok:true };
   }
   function updateTabBadges(){
@@ -2059,7 +2061,7 @@
       profileNick: profile.nick
     });
     showCouponModal(result.code, result.points);
-    refreshProfileUI(); renderPayouts(); renderMapSelector(); renderShop();
+    refreshProfileUI(); renderPayouts(); renderMapSelector(); renderShop(); odswiezStatusProgow();
   }
 
   function showCouponModal(code, points){
@@ -2067,6 +2069,40 @@
     document.getElementById('couponPointsVal').textContent = '+'+points+' pkt grynaplus';
     document.getElementById('couponOverlay').classList.remove('hidden');
   }
+  /* ---------------------------------------------------------
+     DRUGA CENA KODU: OBEJRZANE REKLAMY
+     Kurs kaucji na punkty sam nie wystarcza — kaucja rośnie wraz
+     z umiejętnościami gracza, a przychód z reklamy nie. Ile reklam
+     kosztuje dziś dany próg, decyduje WYŁĄCZNIE serwer (liczy też
+     łagodne wejście wymogu), a gra tylko to pokazuje. Dopóki nie
+     odpowie, zachowujemy się jak dawniej: nie blokujemy nikogo
+     na podstawie zgadywania.
+     --------------------------------------------------------- */
+  let statusProgow = null;
+
+  async function odswiezStatusProgow(){
+    if(!TG || !TG.initData) return;
+    try{
+      const res = await fetch(API_BASE + '/payout-status', {
+        headers:{ 'Authorization':'tma '+TG.initData }
+      });
+      if(!res.ok) return;
+      statusProgow = await res.json();
+      renderPayouts();
+      /* Plakietka na zakładce liczy progi „gotowe do odbioru", a te zależą
+         teraz także od reklam. Bez tego pokazywałaby trzy gotowe kupony
+         tam, gdzie nie da się odebrać żadnego. */
+      updateTabBadges();
+    }catch(e){ /* brak sieci — zostaje widok bez licznika reklam */ }
+  }
+
+  function wymogReklam(tier){
+    if(!statusProgow || !statusProgow.wymogAktywny) return null;
+    const p = (statusProgow.progi||[]).find(x=>x.id===tier.id);
+    if(!p) return null;
+    return { trzeba: p.wymaganeReklamy, ma: statusProgow.dostepneReklamy || 0 };
+  }
+
   function renderPayouts(){
     const c = document.getElementById('payoutList');
     if(!c) return;
@@ -2087,7 +2123,10 @@
       div.innerHTML =
         '<span class="mi">🎟️</span>'+
         '<span class="mn">'+tier.label+
-          '<div class="sd">'+tier.costKaucja+' zł kaucji → '+tier.pointsReward+' pkt grynaplus</div></span>'+
+          '<div class="sd">'+tier.costKaucja+' zł kaucji → '+tier.pointsReward+' pkt grynaplus'+
+            (function(){ const r = wymogReklam(tier); return r
+              ? '<br>🎬 obejrzane reklamy: <b>'+Math.min(r.ma, r.trzeba)+'/'+r.trzeba+'</b>' : ''; })()+
+          '</div></span>'+
         '<span class="status '+(st.ok?'buy':'locked')+'">'+(st.ok?'ODBIERZ':st.reason)+'</span>';
       if(st.ok){
         div.onclick = ()=>{
@@ -3234,7 +3273,7 @@
     // odśwież treść zakładki przy każdym wejściu, żeby dane były aktualne
     if(name==='graj'){ renderMapSelector(); }
     else if(name==='sklep'){ renderShop(); }
-    else if(name==='kupony'){ renderPayouts(); renderCoupons(); }
+    else if(name==='kupony'){ renderPayouts(); renderCoupons(); odswiezStatusProgow(); }
     else if(name==='zadania'){ renderTasks(); }
     else if(name==='profil'){
       renderTasks(); renderCoupons();
@@ -3366,6 +3405,10 @@
   const NEWS = [
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
+    ]},
+    { v:'2026-09-20 · 31', linie:[
+      '🎬 Kupony kosztują teraz kaucję ORAZ obejrzane reklamy — przy każdym progu widzisz swój licznik.',
+      '📈 Wymóg wchodzi łagodnie: rośnie przez dwa tygodnie, więc uzbierana kaucja nie przepada.'
     ]},
     { v:'2026-09-19 · 27', linie:[
       '🛍️ Po pierwszej wyprawie gra tłumaczy, po co jest wór i gdzie go oddać.',
