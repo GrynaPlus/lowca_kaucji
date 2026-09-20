@@ -339,6 +339,15 @@
   #tutorialBox{position:absolute;bottom:28px;left:50%;transform:translate(-50%,14px);background:linear-gradient(180deg,#FFF6DE,#FFECB0);color:var(--ink);font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:14px;padding:12px 20px;border-radius:16px;border:3px solid var(--ink);box-shadow:0 5px 0 rgba(0,0,0,0.2);opacity:0;transition:opacity .3s ease,transform .3s ease;z-index:7;pointer-events:none;max-width:88vw;text-align:center;line-height:1.35;}
   #tutorialBox.show{opacity:1;transform:translate(-50%,0);}
 
+  /* Awatara zmienia się raz, a siatka zajmowała 214 px na stałe — teraz
+     mieszka w nakładce, a w profilu zostaje sam kafelek z ołówkiem. */
+  .tozsamosc{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .tozsamosc .nick-input{margin-bottom:0;flex:1;min-width:0;text-align:left;}
+  .avatar-tile.duzy{width:56px;height:56px;border-radius:16px;}
+  .avatar-tile.duzy .av{font-size:30px;}
+  .av-olowek{position:absolute;right:-5px;bottom:-5px;font-size:13px;line-height:1;
+    background:var(--panel-2);border:2px solid var(--ink);border-radius:50%;
+    width:21px;height:21px;display:flex;align-items:center;justify-content:center;}
   .avatar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-bottom:14px;}
   .avatar-opt{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:19px;line-height:1;background:var(--panel-2);border:2.5px solid var(--ink);border-radius:12px;padding:0;cursor:pointer;}
   .avatar-opt.selected{border-color:var(--gold-dark);background:var(--panel-3);box-shadow:0 3px 0 rgba(184,120,0,0.3);}
@@ -584,9 +593,13 @@
 
         <!-- ZAKŁADKA: PROFIL -->
         <div class="tab-panel hidden" id="tabProfil">
-          <div class="avatar" style="width:56px;height:56px;font-size:30px;margin:0 auto 10px;" id="avatarDisplayModal">🧢</div>
-          <input class="nick-input" id="nickInput" maxlength="16" placeholder="Twój nick">
-          <div class="avatar-grid" id="avatarGrid"></div>
+          <div class="tozsamosc">
+            <button class="avatar-tile duzy" id="avatarPickBtn" aria-label="Zmień awatar">
+              <span class="av" id="avatarDisplayModal">🧢</span>
+              <span class="av-olowek" aria-hidden="true">✏️</span>
+            </button>
+            <input class="nick-input" id="nickInput" maxlength="16" placeholder="Twój nick">
+          </div>
           <button class="secondary" id="closeProfileBtn">💾 Zapisz nick</button>
 
           <div class="stat-grid">
@@ -665,6 +678,15 @@
       <div class="result-amount" id="worIle">0,00 zł</div>
       <button class="primary" id="worPokazBtn">POKAŻ, GDZIE ODDAĆ</button>
       <button class="secondary" id="worPozniejBtn">Później</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="avOverlay">
+    <div class="card">
+      <h1 style="font-size:22px;">😎 Wybierz awatar</h1>
+      <p class="sub">Kolejne odblokowujesz, zbierając gwiazdki.</p>
+      <div class="avatar-grid" id="avatarGrid"></div>
+      <button class="primary" id="avCloseBtn">GOTOWE</button>
     </div>
   </div>
 
@@ -1627,7 +1649,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-20 · 31';
+  const APP_VERSION = '2026-09-20 · 32';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3406,9 +3428,10 @@
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
     ]},
-    { v:'2026-09-20 · 31', linie:[
+    { v:'2026-09-20 · 32', linie:[
       '🎬 Kupony kosztują teraz kaucję ORAZ obejrzane reklamy — przy każdym progu widzisz swój licznik.',
-      '📈 Wymóg wchodzi łagodnie: rośnie przez dwa tygodnie, więc uzbierana kaucja nie przepada.'
+      '📈 Wymóg wchodzi łagodnie: rośnie przez dwa tygodnie, więc uzbierana kaucja nie przepada.',
+      '😎 Wybór awatara schowany pod kafelkiem z ołówkiem — profil mieści się wreszcie na jednym ekranie.'
     ]},
     { v:'2026-09-19 · 27', linie:[
       '🛍️ Po pierwszej wyprawie gra tłumaczy, po co jest wór i gdzie go oddać.',
@@ -3462,6 +3485,16 @@
     await saveProfile(); refreshProfileUI();
     showToast(profile.home==='wies' ? '🌾 Mieszkasz na wsi' : '🏙️ Mieszkasz w mieście');
   }));
+  /* Siatkę rysujemy przy KAŻDYM otwarciu, nie raz na starcie — inaczej
+     awatar zdobyty przed chwilą za gwiazdki nie pojawiłby się do przeładowania. */
+  document.getElementById('avatarPickBtn').addEventListener('click', ()=>{
+    Sfx.click(); rysujAvatary();
+    document.getElementById('avOverlay').classList.remove('hidden');
+  });
+  document.getElementById('avCloseBtn').addEventListener('click', ()=>{
+    Sfx.click(); document.getElementById('avOverlay').classList.add('hidden');
+  });
+
   document.getElementById('closeProfileBtn').addEventListener('click', async ()=>{
     const nick=document.getElementById('nickInput').value.trim();
     if(nick){ profile.nick=nick.slice(0,16); profile.nickSet=true; }
