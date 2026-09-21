@@ -1055,6 +1055,10 @@
      żeby rozruch mógł zatrzymać grę zamiast po cichu wrócić do kopii
      lokalnej i udawać, że wszystko gra. */
   let kontoZablokowane = false;
+  /* Zapis dozwolony dopiero po UDANYM wczytaniu. Bez tego każda awaria
+     odczytu — blokada, 500, zerwana sieć w złym momencie — kończyła się
+     nadpisaniem serwera świeżym, pustym profilem. */
+  let profilZaladowany = false;
 
   const LocalDB = (function(){
     function apiUsable(){
@@ -1081,7 +1085,13 @@
         }
         try{
           const res = await fetch(url, { method:'GET', headers: authHeaders() });
-          if(res.status === 403){ kontoZablokowane = true; return null; }
+          if(res.status === 403){
+            /* Zablokowany dostaje kopię LOKALNĄ, nie null. Zwracanie null
+               znaczyło „nie ma profilu", więc gra ruszała z domyślnego,
+               pustego — i pierwszy zapis kasował dorobek gracza. */
+            kontoZablokowane = true;
+            try{ return localStorage.getItem(key); }catch(e){ return null; }
+          }
           if(!res.ok){
             console.warn('[api] GET '+key+' -> HTTP '+res.status+' — używam lokalnej kopii');
             try{ return localStorage.getItem(key); }catch(e){ return null; }
@@ -1736,7 +1746,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-21 · 35';
+  const APP_VERSION = '2026-09-21 · 36';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2310,6 +2320,12 @@
   async function loadProfile(){
     const raw = await LocalDB.get('lk_profile');
     if(raw){ try{ profile = Object.assign(profile, JSON.parse(raw)); }catch(e){} }
+    /* Na zablokowanym koncie kończymy TUTAJ: żadnych migracji, żadnego
+       zapisu. Wcześniej gra szła dalej i kilka linii niżej wołała
+       saveProfile() przy uzupełnianiu firstSeen — a POST profilu nie był
+       blokowany, więc pusty profil nadpisywał serwerowi cały dorobek. */
+    if(kontoZablokowane) return;
+    profilZaladowany = true;
     // migracja starych zapisów: osiedle jest teraz mapą startową
     if(!Array.isArray(profile.mapsOwned) || !profile.mapsOwned.length) profile.mapsOwned=['osiedle'];
     if(!profile.mapsOwned.includes('osiedle')) profile.mapsOwned.unshift('osiedle');
@@ -2359,7 +2375,13 @@
     sprawdzNagrodyGwiazdek(150);
     refreshProfileUI();
   }
-  async function saveProfile(){ await LocalDB.set('lk_profile', JSON.stringify(profile)); }
+  async function saveProfile(){
+    if(!profilZaladowany){
+      console.warn('[profil] zapis pominięty — profil nie został wczytany');
+      return;
+    }
+    await LocalDB.set('lk_profile', JSON.stringify(profile));
+  }
 
   function regenTick(){
     const max = energyMax();
@@ -3515,6 +3537,9 @@
   const NEWS = [
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
+    ]},
+    { v:'2026-09-21 · 36', linie:[
+      '🛟 Poprawka bezpieczeństwa danych: gra nie zapisze już profilu, którego nie udało się wczytać.'
     ]},
     { v:'2026-09-21 · 35', linie:[
       '👓 Komunikaty w grze są wreszcie czytelne — banery, powiadomienia i pasek gracza dostały ciemniejsze tła.'
