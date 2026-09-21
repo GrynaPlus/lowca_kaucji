@@ -44,6 +44,9 @@
     --kom-nagroda:#B81E63; --kom-info:#1976D2; --kom-dobrze:#2E7D32;
     --kom-uwaga:#8A5D00;   --kom-zle:#C62828;  --kom-fiolet:#7B3FC4;
     --kom-wiesci:#C22B1C;  --kom-wiesci-dol:#9E1B10;
+    /* Nagłówki sekcji: --gold-dark na kremowym tle daje 3,40:1. Ten
+       odcień to 4,64:1 i nadal jest tym samym złotem. */
+    --naglowek:#9A6400;
     --green:#33C46B; --bg-sky-a:#7ED4FF; --bg-sky-b:#2E9BE0;
   }
   *{box-sizing:border-box;}
@@ -77,7 +80,9 @@
      wyśrodkowanie w luce paska Telegrama nawet wtedy, gdy była niewidoczna. */
   .combo-tag{display:none;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:#fff;background:linear-gradient(180deg,#D81B60,var(--kom-nagroda));border:2px solid #8A1348;border-radius:9px;padding:0 5px;margin-left:1px;}
   .combo-tag.show{display:inline-block;}
-  .icon-btn{pointer-events:auto;width:38px;height:38px;border-radius:12px;background:linear-gradient(180deg, #FFFFFF, #FFF3D6);border:2.5px solid var(--ink);color:var(--ink);font-size:18px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  /* 44x44 to minimum dla kciuka. Pauza przy 38 px była realnym problemem:
+     chybienie w nią, gdy goni cię strażnik, kosztuje cały łup. */
+  .icon-btn{pointer-events:auto;width:44px;height:44px;border-radius:12px;background:linear-gradient(180deg, #FFFFFF, #FFF3D6);border:2.5px solid var(--ink);color:var(--ink);font-size:18px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
   .icon-btn:active{transform:translateY(3px);box-shadow:none;}
 
   /* wąski pasek tuż pod nagłówkiem Telegrama — jedna linia zamiast panelu */
@@ -117,7 +122,7 @@
   .top-chip{flex:1;min-width:0;display:flex;align-items:center;gap:5px;background:linear-gradient(180deg,#1668A8,#10537F);border:2.5px solid var(--ink);box-shadow:inset 0 2px 4px rgba(0,0,0,0.3);border-radius:16px;padding:7px 10px;}
   .top-chip .tc-ic{font-size:16px;line-height:1;flex-shrink:0;}
   .top-chip .tc-v{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:14px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .burger{flex-shrink:0;width:38px;height:38px;border-radius:11px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:2.5px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.25);color:var(--ink);font-size:17px;cursor:pointer;padding:0;}
+  .burger{flex-shrink:0;width:44px;height:44px;border-radius:12px;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:2.5px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.25);color:var(--ink);font-size:17px;cursor:pointer;padding:0;}
 
   /* --- Baner postępu gracza (jak pasek wydarzenia) --- */
   /* Pasek gracza to też komunikat: niesie nick i postęp XP. Na dawnym
@@ -150,7 +155,7 @@
 
   .map-stage{padding:0;}
   .map-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:9px;margin-bottom:6px;}
-  .map-nav{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.22);color:var(--ink);font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:20px;line-height:0;cursor:pointer;padding:0;}
+  .map-nav{flex-shrink:0;width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.22);color:var(--ink);font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:20px;line-height:0;cursor:pointer;padding:0;}
   .map-nav:disabled{opacity:0.35;cursor:default;}
   .map-card{width:100%;background:linear-gradient(180deg,#FFFFFF,#FFF6DE);border:4px solid var(--ink);border-radius:22px;box-shadow:0 6px 0 rgba(0,0,0,0.2);padding:9px 9px 11px;text-align:center;}
   /* Bez bocznych przycisków karta jest szersza, a przy sztywnych proporcjach
@@ -165,7 +170,8 @@
   .map-card .mc-note{font-size:10px;color:#8A6A3A;margin-top:5px;line-height:1.4;font-weight:600;}
   .map-card .mc-max{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--green);margin-top:3px;}
   /* pasek poziomu na karcie mapy jest przyciskiem — otwiera wybór poziomu */
-  .mc-lvlbtn{display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:4px 11px;border:2.5px solid var(--ink);border-radius:999px;
+  /* Wybór poziomu miał 26 px wysokości, a klika się go przed każdą wyprawą. */
+  .mc-lvlbtn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;gap:6px;margin-top:4px;padding:4px 14px;border:2.5px solid var(--ink);border-radius:999px;
     background:linear-gradient(180deg,#FFF6DE,#FFE3A8);box-shadow:0 2px 0 rgba(0,0,0,0.18);cursor:pointer;
     font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--ink);}
   .mc-lvlbtn .mcl-st{color:var(--gold-dark);}
@@ -188,6 +194,13 @@
   .lvl-tile .lt-q{font-size:8.5px;font-weight:700;color:#8A6A3A;line-height:1;}
   /* Zasady jako żetony: pełny opis rozpychał kartę o 285 px i spychał
      GRAJ pod dolną krawędź na 320x568. Dotknięcie żetonu pokazuje opis. */
+  /* Jedyny nagłówek stojący wprost na tle strony — a tło jest gradientem,
+     więc jego czytelność zmieniała się razem z przewijaniem: od 8,9:1 u góry
+     do 3,8:1 na dole. Dostaje własne jasne podłoże, tak jak mają wszystkie
+     pozostałe nagłówki w grze. */
+  .t-title.t-luzem{margin-top:14px;background:var(--panel-2);color:var(--naglowek);
+    border:2.5px solid var(--ink);border-radius:12px;padding:8px 11px;
+    font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:13px;}
   .tasks-box .t-title.t-sep{margin-top:9px;padding-top:8px;border-top:2px dashed rgba(138,106,58,0.35);}
   .mod-chips{display:flex;flex-wrap:wrap;gap:6px;}
   .mod-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:2px solid var(--ink);
@@ -234,13 +247,13 @@
   .map-dots .dot.on{background:var(--gold);width:20px;border-radius:5px;}
 
   .info-panel{background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:10px 12px;margin-bottom:10px;text-align:left;box-shadow:0 3px 0 rgba(0,0,0,0.12);}
-  .info-panel .t-title{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--gold-dark);margin-bottom:6px;}
+  .info-panel .t-title{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--naglowek);margin-bottom:6px;}
   .energy-strip{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:8px 12px;margin-bottom:10px;box-shadow:0 3px 0 rgba(0,0,0,0.12);}
   .energy-strip .energy-row{margin-bottom:0;}
   .tab-panel{display:block;}
   .tab-panel.hidden{display:none;}
   .bottom-tabbar{position:relative;flex-shrink:0;display:flex;background:var(--panel);border-top:3px solid var(--ink);box-shadow:0 -4px 14px rgba(0,0,0,0.18);padding:24px 6px 8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
-  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;background:none;border:none;color:#B89B6C;font-family:'Inter','Segoe UI',Roboto,sans-serif;font-size:9.5px;font-weight:700;padding:0;cursor:pointer;position:relative;}
+  .tab-btn{flex:1;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;background:none;border:none;color:#B89B6C;font-family:'Inter','Segoe UI',Roboto,sans-serif;font-size:9.5px;font-weight:700;padding:0;cursor:pointer;position:relative;}
   .tab-btn .ic{position:relative;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;background:linear-gradient(180deg,#FFFFFF,#FFF3D6);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(0,0,0,0.22);margin-top:-32px;margin-bottom:2px;transition:transform .15s cubic-bezier(.34,1.56,.64,1), background .15s ease, box-shadow .15s ease;}
   .tab-btn.active{color:var(--gold-dark);}
   .tab-btn.active .ic{background:linear-gradient(180deg,#FFE59A,var(--gold));border-color:var(--gold-dark);transform:scale(1.12) translateY(-3px);box-shadow:0 6px 0 var(--gold-dark), 0 9px 14px rgba(0,0,0,0.25);}
@@ -275,7 +288,7 @@
   .shop-row .status.locked{color:#a89a78;}
 
   .tasks-box{background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:10px 12px;margin-bottom:12px;text-align:left;}
-  .tasks-box .t-title{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--gold-dark);margin-bottom:6px;}
+  .tasks-box .t-title{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--naglowek);margin-bottom:6px;}
   .task-row{display:flex;align-items:center;gap:8px;font-size:11px;color:#5C4522;padding:4px 0;}
   .task-row.done{color:#1E9E52;}
   .task-row.contract{align-items:flex-start;border-bottom:2px dashed rgba(138,106,58,0.35);padding-bottom:8px;margin-bottom:4px;}
@@ -292,10 +305,12 @@
   button.primary::after{content:'';position:absolute;top:3px;left:6%;right:6%;height:36%;background:linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0));border-radius:50%;pointer-events:none;}
   button.primary:active{transform:translateY(4px);box-shadow:0 2px 0 var(--gold-dark), 0 4px 8px rgba(0,0,0,0.18);}
   button.primary:disabled{background:#D8D0BE;border-color:#A89A78;box-shadow:0 5px 0 #A89A78;color:#8a8064;cursor:default;}
-  button.secondary{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:13px;color:var(--ink);background:#FFFFFF;border:2.5px solid var(--ink);border-radius:14px;padding:10px 18px;cursor:pointer;width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 0 rgba(0,0,0,0.15);}
+  button.secondary{min-height:44px;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:13px;color:var(--ink);background:#FFFFFF;border:2.5px solid var(--ink);border-radius:14px;padding:10px 18px;cursor:pointer;width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 0 rgba(0,0,0,0.15);}
   button.secondary:active{transform:translateY(3px);box-shadow:none;}
-  button.secondary.reward{background:linear-gradient(180deg,#FFAED8,var(--combo));border-color:#B81E63;color:#fff;box-shadow:0 4px 0 #B81E63;}
-  button.secondary.danger{color:#fff;background:linear-gradient(180deg,#FF8A8A,var(--danger));border-color:#B8232F;box-shadow:0 4px 0 #B8232F;}
+  /* Biały napis na jasnym różu miał 1,71:1 — najgorszą wartość w grze.
+     Ten sam róż, tylko głębszy: 4,95:1. */
+  button.secondary.reward{background:linear-gradient(180deg,#D81B60,#AD1457);border-color:#7A0E3D;color:#fff;box-shadow:0 4px 0 #7A0E3D;}
+  button.secondary.danger{color:#fff;background:linear-gradient(180deg,#C62828,#9E1B1B);border-color:#701313;box-shadow:0 4px 0 #701313;}
   button.secondary:disabled{opacity:0.45;cursor:default;}
   /* Klasa `hidden` była zdefiniowana tylko dla .overlay, .replay-bar
      i .tab-panel, więc na przycisku nie robiła nic. Reguła musi stać ZA
@@ -320,7 +335,7 @@
   .set-sw.off{background:#E6E0D4;color:#9A8C76;border-color:#B8AC98;}
   .set-ver{margin:10px 0 2px;font-size:11px;color:#8A7150;text-align:center;}
   .fb-kinds{display:flex;gap:6px;margin:10px 0;}
-  .fb-kind{flex:1;border:2px solid var(--gold-dark);background:var(--panel-2);color:var(--ink);
+  .fb-kind{flex:1;min-height:44px;border:2px solid var(--gold-dark);background:var(--panel-2);color:var(--ink);
     border-radius:10px;padding:8px 4px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;}
   .fb-kind.on{background:var(--gold);color:#4A2E10;}
   #fbText{width:100%;border:2px solid var(--gold-dark);border-radius:10px;padding:9px;font-family:inherit;
@@ -399,7 +414,9 @@
   .stash-box .sb-ic{font-size:26px;line-height:1;flex-shrink:0;}
   .stash-box .sb-body{flex:1;min-width:0;text-align:left;}
   .stash-box .sb-title{font-family:'Inter','Segoe UI',Roboto,sans-serif;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8A6A3A;}
-  .stash-box .sb-val{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:16px;color:var(--gold-dark);}
+  /* Kwota w worze leży na ciemniejszym pasku niż reszta nagłówków,
+     więc potrzebuje własnego, głębszego odcienia. */
+  .stash-box .sb-val{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:16px;color:#8A5800;}
   .sb-go{flex-shrink:0;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:11px;line-height:1.15;color:#5C3600;background:linear-gradient(180deg,#FFE59A 0%,#FFC93B 45%,#FFA700 100%);border:3px solid var(--gold-dark);border-radius:14px;box-shadow:0 4px 0 var(--gold-dark);padding:8px 10px;cursor:pointer;}
   .sb-go:active{transform:translateY(3px);box-shadow:0 1px 0 var(--gold-dark);}
   .sb-go:disabled{opacity:.45;cursor:default;}
@@ -415,7 +432,7 @@
   .dep-shop .r-tag{display:inline-block;font-size:9px;font-weight:800;padding:1px 5px;border-radius:6px;margin-right:4px;}
   .tag-free{background:#CFE9C6;color:#2C6B1E;}
   .tag-cost{background:#FFD9D9;color:#A32A2A;}
-  .tag-risk{background:#FFE0B2;color:#9A5B00;}
+  .tag-risk{background:#FFE0B2;color:#8A5000;}
 
   .dep-bar{height:14px;border-radius:8px;background:rgba(0,0,0,0.14);border:2px solid var(--ink);overflow:hidden;margin:10px 0 6px;}
   .dep-fill{height:100%;width:0;background:linear-gradient(180deg,#FFE59A,var(--gold));transition:width .15s linear;}
@@ -663,7 +680,7 @@
             <button class="secondary" id="inviteBtn">📨 Wyślij zaproszenie</button>
           </div>
 
-          <div class="t-title" style="margin-top:14px;">🏠 Gdzie mieszkasz?</div>
+          <div class="t-title t-luzem">🏠 Gdzie mieszkasz?</div>
           <div style="font-size:11px;font-weight:600;color:#8A6A3A;line-height:1.5;">Decyduje, jakie punkty skupu masz pod ręką, gdy oddajesz kaucję.</div>
           <div class="home-pick" id="homePick">
             <button data-home="miasto">🏙️ Miasto</button>
@@ -1411,7 +1428,18 @@
     cam.y += (targetY-cam.y)*k;
   }
   let grassBlades=[], stars=[];
+  /* Deklaracja MUSI stać tutaj, a nie przy gruntWarstwa() na dole pliku:
+     generateEnvironment() woła zapomnijGrunt() już przy pierwszym przebiegu
+     skryptu, a `let` do swojej linijki jest w martwej strefie. Postawione
+     niżej dawało „Cannot access 'gruntPlotno' before initialization" i puste
+     płótno — przy czym gra wyglądała wtedy na SZYBSZĄ, bo nic nie rysowała. */
+  let gruntPlotno = null, gruntKlucz = '';
   function generateEnvironment(){
+    /* Trawa losuje się od nowa, więc gotowy rysunek ziemi przestaje pasować.
+       Klucz pamięci podręcznej opiera się na mapie i wymiarach, a te przy
+       powtórce tego samego poziomu się nie zmieniają — dlatego kasujemy ją
+       tutaj wprost. */
+    zapomnijGrunt();
     const grassTop=playTop();
     grassBlades = [];
     const count = Math.min(260, Math.floor(WORLD_W/11));
@@ -1746,7 +1774,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-21 · 36';
+  const APP_VERSION = '2026-09-21 · 37';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2943,7 +2971,7 @@
       return;
     }
     const lvl = mapLevel(map.id);
-    let html = '<b style="color:var(--gold-dark);">'+map.name+' — poziom '+lvl+'/'+MAP_LEVEL_MAX
+    let html = '<b style="color:var(--naglowek);">'+map.name+' — poziom '+lvl+'/'+MAP_LEVEL_MAX
       + ' &middot; ★ '+mapStarTotal(map.id)+'/'+mapStarMax()+'</b><br>'
       + 'Norma: <b>'+fmt(levelQuota(map.id,lvl))+'</b> z jednej wyprawy. Plecak: <b>'+fmt(backpackCapFor(map.id,lvl))+'</b>.<br>'
       + 'Na tym poziomie: <b>'+binCountFor(map.id,lvl)+'</b> koszy i <b>'+npcCountFor(map.id,lvl)+'</b> par oczu.';
@@ -3537,6 +3565,11 @@
   const NEWS = [
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
+    ]},
+    { v:'2026-09-21 · 37', linie:[
+      '⚡ Gra chodzi płynniej na słabszych telefonach — ziemia rysuje się raz, a nie w każdej klatce.',
+      '👆 Wszystkie przyciski mają teraz co najmniej 44 px — pauza i wybór poziomu nie uciekają spod palca.',
+      '👓 Nagłówki i przyciski reklamowe wreszcie dobrze widać.'
     ]},
     { v:'2026-09-21 · 36', linie:[
       '🛟 Poprawka bezpieczeństwa danych: gra nie zapisze już profilu, którego nie udało się wczytać.'
@@ -5238,16 +5271,57 @@
       }
     }
   }
-  function drawGrassBlades(){
+  function drawGrassBlades(g){
+    g = g || ctx;
     if(currentMapId==='miasto') return; // deptak ma kostkę, nie trawę
     grassBlades.forEach(b=>{
-      ctx.save(); ctx.translate(b.x,projY(b.y)); ctx.rotate(b.tilt);
-      ctx.strokeStyle = b.light ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.16)';
-      ctx.lineWidth=1.6; ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(2,-b.h*0.6,0,-b.h); ctx.stroke();
-      ctx.restore();
+      g.save(); g.translate(b.x,projY(b.y)); g.rotate(b.tilt);
+      g.strokeStyle = b.light ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.16)';
+      g.lineWidth=1.6; g.lineCap='round';
+      g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(2,-b.h*0.6,0,-b.h); g.stroke();
+      g.restore();
     });
   }
+
+  /* =========================================================
+     ZIEMIA RYSOWANA RAZ
+     Gradient trawy, kostka chodnikowa, mgiełka przy horyzoncie
+     i 260 źdźbeł trawy nie zmieniają się ani o piksel przez całą
+     wyprawę — a były rysowane od nowa w KAŻDEJ klatce. Same źdźbła
+     to ~1800 operacji na płótnie (save, translate, rotate, krzywa,
+     stroke, restore razy 260). Na dławieniu CPU x6 gra schodziła
+     przez to do 25 klatek.
+
+     Rysujemy więc tę warstwę raz na osobne płótno i w klatce
+     przerzucamy ją jednym drawImage. Niebo i panorama zostają poza
+     pamięcią podręczną, bo tam mrugają okna i migoczą gwiazdy.
+     ========================================================= */
+  function gruntWarstwa(map){
+    const bottom = projY(WORLD_H);
+    const klucz = [currentMapId, Math.round(WORLD_W), Math.round(bottom),
+                   Math.round(HORIZON), DPR].join('|');
+    if(gruntPlotno && gruntKlucz === klucz) return gruntPlotno;
+    const c = document.createElement('canvas');
+    c.width  = Math.max(1, Math.round(WORLD_W*DPR));
+    c.height = Math.max(1, Math.round(bottom*DPR));
+    const g = c.getContext('2d');
+    g.setTransform(DPR,0,0,DPR,0,0);
+    const gg=g.createLinearGradient(0,HORIZON,0,bottom);
+    gg.addColorStop(0,map.grass[0]); gg.addColorStop(1,map.grass[1]);
+    g.fillStyle=gg; g.fillRect(0,HORIZON,WORLD_W,bottom-HORIZON);
+    if(currentMapId==='miasto'){
+      g.fillStyle='rgba(255,255,255,0.06)';
+      for(let x=0;x<WORLD_W;x+=44){ g.fillRect(x,HORIZON,2,bottom-HORIZON); }
+      for(let y=HORIZON;y<bottom;y+=30){ g.fillRect(0,y,WORLD_W,2); }
+    }
+    const haze=g.createLinearGradient(0,HORIZON,0,HORIZON+70);
+    haze.addColorStop(0,'rgba(255,255,255,0.20)'); haze.addColorStop(1,'rgba(255,255,255,0)');
+    g.fillStyle=haze; g.fillRect(0,HORIZON,WORLD_W,70);
+    drawGrassBlades(g);
+    gruntPlotno = c; gruntKlucz = klucz;
+    return c;
+  }
+  function zapomnijGrunt(){ gruntPlotno = null; gruntKlucz = ''; }
   function drawVignette(){
     const g=ctx.createRadialGradient(W/2,H*0.55,H*0.32,W/2,H*0.55,H*0.78);
     g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.26)');
@@ -5266,19 +5340,8 @@
     drawSkyGlow(map);
     drawMapDecor(map);
     ctx.restore();
-    const gg=ctx.createLinearGradient(0,HORIZON,0,bottom); gg.addColorStop(0,map.grass[0]); gg.addColorStop(1,map.grass[1]);
-    ctx.fillStyle=gg; ctx.fillRect(0,HORIZON,WORLD_W,bottom-HORIZON);
-    if(currentMapId==='miasto'){
-      // kostka chodnikowa leży na ziemi, więc idzie po gradiencie trawy
-      ctx.fillStyle='rgba(255,255,255,0.06)';
-      for(let x=0;x<WORLD_W;x+=44){ ctx.fillRect(x,HORIZON,2,bottom-HORIZON); }
-      for(let y=HORIZON;y<bottom;y+=30){ ctx.fillRect(0,y,WORLD_W,2); }
-    }
-    // miękkie przejście przy horyzoncie — ziemia „ucieka" w dal
-    const haze=ctx.createLinearGradient(0,HORIZON,0,HORIZON+70);
-    haze.addColorStop(0,'rgba(255,255,255,0.20)'); haze.addColorStop(1,'rgba(255,255,255,0)');
-    ctx.fillStyle=haze; ctx.fillRect(0,HORIZON,WORLD_W,70);
-    drawGrassBlades();
+    // ziemia razem z trawą, kostką i mgiełką — jeden rysunek zamiast tysięcy operacji
+    ctx.drawImage(gruntWarstwa(map), 0, 0, WORLD_W, bottom);
   }
   function drawExitZone(){
     ctx.save();
