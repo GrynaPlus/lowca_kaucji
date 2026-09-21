@@ -347,6 +347,9 @@
      i button — zwykły <div class="hidden"> NIE chowa się wcale. Bez tej
      reguły wszystkie trzy ekrany sortowni wyświetlały się naraz. */
   .sort-ekran.hidden{display:none;}
+  .zaklad-wybrany{border-color:var(--gold-dark);background:var(--panel-3);}
+  #zakladLista .shop-row.wybrany{border-color:var(--gold-dark);background:var(--panel-3);}
+  #zakladLista .status small{font-size:10px;opacity:0.8;}
   .sort-rekord{font-size:13px;color:#5C4522;margin-bottom:12px;}
   .sort-hud{display:flex;justify-content:space-between;align-items:center;
     font-size:13px;color:#5C4522;margin-bottom:6px;}
@@ -559,6 +562,7 @@
                  karty mapy leży poza ekranem telefonu, więc guzik na dole nie
                  istniałby dla gracza — ten sam błąd mieliśmy już z reklamą za
                  energię i z wejściem do ustawień. -->
+            <button class="secondary" id="zakladBtn">🎲 Zakład przed wyprawą — bez zakładu</button>
             <button class="secondary" id="sortowniaBtn">🗑️ SORTOWNIA — gra bez energii</button>
           </div>
 
@@ -707,6 +711,15 @@
     </div>
   </div>
 
+  <div class="overlay hidden" id="zakladOverlay">
+    <div class="card">
+      <h1 style="font-size:22px;">🎲 Zakład przed wyprawą</h1>
+      <p class="sub">Uda się — dostajesz premię do wora.<br>Nie uda — tracisz część łupu z tej wyprawy.<br>Gwiazdek i poziomu zakład nie rusza.</p>
+      <div id="zakladLista"></div>
+      <button class="primary" id="zakladOkBtn">GOTOWE</button>
+    </div>
+  </div>
+
   <div class="overlay hidden" id="sortOverlay">
     <div class="card">
       <div id="sortStart" class="sort-ekran">
@@ -832,6 +845,8 @@
         <div class="t-title" id="goalsEndTitle">🎯 Gwiazdki poziomu</div>
         <div id="goalsListEnd"></div>
       </div>
+      <div class="banner" id="zakladBanner"></div>
+      <button class="secondary reward hidden" id="zakladRatujBtn">🎬 Reklama → ratuję zakład</button>
       <button class="secondary reward" id="rewardDoubleBtn">🎬 Obejrzyj reklamę → podwój ten łup</button>
       <button class="primary" id="againBtn">JESZCZE RAZ</button>
       <button class="secondary" id="replayBtn">🎬 Powtórka ostatnich sekund</button>
@@ -1709,7 +1724,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-20 · 33';
+  const APP_VERSION = '2026-09-21 · 34';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3489,6 +3504,11 @@
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
     ]},
+    { v:'2026-09-21 · 34', linie:[
+      '🎲 ZAKŁAD PRZED WYPRAWĄ — zadeklaruj, jak wrócisz, i graj o premię do wora.',
+      '⚖️ Uda się — premia. Nie uda — tracisz część łupu. Gwiazdek i poziomu zakład NIE rusza.',
+      '🎬 Przegrany zakład możesz raz uratować reklamą.'
+    ]},
     { v:'2026-09-20 · 33', linie:[
       '🗑️ SORTOWNIA — nowa gra na taśmie, wrzucasz odpady do właściwych pojemników.',
       '⚡ Nie kosztuje energii, więc grasz, ile chcesz — także wtedy, gdy wypraw już nie masz.',
@@ -3551,6 +3571,126 @@
     await saveProfile(); refreshProfileUI();
     showToast(profile.home==='wies' ? '🌾 Mieszkasz na wsi' : '🏙️ Mieszkasz w mieście');
   }));
+  /* =========================================================
+     ZAKŁAD PRZED WYPRAWĄ
+     Bot, który idzie do najbliższego kosza i NIKOGO nie unika,
+     wychodził z łupem w 85% wypraw na osiedlu. Skoro coś, co nie
+     podejmuje żadnej decyzji, wygrywa cztery razy na pięć, to gracz
+     też żadnej nie podejmował. Zakład dokłada jedną, przed każdym
+     wejściem — i ma prawdziwy minus, bo darmowy los nie jest decyzją.
+
+     Stawki policzone botem (150 wypraw na mapę, tylko te zakończone
+     wyjściem z łupem): combo x6 wychodzi w 75% przypadków, norma
+     z zapasem x1,5 w 54%, a przypał poniżej 50% tylko w 21%.
+     To ostatnie jest DOLNĄ granicą: bot z założenia nikogo nie unika,
+     więc żywy gracz trafi znacznie częściej — i o to chodzi, bo
+     właśnie ten zakład płaci za unikanie ludzi.
+
+     Rozliczenie idzie tą samą drogą co premia pierwszej wyprawy:
+     OSOBNO do wora i poza normą poziomu. Zakład zmienia pieniądze,
+     nie postęp — gwiazdek ani poziomów nie da się nim kupić ani
+     stracić.
+     ========================================================= */
+  const ZAKLADY = [
+    { id:'combo',  ikona:'🔗', nazwa:'Combo ×6',
+      opis:'Opróżnij sześć koszy pod rząd bez przerwy',
+      bonus:0.08, kara:0.20, sprawdz:(r)=> r.comboMax >= 6 },
+    { id:'norma',  ikona:'🎯', nazwa:'Norma z zapasem',
+      opis:'Przynieś półtora raza tyle, ile wymaga poziom',
+      bonus:0.25, kara:0.25, sprawdz:(r,banked,norma)=> banked >= 1.5*norma },
+    { id:'cicho',  ikona:'🤫', nazwa:'Cicha robota',
+      opis:'Wróć z łupem, nie przekraczając 50% przypału',
+      bonus:0.50, kara:0.40, sprawdz:(r)=> r.maxHeat < 50 }
+  ];
+  let zakladRundy = null;      // id zakładu na NAJBLIŻSZĄ wyprawę
+  let zakladWynik = null;      // rozliczenie ostatniej, do ekranu wyniku
+
+  function zakladDef(id){ return ZAKLADY.find(z=>z.id===id) || null; }
+
+  function odswiezZaklad(){
+    const b = document.getElementById('zakladBtn');
+    if(!b) return;
+    const z = zakladDef(zakladRundy);
+    b.textContent = z ? ('🎲 Zakład: '+z.nazwa+'  +'+Math.round(z.bonus*100)+'% / −'+Math.round(z.kara*100)+'%')
+                      : '🎲 Zakład przed wyprawą — bez zakładu';
+    b.classList.toggle('zaklad-wybrany', !!z);
+  }
+
+  function rysujZaklady(){
+    const lista = document.getElementById('zakladLista');
+    lista.innerHTML = '';
+    const dodaj = (z)=>{
+      const d = document.createElement('div');
+      d.className = 'shop-row' + ((z ? z.id : null) === zakladRundy ? ' wybrany' : '');
+      d.innerHTML = z
+        ? '<span class="mi">'+z.ikona+'</span><span class="mn">'+z.nazwa+
+          '<div class="sd">'+z.opis+'</div></span>'+
+          '<span class="status buy">+'+Math.round(z.bonus*100)+'%<br><small>−'+Math.round(z.kara*100)+'%</small></span>'
+        : '<span class="mi">🚫</span><span class="mn">Bez zakładu<div class="sd">Wchodzisz na spokojnie, bez premii i bez kary</div></span>';
+      d.onclick = ()=>{ Sfx.click(); haptic('light');
+        zakladRundy = z ? z.id : null;
+        odswiezZaklad(); rysujZaklady(); };
+      lista.appendChild(d);
+    };
+    ZAKLADY.forEach(dodaj);
+    dodaj(null);
+  }
+
+  function pokazWynikZakladu(){
+    const ban = document.getElementById('zakladBanner');
+    const ratuj = document.getElementById('zakladRatujBtn');
+    if(!zakladWynik){
+      ban.classList.remove('show');
+      ratuj.classList.add('hidden');
+      return;
+    }
+    const z = zakladWynik;
+    ban.textContent = z.wygrany
+      ? '🎲 Zakład „'+z.nazwa+'" wygrany: +'+fmt(z.kwota)
+      : (z.uratowany ? '🎲 Zakład „'+z.nazwa+'" uratowany — bez kary'
+                     : '🎲 Zakład „'+z.nazwa+'" przegrany: '+fmt(z.kwota));
+    /* Kolory dobrane pod BIAŁY tekst 12 px: każdy ma co najmniej 5:1.
+       Firmowe --xp i --combo wypadają tu na 2,7 i 2,9, więc baner
+       zakładu używa własnych, ciemniejszych odcieni. */
+    ban.style.background = z.wygrany ? '#2E7D32' : (z.uratowany ? '#8A5D00' : '#C62828');
+    ban.classList.add('show');
+    // ratować jest co tylko przy przegranej i tylko raz
+    ratuj.classList.toggle('hidden', z.wygrany || z.uratowany);
+  }
+
+  document.getElementById('zakladBtn').addEventListener('click', ()=>{
+    Sfx.click(); rysujZaklady();
+    document.getElementById('zakladOverlay').classList.remove('hidden');
+  });
+  document.getElementById('zakladOkBtn').addEventListener('click', ()=>{
+    Sfx.click(); document.getElementById('zakladOverlay').classList.add('hidden');
+  });
+  odswiezZaklad();
+  document.getElementById('zakladRatujBtn').addEventListener('click', (e)=>{
+    if(!zakladWynik || zakladWynik.wygrany || zakladWynik.uratowany) return;
+    const oddaj = -zakladWynik.kwota;          // kara była ujemna, więc to dodatnie
+    e.target.disabled = true; e.target.textContent = 'Odtwarzanie reklamy…';
+    Ads.showRewarded(
+      async ()=>{
+        zakladWynik.uratowany = true;
+        profile.stash = (profile.stash||0) + oddaj;
+        profile.totalEarned += oddaj;
+        await saveProfile(); refreshProfileUI();
+        document.getElementById('resultAmount').textContent = fmt(lastBankedAmount + oddaj);
+        pokazWynikZakladu();
+        showToast('🎲 Kara cofnięta: +'+fmt(oddaj));
+        grynaPlusEvent('zaklad_uratowany', { zaklad:zakladWynik.id,
+          kwota:Number(oddaj.toFixed(2)), profileNick:profile.nick });
+      },
+      (udane)=>{
+        e.target.disabled = false;
+        e.target.textContent = '🎬 Reklama → ratuję zakład';
+        if(!udane) showToast('Reklama się nie wyświetliła — spróbuj za chwilę');
+      },
+      'zaklad_ratunek'
+    );
+  });
+
   /* =========================================================
      SORTOWNIA — druga aktywność, celowo poza ekonomią
      Nie daje ani kaucji, ani XP. XP byłoby boczną furtką: podnosi
@@ -5865,6 +6005,23 @@
       bonusReklamy = Math.round(banked*BOOST_LUPU*2)/2;
       premia += bonusReklamy;
     }
+    /* Zakład rozliczamy tylko wtedy, gdy wróciłeś z łupem. Przy złapaniu
+       tracisz wszystko i bez tego — dokładanie tam kary byłoby biciem
+       leżącego, a premii nie ma od czego liczyć. */
+    zakladWynik = null;
+    if(zakladRundy && banked > 0){
+      const z = zakladDef(zakladRundy);
+      if(z){
+        const norma = levelQuota(currentMapId, playedLevel);
+        const wygrany = !!z.sprawdz(run, banked, norma);
+        const kwota = Math.round(banked * (wygrany ? z.bonus : -z.kara) * 2)/2;
+        zakladWynik = { id:z.id, nazwa:z.nazwa, wygrany:wygrany, kwota:kwota, uratowany:false };
+        premia += kwota;
+      }
+      zakladRundy = null;    // zakład obowiązuje na JEDNĄ wyprawę
+    }
+    // wór nie schodzi poniżej zera: kara nie może zabrać więcej, niż przyniosłeś
+    if(banked + premia < 0) premia = -banked;
     profile.stash = (profile.stash||0) + banked + premia;
     profile.totalEarned += banked + premia;
     daily.earn += banked;
@@ -5906,6 +6063,11 @@
        odpowiedzieć na najważniejsze pytanie z danych: na którym poziomie
        ludzie przestają grać. `norma` pozwala od razu policzyć, czy wyprawa
        się udała, bez sięgania po wzory po stronie zapytania. */
+    if(zakladWynik){
+      grynaPlusEvent('zaklad_wynik', { zaklad:zakladWynik.id, wygrany:zakladWynik.wygrany,
+        kwota:Number(zakladWynik.kwota.toFixed(2)), mapId:currentMapId,
+        poziomMapy:playedLevel, profileNick:profile.nick });
+    }
     grynaPlusEvent('round_finished', { earned:Number(banked.toFixed(2)), level:profile.level,
       mapId:currentMapId, poziomMapy:playedLevel, norma:levelQuota(currentMapId, playedLevel),
       udana:banked >= levelQuota(currentMapId, playedLevel), newBest:isNewBest, profileNick:profile.nick });
@@ -5917,6 +6079,7 @@
     nb.innerHTML = '<span class="nb-tag">WIADOMOŚCI</span>'+naglowekPrasowy(banked);
     nb.classList.add('show');
     document.getElementById('recordBanner').classList.toggle('show', isNewBest);
+    pokazWynikZakladu();
     document.getElementById('levelBanner').classList.toggle('show', leveledThisRound);
     const mapLvlBanner = document.getElementById('mapLevelBanner');
     if(wynikWyzwania){
