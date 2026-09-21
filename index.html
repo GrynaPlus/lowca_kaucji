@@ -56,6 +56,15 @@
      różnić o połowę ekranu. */
   #game-wrap{position:relative;width:100%;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;}
   canvas{display:block;width:100%;height:100%;cursor:crosshair;}
+  /* OKRĄG o promieniu 0,78 wysokości ekranu — dokładnie tak, jak liczyła
+     to stara wersja na płótnie (createRadialGradient z promieniem H*0.78).
+     Pierwsze podejście użyło elipsy 78% x 78%, przez co promień poziomy
+     wynosił 78% SZEROKOŚCI — na telefonie o połowę za mało, więc boki
+     robiły się znacznie ciemniejsze niż wcześniej. Punkt 41% to dawne
+     H*0.32 wyrażone jako ułamek promienia (0,32/0,78). */
+  #winieta{position:absolute;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(circle 78dvh at 50% 55%,
+      rgba(0,0,0,0) 41%, rgba(0,0,0,0.26) 100%);}
 
   /* Trzy liczby opisujące górę ekranu, wszystkie ustawiane z JS w pikselach:
      --tg-safe    wcięcie sprzętowe (notch),
@@ -498,6 +507,10 @@
 <body>
 <div id="game-wrap">
   <canvas id="c"></canvas>
+  <!-- Winieta zależy WYŁĄCZNIE od rozmiaru ekranu, a była pełnoekranowym
+       gradientem rysowanym na płótnie w każdej klatce. Jako warstwa CSS
+       kosztuje jedno złożenie przy zmianie rozmiaru i nic poza tym. -->
+  <div id="winieta"></div>
 
   <span id="safeProbe"></span><span id="safeProbeB"></span>
 
@@ -1376,7 +1389,12 @@
     }
   }
 
-  const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
+  const canvas=document.getElementById('c');
+  /* `let`, nie `const`: przy tworzeniu sprite'ów podmieniamy ctx na płótno
+     pomocnicze, żeby móc wykorzystać istniejący kod rysujący bez przepisywania
+     go na przekazywany kontekst. Pomocniki w rodzaju roundRect() i tak sięgają
+     po ctx bezpośrednio. Podmiana zawsze wraca w finally. */
+  let ctx = canvas.getContext('2d');
   let W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
   // Świat jest WIĘKSZY niż ekran — kamera jedzie za graczem. Dzięki temu
   // nie widać całej mapy naraz (jest co odkrywać), a wielkość ekranu
@@ -1774,7 +1792,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-21 · 37';
+  const APP_VERSION = '2026-09-21 · 38';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3566,6 +3584,9 @@
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
     ]},
+    { v:'2026-09-21 · 38', linie:[
+      '⚡ Gra chodzi znacznie płynniej na słabszych telefonach — kosze i butelki rysują się raz, a nie w każdej klatce.'
+    ]},
     { v:'2026-09-21 · 37', linie:[
       '⚡ Gra chodzi płynniej na słabszych telefonach — ziemia rysuje się raz, a nie w każdej klatce.',
       '👆 Wszystkie przyciski mają teraz co najmniej 44 px — pauza i wybór poziomu nie uciekają spod palca.',
@@ -5190,6 +5211,33 @@
     }
   }
 
+  /* =========================================================
+     SPRITE'Y — KOSZE I BUTELKI
+     Kosze i butelki były rysowane ścieżkami z gradientami w KAŻDEJ
+     klatce: kosz to sześć operacji z gradientami i elipsami, butelka
+     trzy, a na mapie stoi ich kilkanaście. Wygląd zależy jednak tylko
+     od STANU (przeszukany, pusty, jackpot, aktywny, otwarta klapa)
+     albo od typu — nie od klatki. Rysujemy więc każdy wariant raz na
+     małe płótno i potem już tylko przerzucamy gotowy obrazek.
+
+     Dynamiczne zostaje to, co naprawdę zmienia się co klatkę: unoszenie
+     się, drżenie, przezroczystość i pasek „STUKAJ".
+     ========================================================= */
+  function naPlotnie(plotno, ox, oy, rysuj){
+    const stary = ctx;
+    ctx = plotno.getContext('2d');
+    try {
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+      ctx.translate(ox, oy);
+      rysuj();
+    } finally { ctx = stary; }
+  }
+  function noweePlotno(w,h){
+    const c = document.createElement('canvas');
+    c.width = Math.max(1,Math.round(w*DPR)); c.height = Math.max(1,Math.round(h*DPR));
+    return c;
+  }
+
   function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 
   function drawSkyGlow(map){
@@ -5322,11 +5370,10 @@
     return c;
   }
   function zapomnijGrunt(){ gruntPlotno = null; gruntKlucz = ''; }
-  function drawVignette(){
-    const g=ctx.createRadialGradient(W/2,H*0.55,H*0.32,W/2,H*0.55,H*0.78);
-    g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.26)');
-    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  }
+  /* Winieta wisi teraz jako warstwa CSS nad płótnem (#winieta) — patrz
+     komentarz przy niej w HTML. Funkcja zostaje pusta, żeby nie ruszać
+     kolejności rysowania; usunięcie jej wywołania nic by nie dało. */
+  function drawVignette(){}
   function drawBackground(){
     const map = MAPS.find(m=>m.id===currentMapId) || MAPS[0];
     // wszystko poniżej jest już w pikselach ekranu — ziemia sięga projY(WORLD_H)
@@ -5497,14 +5544,28 @@
     ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(-8,-6); ctx.lineTo(-6,10); ctx.stroke();
   }
+  /* Kształt sztuki zależy WYŁĄCZNIE od jej typu, a typów są cztery. */
+  const sztukaSprite = new Map();
+  const SZT_OX = 22, SZT_OY = 30, SZT_W = 44, SZT_H = 60;
+  function sztukaObrazek(type){
+    const klucz = type.key + '|' + DPR;
+    let c = sztukaSprite.get(klucz);
+    if(c) return c;
+    c = noweePlotno(SZT_W, SZT_H);
+    naPlotnie(c, SZT_OX, SZT_OY, ()=>{
+      if(type.key==='trash'){ drawTrashShape(type); }
+      else if(type.key==='can'){ drawCanShape(type); }
+      else { drawBottleShape(type); }
+    });
+    sztukaSprite.set(klucz, c);
+    return c;
+  }
   function drawItem(it){
     const bob=Math.sin((elapsedSinceStart+it.bob)*3.2)*3;
     const age=elapsedSinceStart-it.born;
     let alpha=1; if(age<0.25) alpha=age/0.25; else if(it.life-age<0.6) alpha=Math.max(0,(it.life-age)/0.6);
     ctx.save(); ctx.globalAlpha=alpha; ctx.translate(it.x,projY(it.y)-14-bob);
-    if(it.type.key==='trash'){ drawTrashShape(it.type); }
-    else if(it.type.key==='can'){ drawCanShape(it.type); }
-    else { drawBottleShape(it.type); }
+    ctx.drawImage(sztukaObrazek(it.type), -SZT_OX, -SZT_OY, SZT_W, SZT_H);
     ctx.restore();
   }
   function drawDog(){
@@ -5543,24 +5604,28 @@
   function drawParticles(){
     particles.forEach(p=>{ const py=projY(p.y); ctx.save(); ctx.globalAlpha=Math.max(0,p.life); ctx.font="800 15px 'Baloo 2', 'Segoe UI', Roboto, sans-serif"; ctx.textAlign='center'; ctx.lineWidth=3.5; ctx.strokeStyle='rgba(74,46,16,0.85)'; ctx.strokeText(p.text,p.x,py); ctx.fillStyle=p.color; ctx.fillText(p.text,p.x,py); ctx.restore(); });
   }
-  function drawBin(bin){
-    {
-      const bob = bin.searched ? 0 : Math.sin((elapsedSinceStart+bin.bob)*2)*2;
-      const jitter = bin.shakeTimer>0 ? (Math.random()-0.5)*5*(bin.shakeTimer/0.18) : 0;
-      const isActive = bin===activeBinTarget && !bin.searched;
-      // kosz stoi na ziemi: podstawa w projY(bin.y), reszta rośnie w górę
-      ctx.save(); ctx.translate(bin.x+jitter, projY(bin.y)-20+bob);
-      ctx.globalAlpha = bin.searched ? 0.55 : 1;
+  /* Kosz: część stała trafia do sprite'a, kluczowana STANEM. Poza nim
+     zostaje tylko to, co zmienia się co klatkę — unoszenie, drżenie
+     i pasek postępu stukania. */
+  const koszSprite = new Map();
+  const KOSZ_OX = 40, KOSZ_OY = 46, KOSZ_W = 80, KOSZ_H = 92;
+  function koszObrazek(st){
+    const klucz = [st.searched?1:0, st.empty?1:0, st.jackpot?1:0,
+                   st.isActive?1:0, st.lidOpen?1:0, DPR].join('|');
+    let c = koszSprite.get(klucz);
+    if(c) return c;
+    c = noweePlotno(KOSZ_W, KOSZ_H);
+    naPlotnie(c, KOSZ_OX, KOSZ_OY, ()=>{
+      ctx.globalAlpha = st.searched ? 0.55 : 1;
       const bodyGrad = ctx.createLinearGradient(-14,-10,14,20);
-      bodyGrad.addColorStop(0, bin.searched && bin.empty ? '#8B8F86' : shade('#5C6B5A',10));
+      bodyGrad.addColorStop(0, st.searched && st.empty ? '#8B8F86' : shade('#5C6B5A',10));
       bodyGrad.addColorStop(1, '#2E3A29');
       ctx.beginPath();
       ctx.moveTo(-12,-6); ctx.lineTo(12,-6); ctx.lineTo(10,20); ctx.lineTo(-10,20); ctx.closePath();
       ctx.fillStyle=bodyGrad; ctx.fill();
-      // jackpot świeci na złoto, zanim go otworzysz — widać go z daleka
-      const zloty = bin.jackpot && !bin.searched;
-      ctx.strokeStyle = isActive ? '#FFB800' : (zloty ? '#FFD24A' : 'rgba(30,20,8,0.85)');
-      ctx.lineWidth = isActive ? 3 : (zloty ? 3.4 : 2.2);
+      const zloty = st.jackpot && !st.searched;
+      ctx.strokeStyle = st.isActive ? '#FFB800' : (zloty ? '#FFD24A' : 'rgba(30,20,8,0.85)');
+      ctx.lineWidth = st.isActive ? 3 : (zloty ? 3.4 : 2.2);
       if(zloty){ ctx.shadowColor='rgba(255,210,74,0.9)'; ctx.shadowBlur=14; }
       ctx.stroke();
       ctx.shadowBlur=0;
@@ -5571,28 +5636,43 @@
       ctx.beginPath(); ctx.arc(7,21,3,0,Math.PI*2); ctx.fill();
       ctx.save();
       ctx.translate(0,-6);
-      ctx.rotate(bin.tapsDone>0||bin.searched ? -0.85 : 0);
+      ctx.rotate(st.lidOpen ? -0.85 : 0);
       const lidGrad=ctx.createLinearGradient(-13,-4,13,2);
       lidGrad.addColorStop(0, shade('#6E7D63',10)); lidGrad.addColorStop(1,'#3A4735');
       roundRect(-13,-4,26,6,2); ctx.fillStyle=lidGrad; ctx.fill();
       ctx.strokeStyle='rgba(30,20,8,0.85)'; ctx.lineWidth=2; ctx.stroke();
       ctx.restore();
       ctx.globalAlpha=1;
-      if(bin.searched){
+      if(st.searched){
         ctx.font='15px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(bin.empty ? '💨' : '✨', 0, -18);
-      } else if(bin.tapsDone>0 || isActive){
-        const w=30,h=5,frac=bin.tapsDone/bin.tapsNeeded;
-        ctx.fillStyle='rgba(0,0,0,0.4)'; roundRect(-w/2,-30,w,h,3); ctx.fill();
-        ctx.fillStyle='#FFD700'; roundRect(-w/2,-30,w*frac,h,3); ctx.fill();
-        if(isActive){
-          ctx.font="700 9px 'Baloo 2', 'Segoe UI', Roboto, sans-serif"; ctx.textAlign='center'; ctx.fillStyle='#FFF8E7';
-          ctx.fillText('STUKAJ ('+bin.tapsDone+'/'+bin.tapsNeeded+')', 0, -37);
-        }
+        ctx.fillText(st.empty ? '\ud83d\udca8' : '\u2728', 0, -18);
       }
-      ctx.restore();
-    }
+    });
+    koszSprite.set(klucz, c);
+    return c;
   }
+  function drawBin(bin){
+    const bob = bin.searched ? 0 : Math.sin((elapsedSinceStart+bin.bob)*2)*2;
+    const jitter = bin.shakeTimer>0 ? (Math.random()-0.5)*5*(bin.shakeTimer/0.18) : 0;
+    const isActive = bin===activeBinTarget && !bin.searched;
+    ctx.save(); ctx.translate(bin.x+jitter, projY(bin.y)-20+bob);
+    ctx.drawImage(koszObrazek({
+      searched: !!bin.searched, empty: !!bin.empty, jackpot: !!bin.jackpot,
+      isActive: isActive, lidOpen: bin.tapsDone>0 || bin.searched
+    }), -KOSZ_OX, -KOSZ_OY, KOSZ_W, KOSZ_H);
+    // pasek stukania zmienia się przy każdym dotknięciu, więc zostaje żywy
+    if(!bin.searched && (bin.tapsDone>0 || isActive)){
+      const w=30,h=5,frac=bin.tapsDone/bin.tapsNeeded;
+      ctx.fillStyle='rgba(0,0,0,0.4)'; roundRect(-w/2,-30,w,h,3); ctx.fill();
+      ctx.fillStyle='#FFD700'; roundRect(-w/2,-30,w*frac,h,3); ctx.fill();
+      if(isActive){
+        ctx.font="700 9px 'Baloo 2', 'Segoe UI', Roboto, sans-serif"; ctx.textAlign='center'; ctx.fillStyle='#FFF8E7';
+        ctx.fillText('STUKAJ ('+bin.tapsDone+'/'+bin.tapsNeeded+')', 0, -37);
+      }
+    }
+    ctx.restore();
+  }
+
   function drawNoiseRings(){
     noiseRings.forEach(r=>{
       const p=1-(r.life/0.5);
