@@ -352,6 +352,22 @@
   .fb-ile{font-size:10px;color:#8A7150;margin:5px 0 10px;}
   .news-item{text-align:left;font-size:13px;color:var(--ink);padding:7px 0;
     border-bottom:1px solid rgba(74,46,16,.12);line-height:1.45;}
+  .news-item:last-child{border-bottom:none;}
+  /* Lista zmian bywa długa. Karta nie może urosnąć poza ekran, bo przycisk
+     wyjścia ląduje pod zgięciem i jedyne, co gracz widzi, to „X" Telegrama —
+     a ten zamyka całą grę. Nagłówek i przyciski zostają na wierzchu,
+     przewija się wyłącznie środek. */
+  .karta-news{display:flex;flex-direction:column;max-height:100%;}
+  .karta-news > h1, .karta-news > button{flex:0 0 auto;}
+  .news-ramka{position:relative;display:flex;flex:1 1 auto;min-height:0;margin-bottom:10px;}
+  .news-lista{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;}
+  /* Sama ucięta linijka to za słaby sygnał, że lista leci dalej — dokładamy
+     zanikanie przy dolnej krawędzi, gasnące po dojechaniu na koniec. */
+  .news-ramka::after{content:'';position:absolute;left:0;right:0;bottom:0;height:28px;
+    pointer-events:none;opacity:0;transition:opacity .15s;
+    background:linear-gradient(rgba(255,255,255,0), var(--panel));}
+  .news-ramka.jest-wiecej::after{opacity:1;}
   /* „Mniej animacji" wycisza ruch dla tych, którym przeszkadza albo szkodzi */
   body.spokojnie *{animation:none !important;transition:none !important;}
   @media (prefers-reduced-motion: reduce){ button.zerka{ animation:none; outline:3px solid var(--gold); } }
@@ -744,7 +760,7 @@
     </div>
   </div>
 
-  <div class="overlay hidden" id="worOverlay">
+  <div class="overlay hidden" id="worOverlay" data-wyjscie="worPozniejBtn">
     <div class="card">
       <h1 style="font-size:22px;">🛍️ Łup jest w worze</h1>
       <p class="sub" style="text-align:left;">
@@ -759,7 +775,7 @@
     </div>
   </div>
 
-  <div class="overlay hidden" id="zakladOverlay">
+  <div class="overlay hidden" id="zakladOverlay" data-wyjscie="zakladOkBtn">
     <div class="card">
       <h1 style="font-size:22px;">🎲 Zakład przed wyprawą</h1>
       <p class="sub">Uda się — dostajesz premię do wora.<br>Nie uda — tracisz część łupu z tej wyprawy.<br>Gwiazdek i poziomu zakład nie rusza.</p>
@@ -768,7 +784,7 @@
     </div>
   </div>
 
-  <div class="overlay hidden" id="sortOverlay">
+  <div class="overlay hidden" id="sortOverlay" data-wyjscie="sortExitBtn,sortWyjdzBtn">
     <div class="card">
       <div id="sortStart" class="sort-ekran">
         <h1 style="font-size:22px;">🗑️ Sortownia</h1>
@@ -802,7 +818,7 @@
     </div>
   </div>
 
-  <div class="overlay hidden" id="avOverlay">
+  <div class="overlay hidden" id="avOverlay" data-wyjscie="avCloseBtn">
     <div class="card">
       <h1 style="font-size:22px;">😎 Wybierz awatar</h1>
       <p class="sub">Kolejne odblokowujesz, zbierając gwiazdki.</p>
@@ -811,7 +827,7 @@
     </div>
   </div>
 
-  <div class="overlay hidden" id="setOverlay">
+  <div class="overlay hidden" id="setOverlay" data-wyjscie="setCloseBtn">
     <div class="card">
       <h1 style="font-size:22px;">⚙️ Ustawienia</h1>
       <div class="set-row"><span>🔊 Dźwięki</span><button class="set-sw" id="setSfx">WŁ.</button></div>
@@ -825,7 +841,7 @@
     </div>
   </div>
 
-  <div class="overlay hidden" id="fbOverlay">
+  <div class="overlay hidden" id="fbOverlay" data-wyjscie="fbCloseBtn">
     <div class="card">
       <h1 style="font-size:22px;">Napisz do nas</h1>
       <p class="sub">Czytam wszystko. Nie na wszystko odpisuję — ale każde zgłoszenie pomaga.</p>
@@ -841,15 +857,16 @@
     </div>
   </div>
 
-  <div class="overlay hidden" id="newsOverlay">
-    <div class="card">
+  <div class="overlay hidden" id="newsOverlay" data-wyjscie="newsCloseBtn">
+    <div class="card karta-news">
       <h1 style="font-size:22px;">📰 Co nowego</h1>
-      <div id="newsList"></div>
+      <div class="news-ramka"><div id="newsList" class="news-lista"></div></div>
+      <button class="secondary hidden" id="newsMoreBtn">Pokaż starsze zmiany</button>
       <button class="primary" id="newsCloseBtn">SUPER</button>
     </div>
   </div>
 
-  <div class="overlay hidden" id="streakOverlay">
+  <div class="overlay hidden" id="streakOverlay" data-wyjscie="streakTakeBtn">
     <div class="card">
       <h1 style="font-size:24px;" id="streakTytul">📅 Dzień <span id="streakDay">1</span> z rzędu!</h1>
       <p class="sub" id="streakPodpis">Bonus za powrót do gry:</p>
@@ -860,7 +877,7 @@
     </div>
   </div>
 
-  <div class="overlay hidden" id="pauseOverlay">
+  <div class="overlay hidden" id="pauseOverlay" data-wyjscie="resumeBtn">
     <div class="card">
       <h1 style="font-size:24px;">⏸️ Przerwa</h1>
       <p class="sub">W plecaku masz <b id="pauseLoot">0,00 zł</b>.<br>Jeśli teraz wyjdziesz, łup przepadnie.</p>
@@ -880,7 +897,7 @@
   </div>
 
   <!-- EXTRACT (successful bank) -->
-  <div class="overlay hidden" id="extractOverlay">
+  <div class="overlay hidden" id="extractOverlay" data-wyjscie="menuBtnEnd">
     <div class="card">
       <h1>BAZA! 🚪</h1>
       <div class="banner" id="recordBanner">🏆 NOWY REKORD JEDNEJ WYPRAWY!</div>
@@ -915,7 +932,7 @@
   </div>
 
   <!-- KARTA WYNIKU DO POKAZANIA ŚWIATU -->
-  <div class="overlay hidden" id="cardOverlay">
+  <div class="overlay hidden" id="cardOverlay" data-wyjscie="cardCloseBtn">
     <div class="card" style="padding:14px;">
       <img id="cardImg" alt="Karta wyniku" style="width:100%;border-radius:16px;border:3px solid var(--ink);display:block;">
       <p class="sub" style="margin:10px 0 8px;">Zrób zrzut ekranu i wrzuć na TikToka — albo wyślij link, żeby kolega zagrał <b>dokładnie tę mapę</b>.</p>
@@ -926,7 +943,7 @@
   </div>
 
   <!-- WYZWANIE Z LINKU -->
-  <div class="overlay hidden" id="duelOverlay">
+  <div class="overlay hidden" id="duelOverlay" data-wyjscie="duelSkipBtn">
     <div class="card">
       <h1>🥊 WYZWANIE</h1>
       <p class="sub" id="duelSub">Ktoś rzucił ci rękawicę.</p>
@@ -942,7 +959,7 @@
   </div>
 
   <!-- WYBÓR POZIOMU -->
-  <div class="overlay hidden" id="levelOverlay">
+  <div class="overlay hidden" id="levelOverlay" data-wyjscie="lvlCloseBtn">
     <div class="card">
       <h1 id="lvlTitle">POZIOMY</h1>
       <p class="sub" id="lvlSub">Wybierz poziom</p>
@@ -965,7 +982,7 @@
   </div>
 
   <!-- PAYOUT REQUEST -->
-  <div class="overlay hidden" id="couponOverlay">
+  <div class="overlay hidden" id="couponOverlay" data-wyjscie="closeCouponBtn">
     <div class="card">
       <h1>🎟️ TWÓJ KOD</h1>
       <p class="sub">Wpisz ten kod w aplikacji grynaplus, żeby odebrać punkty.</p>
@@ -1513,6 +1530,44 @@
       try{ TG.onEvent(ev, ()=>{ applyTelegramHeader(); if(state!=='playing') resize(); }); }catch(e){}
     });
   }
+  /* Dopóki gra nie pokaże własnego „wstecz", przycisk w lewym górnym rogu
+     Telegrama ZAMYKA całą grę. Na nakładce to pułapka: kto nie domyśli się,
+     że kartę trzeba przewinąć do przycisku na dole, wyrzuca się z gry.
+     Więc gdy nakładka jest otwarta, przejmujemy „wstecz" i zamykamy nią
+     tę nakładkę. */
+  function wyjscieZNakladki(){
+    const otwarte = Array.prototype.filter.call(
+      document.querySelectorAll('.overlay[data-wyjscie]'),
+      o => !o.classList.contains('hidden') && o.offsetParent !== null);
+    const ov = otwarte[otwarte.length - 1];   // ostatnia w kodzie leży na wierzchu
+    if(!ov) return null;
+    for(const id of ov.dataset.wyjscie.split(',')){
+      const b = document.getElementById(id.trim());
+      if(b && b.offsetParent !== null && !b.disabled) return b;
+    }
+    return null;
+  }
+  function odswiezPrzyciskWstecz(){
+    const bb = TG && TG.BackButton;
+    if(!bb || !bb.show) return;
+    try{ if(wyjscieZNakladki()) bb.show(); else bb.hide(); }catch(e){}
+  }
+  function watchTelegramBack(){
+    if(!TG || !TG.BackButton || !TG.onEvent) return;
+    try{ TG.onEvent('backButtonClicked', ()=>{
+      const b = wyjscieZNakladki();
+      if(b){ haptic('light'); b.click(); }
+      else odswiezPrzyciskWstecz();   // stan się rozjechał — schowaj przycisk
+    }); }catch(e){}
+    // Nakładki chowa i pokazuje kilkadziesiąt miejsc w kodzie — zamiast
+    // dopisywać się do każdego z nich, patrzymy na klasę. Sortownia przełącza
+    // ekrany WEWNĄTRZ jednej nakładki, więc ją też trzeba mieć na oku —
+    // inaczej „wstecz" zostałby na wierzchu, nie mając już co zamknąć.
+    const obs = new MutationObserver(odswiezPrzyciskWstecz);
+    document.querySelectorAll('.overlay, .sort-ekran').forEach(o =>
+      obs.observe(o, { attributes:true, attributeFilter:['class'] }));
+    odswiezPrzyciskWstecz();
+  }
   function measureUiTop(){
     let bottom = 0;
     const top = document.querySelector('.hud-top');
@@ -1800,7 +1855,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-22 · 40';
+  const APP_VERSION = '2026-09-22 · 41';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3626,6 +3681,10 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-22 · 41', linie:[
+      '📰 „Co nowego" mieści się na ekranie — przycisk widać od razu, a starsze zmiany są pod osobnym guzikiem.',
+      '↩️ Strzałka „wstecz" Telegrama zamyka teraz okienko, a nie całą grę.'
+    ]},
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
     ]},
@@ -3684,16 +3743,51 @@
       '🔋 Przy zerowej energii guzik GRAJ sam prowadzi do reklamy.'
     ]}
   ];
+  /* Numer wydania z „2026-09-22 · 40". Po nim sortujemy i po nim poznajemy,
+     czego gracz jeszcze nie widział — daty się powtarzają, numer nie. */
+  function numerWydania(v){
+    const m = String(v == null ? '' : v).match(/(\d+)\s*$/);
+    return m ? Number(m[1]) : 0;
+  }
+  // Sortujemy sami, żeby wpis dopisany w złe miejsce nie wylądował na górze.
+  NEWS.sort((a,b) => numerWydania(b.v) - numerWydania(a.v));
+  let newsCalosc = false;
+  function sygnalPrzewijania(){
+    const box = document.getElementById('newsList');
+    if(!box || !box.parentElement) return;
+    const zostalo = box.scrollHeight - box.scrollTop - box.clientHeight;
+    box.parentElement.classList.toggle('jest-wiecej', zostalo > 4);
+  }
+  document.getElementById('newsList').addEventListener('scroll', sygnalPrzewijania);
+  function rysujNowosci(od){
+    const box = document.getElementById('newsList');
+    const wiecej = document.getElementById('newsMoreBtn');
+    let lista = newsCalosc ? NEWS : NEWS.filter(w => numerWydania(w.v) > od);
+    if(!lista.length) lista = NEWS.slice(0, 1);
+    box.innerHTML = lista.map(w =>
+      '<div class="news-item"><b>' + w.v + '</b><br>' + w.linie.join('<br>') + '</div>'
+    ).join('');
+    box.scrollTop = 0;
+    sygnalPrzewijania();
+    const reszta = NEWS.length - lista.length;
+    wiecej.textContent = 'Pokaż starsze zmiany (' + reszta + ')';
+    wiecej.classList.toggle('hidden', reszta <= 0);
+  }
   function pokazCoNowego(reczne){
     const box = document.getElementById('newsList');
     if(!box) return;
-    box.innerHTML = NEWS.map(w =>
-      '<div class="news-item"><b>' + w.v + '</b><br>' + w.linie.join('<br>') + '</div>'
-    ).join('');
+    newsCalosc = !!reczne;   // z ustawień gracz prosi o całą historię
+    let widziane = 0;
+    if(!reczne){ try{ widziane = numerWydania(localStorage.getItem('lk_news')); }catch(e){} }
+    rysujNowosci(widziane);
     document.getElementById('setOverlay').classList.add('hidden');
     document.getElementById('newsOverlay').classList.remove('hidden');
+    sygnalPrzewijania();   // wysokości znamy dopiero, gdy karta jest widoczna
     if(!reczne){ try{ localStorage.setItem('lk_news', APP_VERSION); }catch(e){} }
   }
+  document.getElementById('newsMoreBtn').addEventListener('click', ()=>{
+    Sfx.click(); newsCalosc = true; rysujNowosci(0);
+  });
   document.getElementById('setNewsBtn').addEventListener('click', ()=>{ Sfx.click(); pokazCoNowego(true); });
   document.getElementById('newsCloseBtn').addEventListener('click', ()=>{
     Sfx.click();
@@ -3707,9 +3801,8 @@
     try{ widziane = localStorage.getItem('lk_news'); }catch(e){}
     if(widziane === APP_VERSION) return false;
     const swiezak = !widziane && (profile.gamesPlayed||0) === 0;
-    try{ localStorage.setItem('lk_news', APP_VERSION); }catch(e){}
-    if(swiezak) return false;
-    pokazCoNowego(false);
+    if(swiezak){ try{ localStorage.setItem('lk_news', APP_VERSION); }catch(e){} return false; }
+    pokazCoNowego(false);   // sam zapisze wersję, gdy odczyta już „widziane"
     return true;
   }
   document.querySelectorAll('#homePick button').forEach(b=> b.addEventListener('click', async ()=>{
@@ -6797,6 +6890,7 @@
     player.x=WORLD_W/2; player.y=WORLD_H-90;
     initTelegram();
     watchTelegramInsets();
+    watchTelegramBack();
     resize();            // Telegram zdążył już podać swoje wymiary
     if(isDesktopTelegram()){
       document.getElementById('startOverlay').classList.add('hidden');
