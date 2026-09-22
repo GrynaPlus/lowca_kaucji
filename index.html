@@ -560,12 +560,12 @@
         <!-- ta sama luka między „Zamknij" a „⌄ ⋯", w której podczas gry
              siedzi ŁUP — w menu jest wolna, więc wchodzi tu logo -->
         <div class="menu-logo"><span class="lg-a">ŁOWCA</span><span class="lg-b">KAUCJI</span></div>
-        <div class="avatar-tile" id="profileStripStart" role="button" tabindex="0">
+        <div class="avatar-tile" id="profileStripStart" role="button" tabindex="0" aria-label="Twój profil" title="Twój profil">
           <span class="av" id="avatarDisplayStart">🧢</span>
         </div>
-        <div class="top-chip"><span class="tc-ic">🔥</span><span class="tc-v" id="streakChipVal">0</span></div>
+        <div class="top-chip" id="streakChip" aria-label="Dni gry z rzędu" title="Dni gry z rzędu"><span class="tc-ic">🔥</span><span class="tc-v" id="streakChipVal">0</span></div>
         <div class="top-chip"><span class="tc-ic">🪙</span><span class="tc-v" id="walletVal">0,00 zł</span></div>
-        <button class="burger" id="burgerBtn">☰</button>
+        <button class="burger" id="burgerBtn" aria-label="Menu" title="Menu">☰</button>
       </div>
 
       <div class="event-banner" id="eventBanner">
@@ -596,9 +596,9 @@
             <!-- strzałki w rzędzie z kropkami: karta dostaje przez to o ~90 px
                  więcej szerokości i dłuższe napisy przestają się łamać -->
             <div class="map-pager">
-              <button class="map-nav" id="mapPrev">‹</button>
+              <button class="map-nav" id="mapPrev" aria-label="Poprzednia mapa" title="Poprzednia mapa">‹</button>
               <div class="map-dots" id="mapDots"></div>
-              <button class="map-nav" id="mapNext">›</button>
+              <button class="map-nav" id="mapNext" aria-label="Następna mapa" title="Następna mapa">›</button>
             </div>
             <!-- Sortownia stoi TUTAJ, a nie na dole zakładki: wszystko poniżej
                  karty mapy leży poza ekranem telefonu, więc guzik na dole nie
@@ -848,6 +848,7 @@
       <h1 style="font-size:24px;" id="streakTytul">📅 Dzień <span id="streakDay">1</span> z rzędu!</h1>
       <p class="sub" id="streakPodpis">Bonus za powrót do gry:</p>
       <div class="result-amount" id="streakVal">0,00 zł</div>
+      <p class="sub" id="streakOpis" style="display:none;"></p>
       <button class="secondary reward" id="streakAdBtn">🎬 Obejrzyj reklamę → podwój bonus</button>
       <button class="primary" id="streakTakeBtn">ODBIERAM</button>
     </div>
@@ -1792,7 +1793,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-21 · 38';
+  const APP_VERSION = '2026-09-22 · 39';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2482,6 +2483,18 @@
         ? 'Prezent na start:'
         : 'Bonus za powrót do gry:';
       document.getElementById('streakVal').textContent = fmt(nagroda);
+      /* Pierwszy ekran w życiu gracza NIE prosi o reklamę. Człowiek, który
+         jeszcze nie wie, czym jest kaucja, dostawał na dzień dobry propozycję
+         obejrzenia reklamy — a gracz, który odbije się od takiego powitania,
+         nie obejrzy już żadnej. Zamiast tego jedno zdanie o tym, po co ta
+         kaucja jest. Od drugiego dnia wszystko wraca do normy. */
+      const opis = document.getElementById('streakOpis');
+      opis.textContent = swiezy
+        ? 'Kaucję zbierasz z butelek i puszek, a potem wymieniasz ją na punkty grynaplus.'
+        : '';
+      opis.style.display = swiezy ? 'block' : 'none';
+      ad.classList.toggle('hidden', swiezy);
+      ok.textContent = swiezy ? 'ZACZYNAM' : 'ODBIERAM';
       ad.disabled = false; ad.textContent = '🎬 Obejrzyj reklamę → podwój bonus';
       ov.classList.remove('hidden');
       let zamkniete = false;
@@ -3413,7 +3426,9 @@
     c.innerHTML='';
     const list = Array.isArray(profile.coupons) ? profile.coupons : [];
     if(!list.length){
-      c.innerHTML='<div class="task-row" style="color:#7C86B8;">Brak wypłat — zbieraj kaucję i poproś w menu</div>';
+      /* Dawniej kody wydawało się ręcznie i trzeba było „poprosić w menu".
+         Teraz robi to serwer od ręki, więc tamto zdanie tylko myliło. */
+      c.innerHTML='<div class="task-row" style="color:#7C86B8;">Jeszcze nie masz kodów. Uzbieraj kaucję i wymień ją w zakładce Kupony.</div>';
       return;
     }
     list.forEach(cp=>{
@@ -3583,6 +3598,10 @@
   const NEWS = [
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
+    ]},
+    { v:'2026-09-22 · 39', linie:[
+      '🎁 Powitanie dla nowych graczy tłumaczy, po co jest kaucja — i nie zaczyna od reklamy.',
+      '🔤 Poprawione opisy tam, gdzie mówiły o nieistniejących już rzeczach.'
     ]},
     { v:'2026-09-21 · 38', linie:[
       '⚡ Gra chodzi znacznie płynniej na słabszych telefonach — kosze i butelki rysują się raz, a nie w każdej klatce.'
