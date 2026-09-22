@@ -383,6 +383,12 @@
      i button — zwykły <div class="hidden"> NIE chowa się wcale. Bez tej
      reguły wszystkie trzy ekrany sortowni wyświetlały się naraz. */
   .sort-ekran.hidden{display:none;}
+  /* Pasek postępu do kuponu — cienki, bez własnych napisów; liczby stoją
+     obok w kolumnie statusu. */
+  .pasek-celu{margin-top:5px;height:6px;border-radius:4px;background:rgba(74,46,16,0.16);overflow:hidden;}
+  .pasek-celu span{display:block;height:100%;border-radius:4px;
+    background:linear-gradient(90deg,#FFD166,var(--gold));}
+  #payoutList .status small{font-size:10px;font-weight:600;opacity:0.85;}
   .zaklad-wybrany{border-color:var(--gold-dark);background:var(--panel-3);}
   #zakladLista .shop-row.wybrany{border-color:var(--gold-dark);background:var(--panel-3);}
   #zakladLista .status small{font-size:10px;opacity:0.8;}
@@ -882,12 +888,13 @@
       <div class="banner" id="mapLevelBanner" style="background:var(--kom-nagroda);"></div>
       <div class="result-amount" id="resultAmount">0,00 zł</div>
       <div class="news-bar" id="newsBar"></div>
-      <p class="sub" style="margin:0 0 6px;">🛍️ trafia do wora — oddaj w sklepie, żeby zamienić na gotówkę</p>
+      <p class="sub" id="worLinijka" style="margin:0 0 6px;">🛍️ trafia do wora — oddaj w sklepie, żeby zamienić na kaucję</p>
       <p class="result-tier" id="resultTier"></p>
       <div class="tasks-box">
         <div class="t-title" id="goalsEndTitle">🎯 Gwiazdki poziomu</div>
         <div id="goalsListEnd"></div>
       </div>
+      <div class="banner" id="worBanner"></div>
       <div class="banner" id="zakladBanner"></div>
       <button class="secondary reward hidden" id="zakladRatujBtn">🎬 Reklama → ratuję zakład</button>
       <button class="secondary reward" id="rewardDoubleBtn">🎬 Obejrzyj reklamę → podwój ten łup</button>
@@ -1793,7 +1800,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-22 · 39';
+  const APP_VERSION = '2026-09-22 · 40';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2286,14 +2293,28 @@
       const st = canClaimTier(tier);
       const div=document.createElement('div');
       div.className='shop-row';
+      /* „Za mało kaucji" to ślepy zaułek: gracz nie wie, czy brakuje mu
+         dziesięciu złotych, czy dwustu. Do pierwszego kuponu trzeba 300 zł,
+         czyli ok. 35 wypraw — przy trzech dziennie to prawie dwa tygodnie.
+         Cel, którego nie widać, nie trzyma nikogo tak długo, więc pokazujemy
+         pasek i konkretne liczby zamiast samej odmowy. */
+      const braknieKaucji = profile.wallet < tier.costKaucja;
+      const postep = Math.max(0, Math.min(1, profile.wallet / tier.costKaucja));
       div.innerHTML =
         '<span class="mi">🎟️</span>'+
         '<span class="mn">'+tier.label+
           '<div class="sd">'+tier.costKaucja+' zł kaucji → '+tier.pointsReward+' pkt grynaplus'+
             (function(){ const r = wymogReklam(tier); return r
               ? '<br>🎬 obejrzane reklamy: <b>'+Math.min(r.ma, r.trzeba)+'/'+r.trzeba+'</b>' : ''; })()+
+            (braknieKaucji
+              ? '<div class="pasek-celu"><span style="width:'+(postep*100).toFixed(1)+'%"></span></div>'
+              : '')+
           '</div></span>'+
-        '<span class="status '+(st.ok?'buy':'locked')+'">'+(st.ok?'ODBIERZ':st.reason)+'</span>';
+        '<span class="status '+(st.ok?'buy':'locked')+'">'+
+          (st.ok ? 'ODBIERZ'
+                 : (braknieKaucji ? fmt(profile.wallet)+'<br><small>z '+tier.costKaucja+' zł</small>'
+                                  : st.reason))+
+        '</span>';
       if(st.ok){
         div.onclick = ()=>{
           const st2 = canClaimTier(tier);
@@ -3464,7 +3485,16 @@
       btn.classList.toggle('active', btn.dataset.tab===name);
     });
     // odśwież treść zakładki przy każdym wejściu, żeby dane były aktualne
-    if(name==='graj'){ renderMapSelector(); }
+    if(name==='graj'){
+      renderMapSelector();
+      /* Wyjaśnienie wora odpalało się WYŁĄCZNIE przez „Wróć do menu".
+         Tymczasem po pierwszej wyprawie najbardziej pod palcem jest duży
+         guzik JESZCZE RAZ, a zaraz za nim zakładki na dole — obie te drogi
+         omijały tłumaczenie i gracz zostawał z pełnym worem, nie wiedząc,
+         że trzeba go gdzieś zanieść. Teraz łapie go każdy powrót na
+         główną; sama funkcja i tak pokazuje się tylko raz. */
+      if(state==='idle') wytlumaczWor();
+    }
     else if(name==='sklep'){ renderShop(); }
     else if(name==='kupony'){ renderPayouts(); renderCoupons(); odswiezStatusProgow(); }
     else if(name==='zadania'){ renderTasks(); }
@@ -3598,6 +3628,10 @@
   const NEWS = [
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
+    ]},
+    { v:'2026-09-22 · 40', linie:[
+      '🛍️ Po wyprawie widać wprost, ile masz w worze i że trzeba go zanieść do sklepu.',
+      '📊 Przy kuponach jest pasek postępu — wiadomo, ile kaucji brakuje, zamiast samego „za mało".'
     ]},
     { v:'2026-09-22 · 39', linie:[
       '🎁 Powitanie dla nowych graczy tłumaczy, po co jest kaucja — i nie zaczyna od reklamy.',
@@ -3747,6 +3781,28 @@
     };
     ZAKLADY.forEach(dodaj);
     dodaj(null);
+  }
+
+  /* Ekran wyniku ma o worze jedną linijkę drobnym drukiem, która ginie
+     między kwotą a paskiem wiadomości. Tymczasem gracz, który po każdej
+     wyprawie naciska JESZCZE RAZ, nie trafia do menu — i potrafi zrobić
+     cztery wyprawy pod rząd, patrząc na portfel z zerem i nie wiedząc,
+     że łup czeka w worze. Dopóki nie zobaczył wyjaśnienia, mówimy mu to
+     wprost, z kwotą, przy każdym wyniku. */
+  function pokazPrzypomnienieWora(){
+    const ban = document.getElementById('worBanner');
+    if(!ban) return;
+    const wor = profile.stash || 0;
+    const pokaz = !profile.tutWor && wor > 0;
+    if(pokaz){
+      ban.textContent = '🛍️ W worze masz już ' + fmt(wor) + ' — zanieś go do sklepu, żeby zamienić na kaucję.';
+      ban.style.background = 'var(--kom-info)';
+    }
+    ban.classList.toggle('show', pokaz);
+    /* Gdy baner mówi to samo pełnym zdaniem, szara linijka wyżej jest już
+       tylko powtórzeniem — chowamy ją, żeby ekran nie mówił dwa razy. */
+    const linijka = document.getElementById('worLinijka');
+    if(linijka) linijka.style.display = pokaz ? 'none' : '';
   }
 
   function pokazWynikZakladu(){
@@ -6283,6 +6339,7 @@
     nb.classList.add('show');
     document.getElementById('recordBanner').classList.toggle('show', isNewBest);
     pokazWynikZakladu();
+    pokazPrzypomnienieWora();
     document.getElementById('levelBanner').classList.toggle('show', leveledThisRound);
     const mapLvlBanner = document.getElementById('mapLevelBanner');
     if(wynikWyzwania){
