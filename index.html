@@ -3683,7 +3683,8 @@
   const NEWS = [
     { v:'2026-09-22 · 41', linie:[
       '📰 „Co nowego" mieści się na ekranie — przycisk widać od razu, a starsze zmiany są pod osobnym guzikiem.',
-      '↩️ Strzałka „wstecz" Telegrama zamyka teraz okienko, a nie całą grę.'
+      '↩️ Strzałka „wstecz" Telegrama zamyka teraz okienko, a nie całą grę.',
+      '🛑 W trakcie wyprawy Telegram dopyta, zanim zamknie grę — łup z plecaka nie przepadnie przez przypadkowe dotknięcie.'
     ]},
     { v:'2026-09-20 · 28', linie:[
       '🛡️ Reklamy muszą się naprawdę wyświetlić, żeby dać nagrodę.'
@@ -6077,8 +6078,24 @@
   }
 
   let last=performance.now();
+  /* Zamknięcie Mini Appa w trakcie wyprawy kasuje łup z plecaka i spaloną
+     energię — nic tego nie odkręci, a „X" w lewym górnym rogu Telegrama nie
+     pyta o zdanie. Prosimy więc Telegram o potwierdzenie na czas wyprawy i
+     gasimy je zaraz po niej: poza wyprawą zamknięcie ma być natychmiastowe.
+     Stan pilnuje pętla, bo state zmienia się w kilkunastu miejscach, ale do
+     Telegrama dzwonimy WYŁĄCZNIE przy zmianie. */
+  const FAZY_Z_LUPEM = ['playing','paused','caught'];
+  let potwierdzenieWyjscia = null;
+  function odswiezPotwierdzenieWyjscia(){
+    if(!TG || !TG.enableClosingConfirmation || !TG.disableClosingConfirmation) return;
+    const chce = FAZY_Z_LUPEM.indexOf(state) >= 0;
+    if(chce === potwierdzenieWyjscia) return;
+    potwierdzenieWyjscia = chce;
+    try{ if(chce) TG.enableClosingConfirmation(); else TG.disableClosingConfirmation(); }catch(e){}
+  }
   function loop(now){
     let dt=Math.min(0.033,(now-last)/1000); last=now;
+    odswiezPotwierdzenieWyjscia();
     // Zwolnione tempo po ucieczce o włos — to jest ten jeden moment
     // wyprawy, który naprawdę warto mieć na filmiku.
     if(powtorka.gra){
