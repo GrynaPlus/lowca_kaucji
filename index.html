@@ -257,8 +257,12 @@
 
   .info-panel{background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:10px 12px;margin-bottom:10px;text-align:left;box-shadow:0 3px 0 rgba(0,0,0,0.12);}
   .info-panel .t-title{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;color:var(--naglowek);margin-bottom:6px;}
-  .energy-strip{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:8px 12px;margin-bottom:10px;box-shadow:0 3px 0 rgba(0,0,0,0.12);}
+  /* Dziesięć serduszek zajmuje 254 px, więc na wąskim telefonie napis obok
+     nie ma już gdzie stanąć — wciskał się w 36-pikselową kolumnę i łamał na
+     trzy linie. Niech woli zejść do własnego wiersza niż się dusić. */
+  .energy-strip{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:var(--panel-2);border:2.5px solid var(--ink);border-radius:16px;padding:8px 12px;margin-bottom:10px;box-shadow:0 3px 0 rgba(0,0,0,0.12);}
   .energy-strip .energy-row{margin-bottom:0;}
+  .energy-strip .energy-note{white-space:nowrap;}
   .tab-panel{display:block;}
   .tab-panel.hidden{display:none;}
   .bottom-tabbar{position:relative;flex-shrink:0;display:flex;background:var(--panel);border-top:3px solid var(--ink);box-shadow:0 -4px 14px rgba(0,0,0,0.18);padding:24px 6px 8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));}
@@ -1264,7 +1268,14 @@
      dlatego domyślnie go nie włączam. Opis jak włączyć niżej.
      ========================================================= */
   const MONETAG_ZONE = '11784973';
-  const AD_CONFIG = { showInterstitialEveryNRounds: 2 };
+  /* Sesja urosła z 3 wypraw do 10, więc odstęp musiał urosnąć razem z nią.
+     Licznik sprawdzany jest PRZED podbiciem, więc na 10 wypraw wypada:
+       co 2 → przerywniki po 2, 4, 6, 8 = cztery, czyli jeden co 70 sekund
+       co 3 → przerywniki po 3, 6, 9    = trzy,   czyli jeden co 93 sekundy
+     Dziś przy trzech energiach wychodzi jeden na 84 sekundy gry. „Co 3"
+     trzyma więc dotychczasowe tempo przerywania, dając ich w sumie trzy
+     razy więcej na sesję. */
+  const AD_CONFIG = { showInterstitialEveryNRounds: 3 };
   // Dobrowolne reklamy: gracz sam po nie sięga, bo coś z nich ma.
   const BOOST_LUPU = 0.25;    // bonus startowy do łupu z najbliższej wyprawy
   const BOOST_KASY = 0.20;    // dopłata przy odbiorze kaucji w kasie
@@ -1855,7 +1866,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-22 · 42';
+  const APP_VERSION = '2026-09-22 · 43';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2441,7 +2452,13 @@
      a przycisk „reklama → +1 gra" podbijał energię ponad 10, na co
      backend odpowiada odrzuceniem zapisu („nieprawidłowa energia").
      Brak limitu pierwszej doby załatwia teraz sama bramka startu. */
-  function energyMax(){ let m=3; if(profile.level>=5) m=4; if(profile.level>=10) m=5; return m; }
+  /* Dziesięć to NIE jest liczba wzięta z sufitu: validateProfile na serwerze
+     odrzuca zapis z energią powyżej 10 („nieprawidłowa energia"). Podniesienie
+     tego progu tutaj bez wcześniejszej zmiany na serwerze wywaliłoby zapis
+     profilu każdemu, kto by go przekroczył. Reklama za energię i tak dobija
+     tylko do energyMax(), więc 10 jest zarazem sufitem gry i serwera. */
+  const ENERGIA_MAKS = 10;
+  function energyMax(){ return ENERGIA_MAKS; }
   function addXP(amount){
     profile.xp += amount; let leveled=false;
     while(profile.xp >= xpToNext(profile.level)){ profile.xp -= xpToNext(profile.level); profile.level++; leveled=true; }
@@ -2469,16 +2486,20 @@
        dostawał ją każdy dotychczasowy gracz, z poziomem 16 i workiem kasy
        włącznie. Kto ma już dorobek, dostaje datę z przeszłości.
 
-       Zapisujemy OD RAZU: bez tego komuś, kto wejdzie i wyjdzie nie grając,
-       doba liczyłaby się od nowa przy każdym uruchomieniu i nigdy by się
-       nie skończyła. */
+       Komu ma się NIE należeć, rozstrzygamy od razu: kto ma dorobek,
+       dostaje datę z przeszłości i po sprawie.
+
+       Reszcie zegar rusza dopiero przy pierwszej wyprawie (patrz
+       beginRound), a nie przy pierwszym wejściu. Inaczej ktoś, kto wpadł
+       z linku, rozejrzał się i wrócił pojutrze, miał darmową dobę spaloną,
+       nie zagrawszy ani razu — trafiał od razu na ścianę. Restartu nadal
+       nie ma, bo stempel zapada tylko raz i od razu leci zapis. */
     if(!profile.firstSeen){
       const maStaz = (profile.gamesPlayed||0) > 0
                   || (profile.totalEarned||0) > 0
                   || (profile.level||1) > 1
                   || !!profile.lastPlayDate;
-      profile.firstSeen = maStaz ? 1 : Date.now();
-      saveProfile();
+      if(maStaz){ profile.firstSeen = 1; saveProfile(); }
     }
     if(!profile.mapLevels || typeof profile.mapLevels!=='object') profile.mapLevels={};
     /* Migracja z wersji <=11: było 5 poziomów podnoszących wyłącznie limit
@@ -3688,6 +3709,11 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-22 · 43', linie:[
+      '❤️ Dziesięć gier zamiast trzech — jedno posiedzenie to teraz prawie pięć minut, a nie półtorej.',
+      '🎉 Doba bez limitu liczy się od pierwszej wyprawy, a nie od wejścia — kto się tylko rozejrzał, nic nie traci.',
+      '🎬 Przerywniki rzadziej: co trzecią wyprawę zamiast co drugą.'
+    ]},
     { v:'2026-09-22 · 42', linie:[
       '📊 Gra zgłasza teraz, kiedy ktoś ją otworzył i kiedy zabrakło energii — bez tego nie dało się sprawdzić, czemu gracze odchodzą.'
     ]},
@@ -6513,6 +6539,8 @@
     document.getElementById('caughtOverlay').classList.add('hidden');
     document.getElementById('pauseOverlay').classList.add('hidden');
     resetGame(); state='playing'; roundsPlayed+=1;
+    // Tu, a nie przy wczytaniu profilu: doba bez limitu należy się za granie.
+    if(!profile.firstSeen){ profile.firstSeen = Date.now(); saveProfile(); }
     grynaPlusEvent('round_started', { mapId:currentMapId, poziomMapy:playedLevel,
       wypraw: profile.gamesPlayed || 0, dzien: dzienZycia() });
     if(playedMods.length) setTimeout(()=>showToast('⚡ '+playedMods.map(modLabel).join(' · ')), 750);
