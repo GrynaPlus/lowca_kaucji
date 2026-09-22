@@ -1866,7 +1866,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-22 · 43';
+  const APP_VERSION = '2026-09-22 · 44';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2221,7 +2221,7 @@
     // ze SWOJEJ kopii profilu, więc podmiana wallet w konsoli przeglądarki
     // niczego nie da.
     enabled: true,
-    dailyPointsCap: 200,       // maks. pkt do odebrania na dobę
+    dailyPointsCap: 1000,      // maks. pkt na dobę — musi zgadzać się z DAILY_POINTS_CAP w api/index.js
     requireAdToClaim: true,    // reklama przy każdym odbiorze kodu
     // Progi przeliczone na OSTROŻNE stawki Monetag (marża ~1,9-2,1x).
     // Przy AdMob można było dawać 150 zł za 10 pkt — tutaj to byłaby
@@ -3709,6 +3709,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-22 · 44', linie:[
+      '🎟️ Dzienny limit punktów podniesiony z 200 do 1000 — sufit przestaje być sufitem.'
+    ]},
     { v:'2026-09-22 · 43', linie:[
       '❤️ Dziesięć gier zamiast trzech — jedno posiedzenie to teraz prawie pięć minut, a nie półtorej.',
       '🎉 Doba bez limitu liczy się od pierwszej wyprawy, a nie od wejścia — kto się tylko rozejrzał, nic nie traci.',
