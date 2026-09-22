@@ -1855,7 +1855,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-22 · 41';
+  const APP_VERSION = '2026-09-22 · 42';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2423,6 +2423,13 @@
      obronić sama. */
   const DOBA = 24*60*60*1000;
   const ZAPROSZENIE_BONUS = 10;   // dostają OBAJ: i zapraszający, i zaproszony
+  /* Ile dni gracz ma już grę. Bez tego każde zdarzenie mówi „ktoś coś
+     zrobił", ale nie wiadomo, czy to pierwszy wieczór, czy trzeci tydzień —
+     a właśnie w tym siedzi odpowiedź na pytanie, kiedy ludzie odpadają. */
+  function dzienZycia(){
+    if(!profile.firstSeen) return 0;
+    return Math.floor((Date.now() - profile.firstSeen) / DOBA);
+  }
   function pierwszaDoba(){
     if(!profile.firstSeen) return true;
     return (Date.now() - profile.firstSeen) < DOBA;
@@ -3681,6 +3688,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-22 · 42', linie:[
+      '📊 Gra zgłasza teraz, kiedy ktoś ją otworzył i kiedy zabrakło energii — bez tego nie dało się sprawdzić, czemu gracze odchodzą.'
+    ]},
     { v:'2026-09-22 · 41', linie:[
       '📰 „Co nowego" mieści się na ekranie — przycisk widać od razu, a starsze zmiany są pod osobnym guzikiem.',
       '↩️ Strzałka „wstecz" Telegrama zamyka teraz okienko, a nie całą grę.',
@@ -6503,13 +6513,18 @@
     document.getElementById('caughtOverlay').classList.add('hidden');
     document.getElementById('pauseOverlay').classList.add('hidden');
     resetGame(); state='playing'; roundsPlayed+=1;
+    grynaPlusEvent('round_started', { mapId:currentMapId, poziomMapy:playedLevel,
+      wypraw: profile.gamesPlayed || 0, dzien: dzienZycia() });
     if(playedMods.length) setTimeout(()=>showToast('⚡ '+playedMods.map(modLabel).join(' · ')), 750);
     startTutorialIfNeeded();
     Music.start('game');
   }
   function attemptStart(){
     regenTick();
-    if(!pierwszaDoba() && profile.energy<=0){ showToast('Brak energii — poczekaj lub obejrzyj reklamę ↓'); pokazGuzikReklamy(); return; }
+    if(!pierwszaDoba() && profile.energy<=0){
+      zglosSciane('start');
+      showToast('Brak energii — poczekaj lub obejrzyj reklamę ↓'); pokazGuzikReklamy(); return;
+    }
     const proceed = async ()=>{
       if(!pierwszaDoba()) profile.energy-=1;   // pierwszej doby nie liczymy
       await saveProfile(); renderEnergy(); beginRound();
@@ -6519,7 +6534,7 @@
   }
   document.getElementById('startBtn').addEventListener('click', (e)=>{
     if(buyStageMap()) return; // mapa nieposiadana → przycisk kupuje zamiast startować
-    if(brakEnergii()){ reklamaZaEnergie(e.currentTarget, '🎬 REKLAMA → +1 GRA'); return; }
+    if(brakEnergii()){ zglosSciane('graj'); reklamaZaEnergie(e.currentTarget, '🎬 REKLAMA → +1 GRA'); return; }
     attemptStart();
   });
   // pasek poziomu żyje wewnątrz przepisywanego innerHTML karty, więc
@@ -6596,6 +6611,9 @@
   document.getElementById('resumeBtn').addEventListener('click', resumeRound);
   document.getElementById('quitRunBtn').addEventListener('click', ()=>{
     document.getElementById('pauseOverlay').classList.add('hidden');
+    grynaPlusEvent('round_quit', { mapId:currentMapId, poziomMapy:playedLevel,
+      stracone:Number(loot.toFixed(2)), sekund:Math.round(elapsedSinceStart),
+      dzien: dzienZycia() });
     Sfx.click(); goToMenu();
   });
   document.getElementById('againBtn').addEventListener('click', attemptStart);
@@ -6853,6 +6871,14 @@
   }
 
   function brakEnergii(){ return !pierwszaDoba() && profile.energy<=0; }
+  /* Najcenniejsze zdarzenie w całej grze: gracz nacisnął GRAJ, a gra nie
+     dała mu zagrać. Jeśli tego jest dużo, problemem nie jest to, że nie
+     chcą grać — tylko to, że nie mogą. Dwa wejścia, bo guzik GRAJ zamienia
+     się wtedy w propozycję reklamy i nie dochodzi do attemptStart(). */
+  function zglosSciane(skad){
+    grynaPlusEvent('energy_blocked', { skad: skad,
+      wypraw: profile.gamesPlayed || 0, dzien: dzienZycia() });
+  }
 
   /* Jedna droga do reklamy za energię, używana i przez guzik GRAJ, i przez
      ten na dole zakładki. `napisWyjsciowy` wraca na guzik, gdy reklamy nie
@@ -6942,6 +6968,13 @@
     // dopisuje się do profilu, a wyzwanie musi znać odblokowane mapy
     const zLinku = zastosujStartParam();
     regenTick();
+    /* Do tej pory pierwszym śladem gracza było ukończenie wyprawy albo
+       odebranie serii dni. Kto wszedł, rozejrzał się i wyszedł, nie
+       zostawiał NICZEGO — czyli największy odpad był niewidoczny. */
+    grynaPlusEvent('app_opened', {
+      wypraw: profile.gamesPlayed || 0, dzien: dzienZycia(),
+      energia: profile.energy, maks: energyMax(), bezLimitu: pierwszaDoba()
+    });
     renderMapSelector();
     renderShop();
     renderPayouts();
