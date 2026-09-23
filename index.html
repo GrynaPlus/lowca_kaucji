@@ -1944,7 +1944,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-23 · 47';
+  const APP_VERSION = '2026-09-23 · 48';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2166,19 +2166,233 @@
   })();
 
   /* =========================================================
-     MUZYKA W TLE — generowana proceduralnie (Web Audio), bez
-     plików mp3. Dwa oddzielne, zapętlone motywy: spokojniejszy
-     w menu, bardziej pulsujący i napięty podczas wyprawy —
-     przełączane automatycznie przy zmianie ekranu.
+     MUZYKA W TLE — generowana na żywo (Web Audio), bez plików mp3,
+     więc gra dalej jest jednym plikiem. Dwa utwory z kilkoma
+     częściami, żeby pętla nie nudziła, przełączane przy zmianie ekranu:
+     MENU  „Osiedlowy luz": 90 BPM z bujaniem, ciepłe akordy jak z
+           pianina elektrycznego, spacerujący bas, miękka perkusja,
+           melodia z echem.
+     GRA   „Pogoń": 128 BPM, stopa na każdą ćwierćnutę, pulsujący bas
+           oktawami, arpeggio i chwytliwy motyw; pierwsze 4 takty bez
+           melodii. Ciszej niż menu, żeby nie zagłuszać efektów.
+     Utwór to lista taktów; każdy takt to 16 szesnastek.
      ========================================================= */
   const Music = (function(){
-    let actx=null, master=null, muted=false, scheduler=null, current=null, nextTime=0, stepIndex=0;
+    let actx=null, silnik=null, muted=false, scheduler=null, current=null, nextTime=0, stepIndex=0;
+
+    const POLTONY = {C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11};
+    function midi(n){ const m=/^([A-G][#b]?)(\d)$/.exec(n); return POLTONY[m[1]] + (+m[2]+1)*12; }
+    const hz = (m)=>440*Math.pow(2,(m-69)/12);
+
+    /* ---------- instrumenty ---------- */
+    function zbudujSilnik(a, cel){
+      const wyj = a.createGain(); wyj.gain.value = 0; wyj.connect(cel);
+      const komp = a.createDynamicsCompressor();
+      komp.threshold.value = -16; komp.knee.value = 8; komp.ratio.value = 3.5; komp.attack.value = 0.004; komp.release.value = 0.18;
+      komp.connect(wyj);
+      const suma = a.createGain(); suma.connect(komp);
+      // echo (delay z przyciemnionym sprzężeniem) — daje przestrzeń melodii
+      const echo = a.createDelay(1.5), petla = a.createGain(), ciemno = a.createBiquadFilter(), echoWe = a.createGain();
+      ciemno.type='lowpass'; ciemno.frequency.value=2400; petla.gain.value=0.34; echoWe.gain.value=0.28;
+      echoWe.connect(echo); echo.connect(ciemno); ciemno.connect(petla); petla.connect(echo); ciemno.connect(suma);
+      const panorama = (p)=>{ if(!a.createStereoPanner) return suma; const n=a.createStereoPanner(); n.pan.value=p; n.connect(suma); return n; };
+      function filtr(typ, f, q, dokad){ const b=a.createBiquadFilter(); b.type=typ; b.frequency.value=f; if(q) b.Q.value=q; b.connect(dokad); return b; }
+      /* Jeden filtr na instrument, a nie na każdą nutę — przy 128 BPM to
+         kilkanaście filtrów na sekundę mniej, a słabszy telefon to czuje. */
+      const szynaHat = filtr('highpass', 7200, 0, panorama(0.22));
+      const szynaWerbel = filtr('highpass', 1300, 0, suma);
+      const szynaArp = filtr('lowpass', 1900, 0, panorama(-0.18));
+      const szynaProw = filtr('lowpass', 2600, 0, suma);
+      const szynaKlaw = filtr('lowpass', 2000, 0, suma);
+      // szum na werbel i hi-hat — jeden bufor na cały czas gry
+      const szum = a.createBuffer(1, Math.floor(a.sampleRate*0.4), a.sampleRate);
+      const d = szum.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+
+      function wzmocnienie(t, szczyt, atak, koniec, dokad){
+        const g=a.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(szczyt, t+atak);
+        g.gain.exponentialRampToValueAtTime(0.0001, koniec);
+        g.connect(dokad || suma); return g;
+      }
+      function oscylator(typ, f, t, koniec, dokad){
+        const o=a.createOscillator(); o.type=typ; o.frequency.setValueAtTime(f, t);
+        o.connect(dokad); o.start(t); o.stop(koniec+0.02); return o;
+      }
+      function szumOd(t, koniec, dokad){
+        const s=a.createBufferSource(); s.buffer=szum; s.connect(dokad); s.start(t); s.stop(koniec+0.02); return s;
+      }
+      return {
+        ustawGlosnosc(v){ wyj.gain.setTargetAtTime(v, a.currentTime, 0.15); },
+        ustawEcho(sek, ile){ echo.delayTime.setValueAtTime(sek, a.currentTime); echoWe.gain.setValueAtTime(ile, a.currentTime); },
+        stopa(t, sila){
+          const k=t+0.32, g=wzmocnienie(t, 0.9*sila, 0.004, k);
+          const o=oscylator('sine', 150, t, k, g); o.frequency.exponentialRampToValueAtTime(46, t+0.11);
+        },
+        werbel(t, sila){
+          const k=t+0.16, g=wzmocnienie(t, 0.34*sila, 0.002, k, szynaWerbel);
+          szumOd(t, k, g);
+          const g2=wzmocnienie(t, 0.22*sila, 0.002, t+0.09);
+          const o=oscylator('triangle', 210, t, t+0.09, g2); o.frequency.exponentialRampToValueAtTime(150, t+0.08);
+        },
+        hihat(t, sila, otwarty){
+          const k=t+(otwarty?0.2:0.04), g=wzmocnienie(t, 0.13*sila, 0.002, k, szynaHat);
+          szumOd(t, k, g);
+        },
+        // pianino elektryczne: sinus + cichy trójkąt, szybki atak, powolne wygasanie
+        klawisze(t, czestotliwosci, dl, sila){
+          const k=t+dl+0.25;
+          czestotliwosci.forEach(f=>{
+            const g=a.createGain(); g.connect(szynaKlaw);
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.075*sila, t+0.012);
+            g.gain.exponentialRampToValueAtTime(0.026*sila, t+dl);
+            g.gain.exponentialRampToValueAtTime(0.0001, k);
+            oscylator('sine', f, t, k, g);
+            const g3=a.createGain(); g3.gain.value=0.3; g3.connect(g);
+            oscylator('triangle', f*2, t, k, g3);
+          });
+        },
+        basMiekki(t, f, dl){
+          const k=t+dl+0.06, g=wzmocnienie(t, 0.34, 0.01, k);
+          oscylator('triangle', f, t, k, g);
+          const g2=a.createGain(); g2.gain.value=0.35; g2.connect(g);
+          oscylator('sine', f*2, t, k, g2);           // wyższa oktawa, żeby bas był słychać w głośniczku telefonu
+        },
+        basPila(t, f, dl){
+          const k=t+dl+0.03, g=wzmocnienie(t, 0.3, 0.006, k);
+          const lp=filtr('lowpass', 1500, 4, g);
+          lp.frequency.setValueAtTime(1500, t); lp.frequency.exponentialRampToValueAtTime(420, t+0.14);
+          oscylator('sawtooth', f, t, k, lp);
+        },
+        // melodia w menu: miękki trójkąt z wibratem, z echem
+        spiew(t, f, dl){
+          const k=t+dl+0.12, g=wzmocnienie(t, 0.17, 0.03, k);
+          g.connect(echoWe);
+          const o=oscylator('triangle', f, t, k, g);
+          const lfo=a.createOscillator(), glebia=a.createGain();
+          lfo.frequency.value=5.2; glebia.gain.setValueAtTime(0, t); glebia.gain.linearRampToValueAtTime(f*0.007, t+0.25);
+          lfo.connect(glebia); glebia.connect(o.frequency); lfo.start(t); lfo.stop(k+0.02);
+        },
+        // melodia w grze: przyciemniony kwadrat, krótko i wyraźnie
+        prowadzacy(t, f, dl){
+          const k=t+dl+0.05, g=wzmocnienie(t, 0.12, 0.008, k, szynaProw);
+          g.connect(echoWe);
+          oscylator('square', f, t, k, g);
+        },
+        arp(t, f, sila){
+          const k=t+0.11, g=wzmocnienie(t, 0.07*sila, 0.003, k, szynaArp);
+          oscylator('square', f, t, k, g);
+        }
+      };
+    }
+
+    /* ---------- nuty ---------- */
+    // takt: { r:'F2' (bas), ch:[akord], m:[[krok,'nuta',długość], …] }
+    // echo: [długość w ćwierćnutach, ile sygnału idzie w echo] — 0,75 to ósemka z kropką
+    const T = (r, ch, m)=>({ r, ch:ch.split(' '), m:m||[] });
+    const MENU = {
+      bpm:90, bujanie:0.3, echo:[0.75, 0.3], glosnosc:0.05,
+      czesci:[
+        [ T('F2','F3 A3 C4 E4',[[0,'C5',3],[3,'A4',1],[4,'C5',2],[6,'D5',2],[8,'E5',6],[14,'D5',2]]),
+          T('A2','G3 A3 C4 E4',[[0,'C5',4],[6,'A4',2],[8,'G4',2],[10,'A4',2],[12,'C5',4]]),
+          T('Bb2','Bb3 D4 F4 A4',[[0,'D5',3],[3,'C5',1],[4,'D5',2],[6,'F5',2],[8,'E5',4],[12,'D5',2],[14,'C5',2]]),
+          T('C3','Bb3 C4 E4 G4',[[0,'C5',6],[8,'G4',2],[10,'Bb4',2],[12,'A4',4]]) ],
+        [ T('F2','F3 A3 C4 E4',[[0,'C5',3],[3,'A4',1],[4,'C5',2],[6,'D5',2],[8,'E5',6],[14,'D5',2]]),
+          T('A2','G3 A3 C4 E4',[[0,'C5',4],[6,'E5',2],[8,'G5',4],[12,'E5',4]]),
+          T('Bb2','Bb3 D4 F4 A4',[[0,'F5',3],[3,'E5',1],[4,'D5',4],[8,'C5',2],[10,'D5',2],[12,'F5',4]]),
+          T('Bb2','Bb3 Db4 F4 G4',[[0,'Db5',4],[4,'C5',4],[8,'Bb4',4],[12,'G4',4]]) ],
+        [ T('D3','A3 C4 D4 F4',[[2,'A4',2],[4,'C5',2],[6,'D5',2],[8,'F5',4],[14,'E5',2]]),
+          T('G2','G3 Bb3 D4 F4',[[0,'D5',4],[6,'Bb4',2],[8,'A4',2],[10,'Bb4',2],[12,'D5',4]]),
+          T('C3','Bb3 C4 E4 G4',[[0,'E5',2],[2,'G5',2],[4,'E5',2],[6,'C5',2],[8,'Bb4',4],[12,'G4',4]]),
+          T('F2','F3 A3 C4 E4',[[0,'A4',8],[10,'C5',2],[12,'E5',4]]) ],
+        [ T('D3','A3 C4 D4 F4',[[0,'F5',4],[4,'E5',2],[6,'D5',2],[8,'C5',4],[12,'A4',4]]),
+          T('G2','F3 B3 D4 G4',[[0,'B4',4],[4,'D5',2],[6,'F5',2],[8,'E5',4],[12,'D5',4]]),
+          T('G2','G3 Bb3 D4 F4',[[0,'Bb4',3],[3,'A4',1],[4,'G4',4],[8,'Bb4',2],[10,'D5',2],[12,'F5',4]]),
+          T('C3','Bb3 C4 E4 G4',[[0,'E5',6],[8,'D5',2],[10,'C5',2],[12,'Bb4',2],[14,'G4',2]]) ]
+      ],
+      // akordy: w częściach A dwa uderzenia na takt, w B/C gęściej
+      akordy:[ [[0,6],[10,6]], [[0,6],[10,6]], [[0,4],[6,2],[8,8]], [[0,4],[6,2],[8,8]] ],
+      perkusja:{ stopa:'x.........x.....', werbel:'....x.......x...', hihat:'x.o.x.o.x.o.x.oo', przejscie:'....x.......x.oo' },
+      bas:'menu'
+    };
+    const GRA = {
+      bpm:128, bujanie:0, echo:[0.75, 0.22], glosnosc:0.04,
+      czesci:[
+        [ T('A2','A4 C5 E5'), T('F2','F4 A4 C5'), T('C3','E4 G4 C5'), T('G2','G4 B4 D5') ],
+        [ T('A2','A4 C5 E5',[[0,'A4',2],[2,'C5',2],[4,'E5',3],[7,'D5',1],[8,'C5',2],[10,'D5',2],[12,'E5',4]]),
+          T('F2','F4 A4 C5',[[0,'F5',2],[2,'E5',2],[4,'C5',4],[8,'A4',2],[10,'C5',2],[12,'F5',4]]),
+          T('C3','E4 G4 C5',[[0,'G5',3],[3,'E5',1],[4,'C5',2],[6,'E5',2],[8,'G5',4],[12,'A5',2],[14,'G5',2]]),
+          T('G2','G4 B4 D5',[[0,'D5',6],[6,'B4',2],[8,'D5',2],[10,'G5',2],[12,'B4',4]]) ],
+        [ T('A2','A4 C5 E5',[[0,'A4',2],[2,'C5',2],[4,'E5',3],[7,'D5',1],[8,'C5',2],[10,'D5',2],[12,'E5',4]]),
+          T('F2','F4 A4 C5',[[0,'F5',2],[2,'E5',2],[4,'C5',4],[8,'A4',2],[10,'C5',2],[12,'F5',4]]),
+          T('C3','E4 G4 C5',[[0,'E5',2],[2,'G5',2],[4,'C6',4],[8,'B5',2],[10,'A5',2],[12,'G5',4]]),
+          T('G2','G4 B4 D5',[[0,'D5',2],[2,'E5',2],[4,'G5',4],[8,'B5',4],[12,'G5',4]]) ],
+        [ T('F2','F4 A4 C5',[[0,'A5',4],[4,'G5',2],[6,'F5',2],[8,'E5',4],[12,'C5',4]]),
+          T('G2','G4 B4 D5',[[0,'B4',2],[2,'D5',2],[4,'G5',4],[8,'F5',2],[10,'E5',2],[12,'D5',4]]),
+          T('E2','E4 G4 B4',[[0,'E5',2],[2,'G5',2],[4,'B5',4],[8,'A5',2],[10,'G5',2],[12,'E5',4]]),
+          T('A2','A4 C5 E5',[[0,'A5',6],[6,'G5',2],[8,'E5',4],[12,'C5',4]]) ],
+        [ T('F2','F4 A4 C5',[[0,'C5',2],[2,'F5',2],[4,'A5',4],[8,'G5',2],[10,'F5',2],[12,'E5',2],[14,'F5',2]]),
+          T('G2','G4 B4 D5',[[0,'G5',4],[4,'D5',4],[8,'B4',2],[10,'D5',2],[12,'G5',4]]),
+          T('A2','A4 C5 E5',[[0,'A5',3],[3,'G5',1],[4,'E5',2],[6,'C5',2],[8,'E5',2],[10,'A5',2],[12,'C6',4]]),
+          T('E2','E4 G#4 B4 D5',[[0,'B5',4],[4,'G#5',4],[8,'E5',2],[10,'D5',2],[12,'B4',2],[14,'G#4',2]]) ]
+      ],
+      perkusja:{ stopa:'x...x...x...x...', werbel:'....x.......x...', hihat:'ooXoooXoooXoooXo', przejscie:'....x.......xxxx' },
+      bas:'gra'
+    };
+
+    // Rozpisuje utwór na kroki (szesnastki). Każdy krok to lista zdarzeń.
+    function rozpisz(u){
+      const takty = []; u.czesci.forEach((c, ci)=>c.forEach((t, ti)=>takty.push({ t, ci, ti, ostatni: ti===c.length-1 })));
+      const kroki = [];
+      takty.forEach((x, nr)=>{
+        const nast = takty[(nr+1) % takty.length].t;
+        const baza = nr*16;
+        for(let i=0;i<16;i++) kroki.push([]);
+        const dodaj = (k, z)=>kroki[baza+k].push(z);
+        const p = u.perkusja, bebny = x.ostatni ? p.przejscie : p.werbel;
+        for(let i=0;i<16;i++){
+          if(p.stopa[i]==='x') dodaj(i, ['stopa', i===0 ? 1 : 0.8]);
+          if(bebny[i]==='x') dodaj(i, ['werbel', i===4||i===12 ? 1 : 0.55]);
+          else if(bebny[i]==='o') dodaj(i, ['werbel', 0.3]);
+          const h = p.hihat[i];
+          if(h==='x') dodaj(i, ['hihat', 1, false]);
+          else if(h==='o') dodaj(i, ['hihat', 0.5, false]);
+          else if(h==='X') dodaj(i, ['hihat', 0.9, true]);
+        }
+        const r = midi(x.t.r), rn = midi(nast.r), akord = x.t.ch.map(n=>hz(midi(n)));
+        if(u.bas==='menu'){
+          [[0,r,6],[7,r,1],[10,r+7,2],[14,rn-1,2]].forEach(([k,m,dl])=>dodaj(k, ['basMiekki', hz(m), dl]));
+          u.akordy[x.ci].forEach(([k,dl])=>dodaj(k, ['klawisze', akord, dl, k===0 ? 1 : 0.8]));
+        } else {
+          for(let i=0;i<16;i+=2) dodaj(i, ['basPila', hz(i%4===2 ? r+12 : r), 1.6]);
+          const tony = akord.length>3 ? akord : akord.concat([akord[0]*2]);
+          const wzor = [0,1,2,3,2,1,0,1,0,1,2,3,2,3,2,1];
+          for(let i=0;i<16;i++) dodaj(i, ['arp', tony[wzor[i]], i%4===0 ? 1 : 0.6]);
+        }
+        x.t.m.forEach(([k,n,dl])=>dodaj(k, [u.bas==='menu' ? 'spiew' : 'prowadzacy', hz(midi(n)), dl]));
+      });
+      return kroki;
+    }
+    const UTWORY = { menu: Object.assign({ kroki: rozpisz(MENU) }, MENU), game: Object.assign({ kroki: rozpisz(GRA) }, GRA) };
+
+    function zagrajKrok(s, u, nr, czas){
+      const krok = 60/u.bpm/4;
+      const t = czas + (nr%2 ? u.bujanie*krok : 0);
+      u.kroki[nr % u.kroki.length].forEach(z=>{
+        const [co, x, y, w] = z;
+        if(co==='stopa' || co==='werbel' || co==='arp') s[co](t, x, y);
+        else if(co==='hihat') s.hihat(t, x, y);
+        else s[co](t, x, y*krok*0.92, w);
+      });
+    }
+
     function ensure(){
       if(actx) return actx;
       try{
         actx = new (window.AudioContext||window.webkitAudioContext)();
-        master = actx.createGain(); master.gain.value=0.16; master.connect(actx.destination);
-      }catch(e){ console.warn('[music] brak Web Audio', e); }
+        silnik = zbudujSilnik(actx, actx.destination);
+      }catch(e){ console.warn('[music] brak Web Audio', e); actx=null; }
       return actx;
     }
     // Po odblokowaniu dźwięku trzeba przestawić zegar: przy uśpionym
@@ -2187,60 +2401,55 @@
     function resume(){
       const a=ensure(); if(!a) return;
       if(a.state==='suspended'){
-        const done = ()=>{ nextTime = a.currentTime + 0.05; stepIndex = 0; };
+        const done = ()=>{ nextTime = a.currentTime + 0.05; stepIndex -= stepIndex % 16; };
         const r = a.resume(); if(r && r.then) r.then(done, ()=>{}); else done();
       }
     }
-    function note(freq, time, dur, type, vol){
-      const a=ensure(); if(!a) return;
-      const o=a.createOscillator(), g=a.createGain();
-      o.type=type; o.frequency.setValueAtTime(freq, time);
-      g.gain.setValueAtTime(0.0001, time);
-      g.gain.exponentialRampToValueAtTime(vol, time+0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, time+dur);
-      o.connect(g); g.connect(master);
-      o.start(time); o.stop(time+dur+0.05);
-    }
-    /* Dwa wyraźnie różne motywy.
-       MENU: spokojne arpeggio dur z miękkim akordem w tle — ciepłe, leniwe.
-       GRA:  suchy, pulsujący motyw molowy bez akordów — nerwowy.
-       Akord (pad) jest tylko w menu; to on najbardziej je od siebie odróżnia. */
-    const MENU_TRACK = { stepDur:0.32, lead:0.085, bassVol:0.068, padVol:0.032, wave:'triangle', seq:[
-      {n:261.63,bass:130.81,pad:[261.63,329.63,392.00]},{n:329.63},{n:392.00},{n:329.63},
-      {n:293.66,bass:146.83,pad:[293.66,349.23,440.00]},{n:349.23},{n:440.00},{n:349.23},
-      {n:261.63,bass:196.00,pad:[246.94,329.63,392.00]},{n:329.63},{n:392.00},{n:493.88},
-      {n:293.66,bass:174.61,pad:[293.66,349.23,440.00]},{n:349.23},{n:440.00},{n:523.25}
-    ]};
-    const GAME_TRACK = { stepDur:0.22, lead:0.05, bassVol:0.045, padVol:0, wave:'square', seq:[
-      {n:220.00,bass:110.00},{n:0},{n:261.63},{n:0},
-      {n:220.00,bass:110.00},{n:0},{n:329.63},{n:0},
-      {n:196.00,bass:98.00},{n:0},{n:233.08},{n:0},
-      {n:196.00,bass:98.00},{n:0},{n:293.66},{n:0}
-    ]};
     function scheduleLoop(){
-      const a=ensure(); if(!a || muted || !current) return;
-      while(nextTime < a.currentTime + 0.3){
-        const step = current.seq[stepIndex % current.seq.length];
-        if(step.n) note(step.n, nextTime, current.stepDur*0.85, current.wave, current.lead);
-        if(step.bass) note(step.bass, nextTime, current.stepDur*1.7, 'sine', current.bassVol);
-        if(step.pad && current.padVol) step.pad.forEach(f=> note(f, nextTime, current.stepDur*3.8, 'sine', current.padVol));
-        nextTime += current.stepDur;
+      const a=ensure(); if(!a || muted || !current || a.state!=='running') return;
+      // Po wyciszeniu albo przyduszonym w tle setInterval zegar ucieka do
+      // przodu — nie nadrabiamy zaległych nut (zagrałyby wszystkie naraz).
+      if(nextTime < a.currentTime) nextTime = a.currentTime + 0.05;
+      const krok = 60/current.bpm/4;
+      while(nextTime < a.currentTime + 0.35){
+        zagrajKrok(silnik, current, stepIndex, nextTime);
+        nextTime += krok;
         stepIndex++;
       }
     }
     function start(which){
-      const track = which==='game' ? GAME_TRACK : MENU_TRACK;
+      const track = UTWORY[which==='game' ? 'game' : 'menu'];
       if(current===track) return; // już gra ten sam motyw
       current = track; stepIndex = 0;
-      ensure();
-      nextTime = actx ? actx.currentTime + 0.05 : 0;
-      if(!scheduler) scheduler = setInterval(scheduleLoop, 100);
+      if(!ensure()) return;
+      silnik.ustawEcho(60/track.bpm*track.echo[0], track.echo[1]);
+      silnik.ustawGlosnosc(track.glosnosc);
+      nextTime = actx.currentTime + 0.05;
+      if(!scheduler) scheduler = setInterval(scheduleLoop, 90);
     }
     function stop(){ if(scheduler){ clearInterval(scheduler); scheduler=null; } current=null; }
+    // Telegram schowany w tle: usypiamy kontekst, zamiast grać w pustkę
+    document.addEventListener('visibilitychange', ()=>{
+      if(!actx) return;
+      if(document.hidden){ if(actx.state==='running') actx.suspend(); }
+      else if(!muted && current) resume();
+    });
+    // Nagranie kawałka utworu bez głośników — do testów głośności i odsłuchu.
+    function nagraj(which, sek, czestotliwosc){
+      const sr = czestotliwosc || 44100;
+      const off = new OfflineAudioContext(2, Math.ceil(sr*sek), sr);
+      const s = zbudujSilnik(off, off.destination), u = UTWORY[which==='game' ? 'game' : 'menu'];
+      s.ustawEcho(60/u.bpm*u.echo[0], u.echo[1]);
+      s.ustawGlosnosc(u.glosnosc);
+      const krok = 60/u.bpm/4;
+      for(let nr=0, t=0.05; t < sek; nr++, t+=krok) zagrajKrok(s, u, nr, t);
+      return off.startRendering();
+    }
     return {
       resume,
       start,
       stop,
+      nagraj,
       isMuted:()=>muted,
       setMuted(v){ muted=v; if(!muted) resume(); }
     };
@@ -3800,6 +4009,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-23 · 48', linie:[
+      '🎵 Nowa muzyka: luźny groove w menu i żywy, szybki motyw na wyprawie — z perkusją, basem i kilkoma częściami zamiast jednej pętli.'
+    ]},
     { v:'2026-09-23 · 47', linie:[
       '⏳ W oknie ligi widać, ile zostało do końca tygodnia i kiedy wpadną nagrody.',
       '🏆 Okno ligi bez zbędnego opisu — od razu tabela.'
