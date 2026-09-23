@@ -248,7 +248,6 @@
   .lg-nagroda{margin:6px 0 2px;padding:8px 10px;border-radius:12px;background:var(--panel-3);border:2px dashed var(--gold-dark);
     font-size:12px;color:var(--ink);text-align:left;}
   .lg-nagroda b.kod{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;letter-spacing:1px;user-select:all;}
-  .liga-zasady{font-size:11px;margin:0 0 6px;}
   .liga-zegar{background:var(--panel-3);border:2px solid var(--gold-dark);border-radius:12px;padding:6px 10px;
     margin:0 0 8px;text-align:center;color:var(--ink);line-height:1.3;}
   .liga-zegar:empty{display:none;}
@@ -256,12 +255,11 @@
   .liga-zegar .lz-czas{display:block;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:19px;
     white-space:nowrap;line-height:1.15;}
   .liga-zegar .lz-kiedy{display:block;font-size:11px;color:#6B5230;}
-  .karta-news > .liga-zegar, .karta-news > .liga-zasady{flex:0 0 auto;}
+  .karta-news > .liga-zegar{flex:0 0 auto;}
   /* Linijka ligi na ekranie wyniku: widoczna tylko, gdy serwer odpowiedział */
   .liga-wynik{display:none;margin:0 0 8px;padding:7px 10px;border-radius:12px;background:var(--kom-fiolet);color:#fff;
     font-size:12px;font-weight:700;line-height:1.35;}
   .liga-wynik.show{display:block;}
-  .lg-me{margin-top:7px;padding-top:7px;border-top:2px dashed rgba(138,106,58,0.35);font-size:11px;color:#5C4522;}
   .map-card .mc-mods{font-size:14px;letter-spacing:3px;margin-top:3px;line-height:1;}
   /* Pasek „z wiadomości" po wyprawie — lokalny absurd jest największą
      przewagą tej gry i warto go pokazać, a nie tylko podliczyć złotówki. */
@@ -932,7 +930,6 @@
     <div class="card karta-news">
       <h1 style="font-size:22px;">🏆 Liga tygodnia</h1>
       <div class="liga-zegar" id="ligaZegar" data-zegar></div>
-      <p class="sub liga-zasady" id="ligaZasady">Liczy się kaucja zebrana w wyprawach od poniedziałku.</p>
       <div class="news-ramka"><div class="news-lista" id="ligaLista"><div class="mod-none">Wczytuję…</div></div></div>
       <button class="primary" id="ligaCloseBtn">ZAMYKAM</button>
     </div>
@@ -3804,7 +3801,8 @@
   /* --- co nowego --- */
   const NEWS = [
     { v:'2026-09-23 · 47', linie:[
-      '⏳ W oknie ligi widać, ile zostało do końca tygodnia i kiedy wpadną nagrody.'
+      '⏳ W oknie ligi widać, ile zostało do końca tygodnia i kiedy wpadną nagrody.',
+      '🏆 Okno ligi bez zbędnego opisu — od razu tabela.'
     ]},
     { v:'2026-09-23 · 46', linie:[
       '📋 Tabela ligi czytelniejsza: miejsce, gracz, zebrana kaucja i ile punktów GrynaPlus jest za to miejsce.'
@@ -6950,16 +6948,6 @@
   let ligaNagrodaOstatnia = null;   // nagroda za zeszły tydzień, jeśli jest
   const esc = (t)=>String(t==null?'':t).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 
-  function ligaZasadyTekst(d){
-    const m = (d && d.nagrody && d.nagrody.miejsca) || [150,100,70,20];
-    const l = (d && d.nagrody && d.nagrody.losowanie) || { ile:2, pkt:20 };
-    const prog = (d && d.prog) || 100;
-    const ile20 = m.filter(x=>x===m[3]).length;
-    return 'Liczy się kaucja zebrana w wyprawach od poniedziałku. Nagrody w punktach grynaplus: '
-      + '<b>1. '+m[0]+' pkt · 2. '+m[1]+' · 3. '+m[2]+'</b>'
-      + (ile20 ? ' · 4.–'+(3+ile20)+'. po '+m[3] : '')
-      + ' · losowanie '+l.ile+'×'+l.pkt+' wśród reszty. Warunek: co najmniej <b>'+prog+' zł</b> w tygodniu.';
-  }
   /* „Jesteś 4. — do podium brakuje…" — jedno zdanie o tym, co gracz może
      zrobić TERAZ. Używa go ekran wyniku, przycisk na głównej i okno ligi. */
   function ligaStatus(d){
@@ -7096,14 +7084,13 @@
       return;
     }
     const d = await wczytajLige();
-    box.innerHTML = d ? '<div class="liga-zegar" data-zegar></div>' + ligaTabelaHTML(d) + '<div class="lg-me">'+ligaZasadyTekst(d)+'</div>'
+    box.innerHTML = d ? '<div class="liga-zegar" data-zegar></div>' + ligaTabelaHTML(d)
                       : '<div class="mod-none">Nie udało się wczytać ligi. Spróbuj za chwilę.</div>';
     if(d) odswiezZegaryLigi();
   }
   async function pokazOknoLigi(){
     const ov = document.getElementById('ligaOverlay');
     const lista = document.getElementById('ligaLista');
-    document.getElementById('ligaZasady').innerHTML = ligaZasadyTekst(ligaDane);
     lista.innerHTML = ligaDane ? ligaTabelaHTML(ligaDane) : '<div class="mod-none">Wczytuję…</div>';
     ov.classList.remove('hidden');
     if(ligaDane) odswiezZegaryLigi(); else document.getElementById('ligaZegar').innerHTML = '';
@@ -7113,7 +7100,6 @@
       return;
     }
     const d = await wczytajLige();
-    document.getElementById('ligaZasady').innerHTML = ligaZasadyTekst(d || ligaDane);
     lista.innerHTML = d ? ligaTabelaHTML(d) : '<div class="mod-none">Nie udało się wczytać ligi. Spróbuj za chwilę.</div>';
     lista.scrollTop = 0;
     sygnalPrzewijaniaW(lista);
