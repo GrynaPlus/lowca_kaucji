@@ -347,8 +347,52 @@
   .shop-row .mn{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-size:12px;flex:1;text-align:left;line-height:1.25;color:var(--ink);}
   .shop-row .sd{font-family:'Inter','Segoe UI',Roboto,sans-serif;font-size:9.5px;color:var(--tekst-2);font-weight:500;margin-top:1px;}
   .shop-row .pips{margin-top:3px;display:flex;gap:3px;}
-  .shop-row .pip{width:14px;height:4px;border-radius:2px;background:var(--tor);}
+  .shop-row .pip{width:10px;height:4px;border-radius:2px;background:var(--tor);}
   .shop-row .pip.on{background:var(--gold-dark);}
+  .shop-row .pip.mistrz{background:rgba(255,209,102,0.22);}
+  .shop-row .pip.mistrz.on{background:#FFD166;}
+  .mistrz-tag{display:inline-block;font:800 8px 'Inter','Segoe UI',sans-serif;letter-spacing:.05em;padding:1px 5px;border-radius:5px;
+    background:rgba(255,209,102,0.2);color:#FFD166;margin-left:5px;vertical-align:middle;}
+  /* --- sklep: zakładki Sprzęt / Wygląd / Dopalacze --- */
+  .seg{display:flex;gap:4px;padding:4px;background:var(--szklo);border:1px solid var(--linia);border-radius:14px;margin:0 0 10px;}
+  .seg button{flex:1;min-height:44px;border:none;border-radius:10px;background:none;color:var(--tekst-2);cursor:pointer;
+    font:700 13px 'Baloo 2','Segoe UI',Roboto,sans-serif;}
+  .seg button.on{background:var(--akcent-grad);color:var(--na-akcencie);box-shadow:var(--poswiata);}
+  .sklep-info{font-size:11px;color:var(--tekst-2);line-height:1.45;margin:2px 2px 10px;text-align:left;}
+  .podglad{position:relative;height:200px;border-radius:20px;margin-bottom:10px;overflow:hidden;
+    background:radial-gradient(60% 40% at 50% 85%, rgba(255,255,255,0.35), transparent 70%),
+               linear-gradient(180deg,#9EDCFF,#FFE1EE 60%,#B6E39C 60%,#98D07E);}
+  .podglad canvas{position:absolute;left:50%;top:4px;transform:translateX(-50%);width:130px;height:150px;}
+  .podglad .pd-nazwa{position:absolute;left:12px;bottom:12px;max-width:52%;background:rgba(14,15,43,0.78);color:#fff;border-radius:10px;
+    padding:5px 10px;font:700 12px 'Baloo 2','Segoe UI',sans-serif;text-align:left;}
+  .podglad button.primary{position:absolute;right:12px;bottom:10px;width:auto;margin:0;padding:10px 16px;font-size:14px;}
+  .kat{display:flex;gap:6px;overflow-x:auto;margin:0 0 10px;padding-bottom:2px;}
+  .kat button{flex-shrink:0;min-height:36px;padding:6px 12px;border-radius:999px;background:var(--szklo);border:1px solid var(--linia);
+    color:var(--tekst-2);font:700 12px 'Baloo 2','Segoe UI',sans-serif;cursor:pointer;}
+  .kat button.on{background:rgba(124,255,203,0.14);color:var(--akcent);border-color:rgba(124,255,203,0.45);}
+  .siatka{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+  .kafel{position:relative;background:var(--szklo);border:1px solid var(--linia);border-radius:16px;padding:8px 4px;text-align:center;cursor:pointer;
+    font-family:inherit;color:inherit;min-width:0;}
+  .kafel.wyb{border:2px solid var(--akcent);box-shadow:var(--poswiata);padding:7px 3px;}
+  .kafel canvas{display:block;margin:12px auto 0;width:60px;height:72px;}
+  .kafel .kn{font:700 11px 'Baloo 2','Segoe UI',sans-serif;color:var(--ink);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .kafel .kc{font:800 11px 'Inter','Segoe UI',sans-serif;color:var(--akcent);}
+  .kafel .kc.masz{color:#5BE49B;} .kafel .kc.za-malo{color:var(--tekst-2);}
+  .kafel .rzad{position:absolute;top:6px;left:6px;font:800 8px 'Inter','Segoe UI',sans-serif;letter-spacing:.05em;padding:2px 5px;border-radius:6px;}
+  .rzad.zwykly{background:rgba(255,255,255,0.1);color:var(--tekst-2);} .rzad.rzadki{background:rgba(92,200,255,0.2);color:#8FD8FF;}
+  .rzad.epicki{background:rgba(196,32,159,0.3);color:#FF9DE0;} .rzad.legenda{background:rgba(255,209,102,0.25);color:#FFD166;}
+  .dop{display:flex;align-items:center;gap:10px;background:var(--szklo);border:1px solid var(--linia);border-radius:16px;padding:10px 12px;margin-bottom:8px;text-align:left;}
+  .dop .di{font-size:28px;flex-shrink:0;} .dop .dt{flex:1;min-width:0;}
+  .dop .dn{font:700 14px 'Baloo 2','Segoe UI',sans-serif;color:var(--ink);} .dop .dd{font-size:11px;color:var(--tekst-2);line-height:1.35;}
+  .dop .dmasz{font-size:10px;font-weight:800;color:#5BE49B;margin-top:3px;}
+  .dop .dkup{flex-shrink:0;min-width:74px;min-height:44px;border:none;border-radius:12px;background:var(--cta);color:var(--na-akcencie);
+    font:800 13px 'Baloo 2','Segoe UI',sans-serif;cursor:pointer;}
+  .dop .dkup:disabled{background:var(--szklo);color:var(--tekst-2);cursor:default;}
+  .przel{display:flex;align-items:center;gap:6px;min-height:32px;margin-top:2px;padding:0;background:none;border:none;
+    font:700 10px 'Inter','Segoe UI',sans-serif;color:var(--tekst-2);cursor:pointer;text-align:left;}
+  .przel .sw{flex-shrink:0;width:30px;height:18px;border-radius:9px;background:var(--akcent-grad);position:relative;}
+  .przel .sw::after{content:'';position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#0E0F2B;}
+  .przel.off .sw{background:rgba(255,255,255,0.15);} .przel.off .sw::after{left:2px;right:auto;background:#B4B0E0;}
   .shop-row .status{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:12px;flex-shrink:0;}
   .shop-row .status.owned{color:var(--green);}
   .shop-row .status.buy{color:var(--gold-dark);}
@@ -745,6 +789,11 @@
         <div class="tab-panel hidden" id="tabSklep">
           <div class="tasks-box">
             <div class="t-title">🛒 Sklep — wydaj kaucję</div>
+            <div class="seg" id="sklepSeg">
+              <button data-seg="sprzet" class="on">🛠️ Sprzęt</button>
+              <button data-seg="wyglad">👕 Wygląd</button>
+              <button data-seg="dopalacze">⚡ Dopalacze</button>
+            </div>
             <div id="shopList"></div>
           </div>
         </div>
@@ -1963,7 +2012,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-23 · 51';
+  const APP_VERSION = '2026-09-24 · 52';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2089,13 +2138,67 @@
      wyzwaniem także dla kogoś, kto wydał wszystko.
      ========================================================= */
   const UPGRADES = [
-    { id:'boots',  icon:'👟', name:'Buty',           desc:'Szybsze poruszanie',            costs:[8,20,40,75,130]  },
-    { id:'gloves', icon:'🧤', name:'Rękawice',       desc:'Mniej stukania w kosz',         costs:[12,28,55,95,160] },
-    { id:'quiet',  icon:'🤫', name:'Ciche podejście',desc:'Mniejszy zasięg hałasu',        costs:[10,25,50,90,150] },
-    { id:'hood',   icon:'🧥', name:'Kaptur',         desc:'Wolniej rośnie przypał',        costs:[14,32,60,105,175] },
-    { id:'cart',   icon:'🛒', name:'Wózek',          desc:'Więcej sztuk z jednego kosza',  costs:[18,40,75,125,200] }
+    { id:'boots',  icon:'👟', name:'Buty',           desc:'Szybsze poruszanie',            costs:[8,20,40,75,130,  250,320,400,500,600] },
+    { id:'gloves', icon:'🧤', name:'Rękawice',       desc:'Mniej stukania w kosz',         costs:[12,28,55,95,160, 270,340,420,520,620] },
+    { id:'quiet',  icon:'🤫', name:'Ciche podejście',desc:'Mniejszy zasięg hałasu',        costs:[10,25,50,90,150, 260,330,410,510,610] },
+    { id:'hood',   icon:'🧥', name:'Kaptur',         desc:'Wolniej rośnie przypał',        costs:[14,32,60,105,175,280,350,430,530,640] },
+    { id:'cart',   icon:'🛒', name:'Wózek',          desc:'Więcej sztuk z jednego kosza',  costs:[18,40,75,125,200,300,380,460,560,680] }
   ];
-  const UPGRADE_MAX = 5;
+  /* Poziomy 6–10 są „mistrzowskie": krzywa upCurve daje na nich już tylko
+     ostatnie procenty, a kosztują kilkaset złotych. To cel dla kogoś, kto
+     wykupił cały sklep — kaucja zostaje w grze, a zarobki prawie nie rosną
+     (np. wózek: 2,21 → 2,47 sztuki premii z kosza). */
+  const UPGRADE_MAX = 10, MISTRZ_OD = 5;
+
+  /* =========================================================
+     WYGLĄD ŁOWCY — stroje kupowane za kaucję. Nie zmieniają rozgrywki,
+     więc kaucja wydana tutaj nie wraca jako kupon, a gracz ma na co
+     zbierać. Komplet zakłada się w całości (razem z czapką); pojedyncza
+     bluza, plecak albo buty zdejmują komplet.
+     ========================================================= */
+  const STROJE = [
+    { id:'bluza-pom',    slot:'bluza',   nazwa:'Pomarańczowa',   rz:'zwykly',  cena:0,    st:{ bluza:'#FF8A5B' } },
+    { id:'bluza-mieta',  slot:'bluza',   nazwa:'Miętowa',        rz:'zwykly',  cena:40,   st:{ bluza:'#6FE3C0' } },
+    { id:'bluza-fiolet', slot:'bluza',   nazwa:'Fioletowa',      rz:'zwykly',  cena:40,   st:{ bluza:'#B8A0FF' } },
+    { id:'bluza-roz',    slot:'bluza',   nazwa:'Różowa',         rz:'rzadki',  cena:60,   st:{ bluza:'#FF8FC8' } },
+    { id:'bluza-paski',  slot:'bluza',   nazwa:'W paski',        rz:'rzadki',  cena:80,   st:{ bluza:'#FFD84D', wzor:'#FF7A7A' } },
+    { id:'bluza-czarna', slot:'bluza',   nazwa:'Czarna',         rz:'rzadki',  cena:80,   st:{ bluza:'#3D3A5C' } },
+    { id:'bluza-tecza',  slot:'bluza',   nazwa:'Tęczowa',        rz:'epicki',  cena:180,  st:{ bluza:['#FF7A7A','#FFD84D','#6FE3C0','#6FB8FF','#B8A0FF'] } },
+    { id:'plecak-tur',   slot:'plecak',  nazwa:'Turkusowy plecak', rz:'zwykly', cena:0,   st:{ plecak:'#35C2A6' } },
+    { id:'plecak-neon',  slot:'plecak',  nazwa:'Neonowy plecak', rz:'epicki',  cena:200,  st:{ plecak:'#7CFFCB', poswiata:'#7CFFCB' } },
+    { id:'buty-biale',   slot:'buty',    nazwa:'Białe buty',     rz:'zwykly',  cena:0,    st:{ buty:'#FFFFFF' } },
+    { id:'buty-swiec',   slot:'buty',    nazwa:'Świecące buty',  rz:'rzadki',  cena:120,  st:{ buty:'#FFFFFF', podeszwy:'#7CFFCB' } },
+    { id:'k-ekolog',     slot:'komplet', nazwa:'Ekolog',         rz:'epicki',  cena:300,  ikona:'🌿',
+      st:{ bluza:'#6DBB5C', spodnie:'#5A7A3A', plecak:'#FFD84D', naszywka:'♻', czapka:'🌿' } },
+    { id:'k-ninja',      slot:'komplet', nazwa:'Ninja',          rz:'legenda', cena:500,  ikona:'🥷',
+      st:{ bluza:'#2A2840', spodnie:'#2A2840', plecak:'#2A2840', maska:'#2A2840', wlosy:'#2A2840', czapka:'🥷', buty:'#3D3A5C' } },
+    { id:'k-zloty',      slot:'komplet', nazwa:'Złoty łowca',    rz:'legenda', cena:1000, ikona:'👑',
+      st:{ bluza:['#FFE27A','#F5B94A'], spodnie:'#C99A2E', plecak:'#FFD166', poswiata:'#FFD166', iskry:true, czapka:'👑' } }
+  ];
+  const RZADKOSC = { zwykly:'ZWYKŁY', rzadki:'RZADKI', epicki:'EPICKI', legenda:'LEGENDA' };
+  const STROJ_DOMYSLNY = { bluza:'bluza-pom', plecak:'plecak-tur', buty:'buty-biale', komplet:null };
+  const strojPoId = (id)=>STROJE.find(x=>x.id===id) || null;
+  // strój do narysowania: komplet w całości albo trzy osobne części
+  function strojZ(zal){
+    zal = zal || STROJ_DOMYSLNY;
+    const k = zal.komplet && strojPoId(zal.komplet);
+    if(k) return Object.assign({}, k.st);
+    const st = {};
+    ['bluza','plecak','buty'].forEach(slot=>{ const e = strojPoId(zal[slot]) || strojPoId(STROJ_DOMYSLNY[slot]); Object.assign(st, e.st); });
+    return st;
+  }
+  function strojGracza(){ return strojZ(profile.zalozone); }
+
+  /* Dopalacze: jednorazowe, na jedną wyprawę. Energii ani podwójnego łupu
+     tu nie ma — te gracz zdobywa reklamą i tak ma zostać. */
+  const DOPALACZE = [
+    { id:'energetyk', ikona:'⚡', nazwa:'Energetyk',       opis:'+15% szybkości przez jedną wyprawę.',                    cena:10 },
+    { id:'wykrywacz', ikona:'📡', nazwa:'Wykrywacz',       opis:'Kosz z jackpotem świeci na minimapie.',                  cena:15 },
+    { id:'niewidka',  ikona:'🫥', nazwa:'Czapka niewidka', opis:'Pierwszy przechodzień, który cię zobaczy — nie zobaczy.', cena:20 },
+    { id:'soczek',    ikona:'🧃', nazwa:'Soczek',          opis:'Przypał rośnie o 10% wolniej przez jedną wyprawę.',      cena:12 }
+  ];
+  // dopalacze działające w bieżącej wyprawie (ustawiane w beginRound)
+  let dopalaczeWyprawy = {}, niewidkaUzyta = false;
   function upLevel(id){ return (profile.upgrades && profile.upgrades[id]) || 0; }
   /* Ułamek drogi do sufitu po `lvl` zakupach. Każdy poziom domyka
      `krok` tego, co jeszcze zostało — stąd malejące zyski. */
@@ -2103,7 +2206,8 @@
 
   // 320 -> 358 -> 381 -> 394 -> 402 -> 407 (sufit +30%)
   function playerSpeed(){
-    return 320 * (1 + 0.30*upCurve('boots', 0.40)) * zasadaMnoznik(currentMapId, playedLevel, 'tempo');
+    return 320 * (1 + 0.30*upCurve('boots', 0.40)) * zasadaMnoznik(currentMapId, playedLevel, 'tempo')
+               * (dopalaczeWyprawy.energetyk ? 1.15 : 1);
   }
   // oczekiwana liczba stuknięć: 3 -> 2,46 -> 2,16 -> 2,00 -> 1,91 -> 1,85
   // (ułamek rozgrywamy losowo, bo stuknięć nie da się mieć pół)
@@ -2116,7 +2220,7 @@
     return 170 * (1 - 0.45*upCurve('quiet', 0.50)) * zasadaMnoznik(currentMapId, playedLevel, 'halas');
   }
   // 42 -> 34 -> 29 -> 27 -> 26 -> 25 (sufit -40%)
-  function heatRate(){ return 42 * (1 - 0.40*upCurve('hood', 0.50)); }
+  function heatRate(){ return 42 * (1 - 0.40*upCurve('hood', 0.50)) * (dopalaczeWyprawy.soczek ? 0.9 : 1); }
   /* =========================================================
      DŹWIĘK — generowany proceduralnie (Web Audio), bez plików.
      Inicjalizuje się przy pierwszym dotknięciu ekranu, bo
@@ -2675,6 +2779,8 @@
     energy:3, lastEnergyTs: Date.now(),
     streak:0, lastPlayDate:'', wallet:0, mapsOwned:['osiedle'], lastMapId:'osiedle',
     mapProgress:{}, upgrades:{}, mapLevels:{}, mapSel:{},
+    stroje:['bluza-pom','plecak-tur','buty-biale'], zalozone:{ bluza:'bluza-pom', plecak:'plecak-tur', buty:'buty-biale', komplet:null },
+    dopalacze:{}, dopalaczeWl:{},
     firstSeen:0,        // kiedy gracz pierwszy raz odpalił grę (pierwsza doba bez limitu energii)
     invitedBy:'',       // kto go przyprowadził
     invited:0,          // ilu sam przyprowadził
@@ -2745,6 +2851,21 @@
     profile.mapsOwned = profile.mapsOwned.filter(id=> MAPS.some(m=>m.id===id));
     if(!profile.mapProgress || typeof profile.mapProgress!=='object') profile.mapProgress={};
     if(!profile.upgrades || typeof profile.upgrades!=='object') profile.upgrades={};
+    // wygląd i dopalacze: nieznane id wylatują, domyślny strój jest zawsze
+    if(!Array.isArray(profile.stroje)) profile.stroje=[];
+    profile.stroje = profile.stroje.filter(id=>strojPoId(id));
+    ['bluza-pom','plecak-tur','buty-biale'].forEach(id=>{ if(!profile.stroje.includes(id)) profile.stroje.push(id); });
+    const zal = (profile.zalozone && typeof profile.zalozone==='object') ? profile.zalozone : {};
+    profile.zalozone = {};
+    ['bluza','plecak','buty'].forEach(slot=>{
+      const e = strojPoId(zal[slot]);
+      profile.zalozone[slot] = (e && e.slot===slot && profile.stroje.includes(e.id)) ? e.id : STROJ_DOMYSLNY[slot];
+    });
+    const k = strojPoId(zal.komplet);
+    profile.zalozone.komplet = (k && k.slot==='komplet' && profile.stroje.includes(k.id)) ? k.id : null;
+    if(!profile.dopalacze || typeof profile.dopalacze!=='object') profile.dopalacze={};
+    if(!profile.dopalaczeWl || typeof profile.dopalaczeWl!=='object') profile.dopalaczeWl={};
+    DOPALACZE.forEach(d=>{ const n=Math.floor(Number(profile.dopalacze[d.id])||0); profile.dopalacze[d.id]=Math.max(0,Math.min(99,n)); });
     if(!profile.mapSel || typeof profile.mapSel!=='object') profile.mapSel={};
     /* Pierwsza doba bez limitu jest dla kogoś, kto DOPIERO przyszedł —
        najczęściej z filmiku. Samo „nie mam jeszcze tego pola" znaczyło
@@ -3755,10 +3876,17 @@
     box.style.opacity = items>0 ? '1' : '0.6';
   }
 
+  let sklepSeg = 'sprzet', sklepKat = 'wszystko', sklepPodglad = null;
   function renderShop(){
     const c = document.getElementById('shopList');
     if(!c) return;
+    document.querySelectorAll('#sklepSeg button').forEach(b=>b.classList.toggle('on', b.dataset.seg===sklepSeg));
     c.innerHTML='';
+    if(sklepSeg==='wyglad') return renderWyglad(c);
+    if(sklepSeg==='dopalacze') return renderDopalacze(c);
+    const info = document.createElement('div'); info.className='sklep-info';
+    info.innerHTML = 'Poziomy 6–10 to <b>mistrzowskie</b>: droższe i dają już niewiele, ale pozwalają wycisnąć ostatnie procenty.';
+    c.appendChild(info);
     UPGRADES.forEach(u=>{
       const lvl = upLevel(u.id);
       const maxed = lvl >= u.costs.length;
@@ -3766,10 +3894,11 @@
       const div=document.createElement('div');
       div.className='shop-row';
       let pips='';
-      for(let i=0;i<u.costs.length;i++) pips += '<span class="pip'+(i<lvl?' on':'')+'"></span>';
+      for(let i=0;i<u.costs.length;i++) pips += '<span class="pip'+(i>=MISTRZ_OD?' mistrz':'')+(i<lvl?' on':'')+'"></span>';
       div.innerHTML =
         '<span class="mi">'+u.icon+'</span>'+
-        '<span class="mn">'+u.name+'<div class="sd">'+u.desc+'</div><div class="pips">'+pips+'</div></span>'+
+        '<span class="mn">'+u.name+(lvl>=MISTRZ_OD?'<span class="mistrz-tag">MISTRZ</span>':'')+
+          '<div class="sd">'+u.desc+'</div><div class="pips">'+pips+'</div></span>'+
         (maxed ? '<span class="status owned">MAX</span>'
                : '<span class="status '+(profile.wallet>=cost?'buy':'locked')+'">'+cost+' zł</span>');
       if(!maxed){
@@ -3779,7 +3908,7 @@
           profile.upgrades[u.id] = lvl+1;
           Sfx.buy(); hapticNotify('success');
           await saveProfile();
-          showToast(u.icon+' '+u.name+' → poziom '+(lvl+1));
+          showToast(u.icon+' '+u.name+' → poziom '+(lvl+1)+(lvl+1>MISTRZ_OD?' (mistrzowski)':''));
           grynaPlusEvent('upgrade_bought', { upgradeId:u.id, level:lvl+1, cost, profileNick:profile.nick });
           renderShop(); refreshProfileUI(); renderMapSelector();
         };
@@ -3787,6 +3916,129 @@
       c.appendChild(div);
     });
   }
+  // podgląd: aktualny strój z przymierzonym elementem
+  function strojZPrzymiarka(id){
+    const e = strojPoId(id);
+    const zal = Object.assign({}, profile.zalozone);
+    if(!e) return strojZ(zal);
+    if(e.slot==='komplet') zal.komplet = e.id; else { zal.komplet = null; zal[e.slot] = e.id; }
+    return strojZ(zal);
+  }
+  function rysujNaPlotnie(canvas, st, skala){
+    const g = canvas.getContext('2d');
+    g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,canvas.width,canvas.height);
+    g.translate(canvas.width/2, canvas.height*0.57); g.scale(skala, skala);
+    rysujLowce(g, st, 0);
+  }
+  function zalozony(e){
+    const z = profile.zalozone;
+    return e.slot==='komplet' ? z.komplet===e.id : (!z.komplet && z[e.slot]===e.id);
+  }
+  async function kupStroj(e){
+    if(profile.stroje.includes(e.id)) return;
+    if(profile.wallet < e.cena){ showToast('Za mało kaucji: trzeba '+fmt(e.cena)); return; }
+    profile.wallet -= e.cena;
+    profile.stroje.push(e.id);
+    zalozStroj(e, true);
+    Sfx.buy(); hapticNotify('success');
+    await saveProfile();
+    showToast('👕 '+e.nazwa+' — kupione i założone!');
+    grynaPlusEvent('stroj_kupiony', { id:e.id, cena:e.cena, profileNick:profile.nick });
+    renderShop(); refreshProfileUI();
+  }
+  function zalozStroj(e, bezZapisu){
+    if(e.slot==='komplet'){
+      // ponowne dotknięcie założonego kompletu zdejmuje go
+      profile.zalozone.komplet = profile.zalozone.komplet===e.id ? null : e.id;
+    } else { profile.zalozone.komplet = null; profile.zalozone[e.slot] = e.id; }
+    if(!bezZapisu){ saveProfile(); Sfx.click(); }
+  }
+  function renderWyglad(c){
+    const DPR_S = Math.min(3, window.devicePixelRatio||1);
+    const wybrany = strojPoId(sklepPodglad);
+    const pokaz = wybrany || strojPoId(profile.zalozone.komplet) || strojPoId(profile.zalozone.bluza);
+    const pd = document.createElement('div'); pd.className='podglad';
+    const cv = document.createElement('canvas'); cv.width=Math.round(130*DPR_S); cv.height=Math.round(150*DPR_S);
+    pd.appendChild(cv);
+    const nazwa = document.createElement('span'); nazwa.className='pd-nazwa';
+    nazwa.textContent = (pokaz.ikona ? pokaz.ikona+' ' : '')+pokaz.nazwa+' · '+RZADKOSC[pokaz.rz].toLowerCase();
+    pd.appendChild(nazwa);
+    const mam = profile.stroje.includes(pokaz.id);
+    const przycisk = document.createElement('button'); przycisk.className='primary';
+    if(mam){ przycisk.textContent = zalozony(pokaz) ? (pokaz.slot==='komplet' ? 'ZDEJMIJ' : 'ZAŁOŻONE') : 'ZAŁÓŻ';
+      przycisk.disabled = zalozony(pokaz) && pokaz.slot!=='komplet';
+      przycisk.onclick = ()=>{ zalozStroj(pokaz); renderShop(); }; }
+    else { przycisk.textContent = 'KUP · '+pokaz.cena+' zł'; przycisk.disabled = profile.wallet < pokaz.cena;
+      przycisk.onclick = ()=>kupStroj(pokaz); }
+    pd.appendChild(przycisk);
+    c.appendChild(pd);
+    rysujNaPlotnie(cv, wybrany ? strojZPrzymiarka(wybrany.id) : strojGracza(), 2.0*DPR_S);
+
+    const kat = document.createElement('div'); kat.className='kat';
+    [['wszystko','Wszystko'],['bluza','Bluzy'],['plecak','Plecaki'],['buty','Buty'],['komplet','Komplety']].forEach(([id,t])=>{
+      const b=document.createElement('button'); b.textContent=t; b.className = sklepKat===id ? 'on' : '';
+      b.onclick=()=>{ sklepKat=id; renderShop(); }; kat.appendChild(b);
+    });
+    c.appendChild(kat);
+    const siatka = document.createElement('div'); siatka.className='siatka';
+    STROJE.filter(e=>sklepKat==='wszystko' || e.slot===sklepKat).forEach(e=>{
+      const k = document.createElement('button'); k.type='button';
+      k.className = 'kafel'+((sklepPodglad ? sklepPodglad===e.id : zalozony(e)) ? ' wyb' : '');
+      const mamTo = profile.stroje.includes(e.id);
+      const cena = mamTo ? (zalozony(e) ? '✓ założone' : 'masz — załóż') : e.cena+' zł';
+      k.innerHTML = '<span class="rzad '+e.rz+'">'+RZADKOSC[e.rz]+'</span><canvas></canvas>'+
+        '<div class="kn"></div><div class="kc '+(mamTo?'masz':(profile.wallet<e.cena?'za-malo':''))+'">'+cena+'</div>';
+      k.querySelector('.kn').textContent = e.nazwa;
+      const kc = k.querySelector('canvas'); kc.width=Math.round(60*DPR_S); kc.height=Math.round(72*DPR_S);
+      rysujNaPlotnie(kc, strojZPrzymiarka(e.id), 1.1*DPR_S);
+      k.onclick = ()=>{
+        // swoje zakłada się od razu; cudze najpierw przymierza w podglądzie
+        if(mamTo){ sklepPodglad = null; if(!zalozony(e) || e.slot==='komplet') zalozStroj(e); }
+        else sklepPodglad = e.id;
+        renderShop();
+      };
+      siatka.appendChild(k);
+    });
+    c.appendChild(siatka);
+    const info = document.createElement('div'); info.className='sklep-info'; info.style.marginTop='10px';
+    info.textContent = 'Wygląd nie zmienia rozgrywki — widać go na wyprawie, na karcie wyniku, a komplety także przy nicku w lidze.';
+    c.appendChild(info);
+  }
+  function renderDopalacze(c){
+    const info = document.createElement('div'); info.className='sklep-info';
+    info.innerHTML = 'Dopalacz działa przez <b>jedną wyprawę</b> i zużywa się na jej starcie. Przełącznikiem decydujesz, czy użyć go w następnej.';
+    c.appendChild(info);
+    DOPALACZE.forEach(d=>{
+      const ile = profile.dopalacze[d.id]||0, wl = profile.dopalaczeWl[d.id] !== false;
+      const row = document.createElement('div'); row.className='dop';
+      row.innerHTML = '<span class="di">'+d.ikona+'</span><div class="dt"><div class="dn">'+d.nazwa+'</div><div class="dd">'+d.opis+'</div>'+
+        (ile ? '<div class="dmasz">Masz: '+ile+'</div><button type="button" class="przel'+(wl?'':' off')+'"><span class="sw"></span>'+
+               (wl?'użyję w następnej wyprawie':'nie używaj')+'</button>' : '')+
+        '</div><button type="button" class="dkup">'+d.cena+' zł</button>';
+      const kup = row.querySelector('.dkup');
+      kup.disabled = profile.wallet < d.cena || ile >= 99;
+      kup.onclick = async ()=>{
+        if(profile.wallet < d.cena){ showToast('Za mało kaucji: trzeba '+fmt(d.cena)); return; }
+        profile.wallet -= d.cena;
+        profile.dopalacze[d.id] = ile+1;
+        Sfx.buy(); hapticNotify('success');
+        await saveProfile();
+        showToast(d.ikona+' '+d.nazwa+' — masz '+(ile+1));
+        grynaPlusEvent('dopalacz_kupiony', { id:d.id, cena:d.cena, profileNick:profile.nick });
+        renderShop(); refreshProfileUI();
+      };
+      const p = row.querySelector('.przel');
+      if(p) p.onclick = ()=>{ profile.dopalaczeWl[d.id] = !wl; saveProfile(); Sfx.click(); renderShop(); };
+      c.appendChild(row);
+    });
+    const uw = document.createElement('div'); uw.className='sklep-info';
+    uw.textContent = 'Energii i podwójnego łupu nie sprzedajemy za kaucję — te zdobywasz jak dotąd, oglądając reklamę.';
+    c.appendChild(uw);
+  }
+  document.getElementById('sklepSeg').addEventListener('click', (e)=>{
+    const b = e.target.closest('button[data-seg]'); if(!b) return;
+    sklepSeg = b.dataset.seg; sklepPodglad = null; Sfx.click(); renderShop();
+  });
 
   const avatarGrid = document.getElementById('avatarGrid');
   /* Siatka przerysowuje się, bo awatarów przybywa wraz z gwiazdkami. */
@@ -3988,6 +4240,11 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-24 · 52', linie:[
+      '👕 Sklep ma nowe zakładki: Wygląd — stroje dla łowcy, od bluz po komplet „Złoty łowca".',
+      '⚡ Dopalacze na jedną wyprawę: Energetyk, Wykrywacz, Czapka niewidka i Soczek.',
+      '🛠️ Ulepszenia mają teraz poziomy mistrzowskie 6–10.'
+    ]},
     { v:'2026-09-23 · 51', linie:[
       '👵 Przechodnie, pies i rywale narysowani od nowa — w tym samym stylu co łowca.'
     ]},
@@ -5538,7 +5795,12 @@
       // w kosz schowany w krzaku i tak ściąga przechodniów z chodnika.
       const seen = !player.hidden && d < n.vision && hasLineOfSight(n.x, n.y, player.x, player.y);
       const heard = d < player.noiseRadius;
-      if(seen || heard){ n.alert=true; n.lost=0; }
+      // czapka niewidka: pierwszy, kto cię zauważy, do końca wyprawy patrzy „przez ciebie"
+      if((seen || heard) && !n.alert && !n.slepy && dopalaczeWyprawy.niewidka && !niewidkaUzyta){
+        niewidkaUzyta = true; n.slepy = true; addFloatText(n.x, n.y, '🫥 nic nie widział', '#B8A0FF');
+      }
+      if(n.slepy){ n.alert=false; }
+      else if(seen || heard){ n.alert=true; n.lost=0; }
       else if(n.alert){
         // Sąsiad nie jest psem gończym. Gdy Cię zgubi z oczu i z uszu,
         // po chwili odpuszcza i wraca do swoich spraw — dzięki temu murek
@@ -6190,34 +6452,52 @@
   function drawConfetti(){
     confettiParticles.forEach(p=>{ ctx.save(); ctx.translate(p.x,projY(p.y)); ctx.rotate(p.rot); ctx.fillStyle=p.color; ctx.fillRect(-3,-5,6,10); ctx.restore(); });
   }
+  /* Łowca w dowolnym stroju, na dowolnym płótnie. Środek tułowia w (0,0),
+     stopy na y≈26 — tak samo jak dawniej w drawPlayer. `swing` to wychył
+     nóg w kroku (0 = stoi). */
+  function rysujLowce(g, st, swing){
+    st = st || {};
+    const O='#3D3A5C', lewa=Math.max(0,-swing)*0.25, prawa=Math.max(0,swing)*0.25;
+    const rr=(x,y,w,h,r)=>{ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); };
+    const wypelnij=(c)=>{ if(Array.isArray(c)){ const gr=g.createLinearGradient(-13,-3,13,22); c.forEach((k,i)=>gr.addColorStop(i/(c.length-1),k)); g.fillStyle=gr; } else g.fillStyle=c; };
+    g.lineWidth=1.5; g.strokeStyle=O; g.lineJoin='round';
+    // nogi i buty
+    wypelnij(st.spodnie||'#4E6FD8');
+    rr(-9,13+lewa,7,11,3); g.fill(); g.stroke(); rr(2,13+prawa,7,11,3); g.fill(); g.stroke();
+    wypelnij(st.buty||'#FFFFFF');
+    rr(-10,22+lewa,9,4,2); g.fill(); g.stroke(); rr(1,22+prawa,9,4,2); g.fill(); g.stroke();
+    if(st.podeszwy){ g.fillStyle=st.podeszwy; g.fillRect(-10,25+lewa,9,1.6); g.fillRect(1,25+prawa,9,1.6); }
+    // plecak z butelką (neonowy i złoty świecą)
+    if(st.poswiata){ g.shadowColor=st.poswiata; g.shadowBlur=10; }
+    wypelnij(st.plecak||'#35C2A6'); g.beginPath(); g.ellipse(13,6,9,12,0.28,0,Math.PI*2); g.fill(); g.stroke();
+    g.shadowBlur=0;
+    if(st.naszywka){ g.fillStyle='#FFFFFF'; g.font="700 8px 'Segoe UI',sans-serif"; g.textAlign='center'; g.textBaseline='middle'; g.fillText(st.naszywka,14,7); }
+    g.fillStyle='#6FB8FF'; rr(16,-10,5,8,2); g.fill(); g.stroke();
+    // bluza
+    wypelnij(st.bluza||'#FF8A5B'); rr(-13,-3,26,25,10); g.fill(); g.stroke();
+    g.fillStyle='rgba(255,255,255,0.3)'; rr(-9,0,6,14,3); g.fill();
+    if(st.wzor){ g.fillStyle=st.wzor; g.fillRect(-12,4,24,3); g.fillRect(-12,12,24,3); }
+    wypelnij(st.bluza||'#FF8A5B'); g.beginPath(); g.ellipse(-14,8,5,8,0.15,0,Math.PI*2); g.fill(); g.stroke();
+    // głowa: duża, z grzywką, oczami i rumieńcami (ninja ma maskę)
+    g.fillStyle='#FFD9B8'; g.beginPath(); g.arc(0,-14,12,0,Math.PI*2); g.fill(); g.stroke();
+    if(st.maska){ g.fillStyle=st.maska; g.beginPath(); g.arc(0,-14,12,Math.PI*0.02,Math.PI*0.98); g.fill(); g.fillRect(-12,-17,24,4); }
+    g.fillStyle=st.wlosy||'#5A3A2A'; g.beginPath(); g.arc(0,-17,11,Math.PI*1.05,Math.PI*1.95); g.fill();
+    g.fillStyle=O; g.beginPath(); g.arc(-4,-12,1.6,0,Math.PI*2); g.arc(4,-12,1.6,0,Math.PI*2); g.fill();
+    if(!st.maska){ g.fillStyle='rgba(255,120,120,0.45)'; g.beginPath(); g.arc(-7,-9,2.2,0,Math.PI*2); g.arc(7,-9,2.2,0,Math.PI*2); g.fill(); }
+    // na głowie: czapka kompletu albo awatar gracza
+    g.font='15px sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(st.czapka || profile.avatar || '🧢', 0, -24);
+    if(st.iskry){
+      g.fillStyle='#FFE27A';
+      [[-18,-20],[18,-26],[-16,12],[20,16]].forEach(([x,y])=>{ g.beginPath(); g.moveTo(x,y-4); g.lineTo(x+1.2,y-1.2); g.lineTo(x+4,y); g.lineTo(x+1.2,y+1.2);
+        g.lineTo(x,y+4); g.lineTo(x-1.2,y+1.2); g.lineTo(x-4,y); g.lineTo(x-1.2,y-1.2); g.closePath(); g.fill(); });
+    }
+  }
   function drawPlayer(){
     ctx.save(); ctx.translate(player.x,projY(player.y)-24);
     ctx.globalAlpha = player.hidden ? 0.4 : 1;
-    const swing = player.moving ? Math.sin(elapsedSinceStart*11)*5 : 0, O='#3D3A5C';
-    const lewa = Math.max(0,-swing)*0.25, prawa = Math.max(0,swing)*0.25;
-    ctx.lineWidth=1.5; ctx.strokeStyle=O;
-    // nogi w dżinsach i białe buty
-    ctx.fillStyle='#4E6FD8';
-    roundRect(-9,13+lewa,7,11,3); ctx.fill(); ctx.stroke();
-    roundRect(2,13+prawa,7,11,3); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#FFFFFF';
-    roundRect(-10,22+lewa,9,4,2); ctx.fill(); ctx.stroke();
-    roundRect(1,22+prawa,9,4,2); ctx.fill(); ctx.stroke();
-    // plecak z butelką
-    ctx.fillStyle='#35C2A6'; ctx.beginPath(); ctx.ellipse(13,6,9,12,0.28,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#6FB8FF'; roundRect(16,-10,5,8,2); ctx.fill(); ctx.stroke();
-    // bluza
-    ctx.fillStyle='#FF8A5B'; roundRect(-13,-3,26,25,10); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,0.3)'; roundRect(-9,0,6,14,3); ctx.fill();
-    ctx.fillStyle='#FF8A5B'; ctx.beginPath(); ctx.ellipse(-14,8,5,8,0.15,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    // głowa: duża, z grzywką, oczami i rumieńcami
-    ctx.fillStyle='#FFD9B8'; ctx.beginPath(); ctx.arc(0,-14,12,0,Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#5A3A2A'; ctx.beginPath(); ctx.arc(0,-17,11,Math.PI*1.05,Math.PI*1.95); ctx.fill();
-    ctx.fillStyle=O; ctx.beginPath(); ctx.arc(-4,-12,1.6,0,Math.PI*2); ctx.arc(4,-12,1.6,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(255,120,120,0.45)'; ctx.beginPath(); ctx.arc(-7,-9,2.2,0,Math.PI*2); ctx.arc(7,-9,2.2,0,Math.PI*2); ctx.fill();
-    // awatar gracza jako czapka
-    ctx.font='15px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(profile.avatar||'🧢',0,-24);
+    const swing = player.moving ? Math.sin(elapsedSinceStart*11)*5 : 0;
+    rysujLowce(ctx, strojGracza(), swing);
     ctx.globalAlpha=1;
     ctx.restore();
   }
@@ -6417,6 +6697,12 @@
     bins.forEach(b=>{
       ctx.fillStyle = b.searched ? 'rgba(255,255,255,0.18)' : '#FFD84D';
       ctx.fillRect(mx+b.x*sx-1.5, my+projY(b.y)*sy-1.5, 3, 3);
+    });
+    // wykrywacz: jackpot pulsuje na różowo, żeby odróżniał się od zwykłych koszy
+    if(dopalaczeWyprawy.wykrywacz) bins.forEach(b=>{
+      if(!b.jackpot || b.searched) return;
+      const r = 3.5 + 1.5*Math.sin(elapsedSinceStart*6);
+      ctx.fillStyle='#FF7FC8'; ctx.beginPath(); ctx.arc(mx+b.x*sx, my+projY(b.y)*sy, r, 0, Math.PI*2); ctx.fill();
     });
     // wyjście
     ctx.fillStyle='#7CFFCB';
@@ -6944,6 +7230,15 @@
     document.getElementById('caughtOverlay').classList.add('hidden');
     document.getElementById('pauseOverlay').classList.add('hidden');
     resetGame(); state='playing'; roundsPlayed+=1;
+    // dopalacze włączone przełącznikiem zużywają się teraz, na starcie
+    dopalaczeWyprawy = {}; niewidkaUzyta = false;
+    const uzyte = DOPALACZE.filter(d=>(profile.dopalacze[d.id]||0) > 0 && profile.dopalaczeWl[d.id] !== false);
+    uzyte.forEach(d=>{ profile.dopalacze[d.id] -= 1; dopalaczeWyprawy[d.id] = true; });
+    if(uzyte.length){
+      saveProfile();
+      setTimeout(()=>showToast(uzyte.map(d=>d.ikona+' '+d.nazwa).join(' · ')+' — działa!'), 1400);
+      grynaPlusEvent('dopalacze_uzyte', { ids: uzyte.map(d=>d.id), mapId:currentMapId, profileNick:profile.nick });
+    }
     // Tu, a nie przy wczytaniu profilu: doba bez limitu należy się za granie.
     if(!profile.firstSeen){ profile.firstSeen = Date.now(); saveProfile(); }
     grynaPlusEvent('round_started', { mapId:currentMapId, poziomMapy:playedLevel,
@@ -7098,8 +7393,9 @@
     };
 
     napis('ŁOWCA KAUCJI', 120, 74, '#FFF3C4');
-    g.font='140px serif'; g.textAlign='center'; g.textBaseline='middle';
-    g.fillText(mapa.icon, 540, 268);
+    g.font='120px serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(mapa.icon, 420, 268);
+    g.save(); g.translate(650, 282); g.scale(3.2, 3.2); rysujLowce(g, strojGracza(), 0); g.restore();
 
     napis(fmt(lastBankedAmount), 470, 190, '#FFD24A');
     napis('z jednej wyprawy', 585, 46, '#FFF3C4', 600);
@@ -7257,6 +7553,8 @@
     if(m.doPodium > 0) return t + ' · do podium brakuje ' + fmt(m.doPodium);
     return t + ' · do ' + (m.miejsce - 1) + '. miejsca brakuje ' + fmt(m.doWyzej);
   }
+  // serwer podaje id kompletu; ikonę bierzemy z własnej listy, obce id nic nie rysuje
+  function ikonaKompletu(id){ const k = strojPoId(id); return (k && k.slot==='komplet') ? k.ikona+' ' : ''; }
   function ligaTabelaHTML(d){
     let html = '';
     if(ligaNagrodaOstatnia && ligaNagrodaOstatnia.code){
@@ -7290,7 +7588,7 @@
       }
       html += '<tr class="'+(w.ja?'me':'')+'">'
            +  '<td class="lt-nr">'+w.miejsce+'.</td>'
-           +  '<td class="lt-nick">'+esc(w.nick||'—')+(w.ja?' <span class="lt-ty">(Ty)</span>':'')+'</td>'
+           +  '<td class="lt-nick">'+ikonaKompletu(w.stroj)+esc(w.nick||'—')+(w.ja?' <span class="lt-ty">(Ty)</span>':'')+'</td>'
            +  '<td class="lt-zl">'+fmt(w.kaucja)+'</td>'
            +  '<td class="lt-pkt'+klasa+'">'+pkt+'</td></tr>';
     });
