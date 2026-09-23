@@ -230,6 +230,20 @@
   .lg-row .lg-nag{flex-shrink:0;min-width:46px;text-align:right;font-size:10px;font-weight:700;color:var(--kom-nagroda);}
   .lg-row.pod-progiem .lg-nag{color:#8A7150;font-weight:600;}
   .lg-row.pod-progiem{opacity:.7;}
+  .lg-tab{width:100%;border-collapse:collapse;font-size:13px;color:var(--ink);text-align:left;margin:4px 0 2px;}
+  .lg-tab th{font-size:10px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#6B5230;
+    padding:4px 4px 5px;border-bottom:2px solid rgba(74,46,16,0.25);}
+  .lg-tab td{padding:6px 4px;border-bottom:1px solid rgba(74,46,16,0.12);vertical-align:middle;}
+  .lg-tab tbody tr:last-child td{border-bottom:none;}
+  .lg-tab .lt-nr{width:28px;text-align:right;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;color:var(--gold-dark);}
+  .lg-tab .lt-nick{max-width:0;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+  .lg-tab .lt-zl{text-align:right;white-space:nowrap;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;}
+  .lg-tab .lt-pkt{text-align:right;white-space:nowrap;font-weight:800;color:var(--kom-nagroda);}
+  .lg-tab .lt-pkt.bez-progu{color:#7A6A50;font-weight:600;}   /* 5,2:1 na białym, 4,6:1 na zielonym wierszu „Ty" */
+  .lg-tab tr.me{background:rgba(46,125,50,0.10);}   /* na wierszu, nie na komórkach — inaczej tło ma przerwy */
+  .lg-tab tr.me .lt-nick{color:var(--kom-dobrze);}
+  .lg-tab .lt-ty{font-weight:600;font-size:11px;}
+  .lg-przypis{font-size:11px;color:#6B5230;text-align:left;margin-top:6px;line-height:1.35;}
   .lg-sekcja{margin:10px 0 4px;font-size:11px;font-weight:700;color:var(--naglowek);text-align:left;}
   .lg-nagroda{margin:6px 0 2px;padding:8px 10px;border-radius:12px;background:var(--panel-3);border:2px dashed var(--gold-dark);
     font-size:12px;color:var(--ink);text-align:left;}
@@ -1924,7 +1938,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-23 · 45';
+  const APP_VERSION = '2026-09-23 · 46';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3780,6 +3794,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-23 · 46', linie:[
+      '📋 Tabela ligi czytelniejsza: miejsce, gracz, zebrana kaucja i ile punktów GrynaPlus jest za to miejsce.'
+    ]},
     { v:'2026-09-23 · 45', linie:[
       '🏆 Liga tygodnia daje punkty grynaplus: 1. miejsce 150 pkt, 2. — 100, 3. — 70, miejsca 4.–10. po 20 i losowanie 2 × 20.',
       '💰 Liczy się cała kaucja zebrana w wyprawach od poniedziałku, a nie jedna najlepsza wyprawa. Warunek: co najmniej 100 zł w tygodniu.',
@@ -6956,18 +6973,36 @@
     if(!d || !d.top || !d.top.length){
       return html + '<div class="mod-none">Tydzień dopiero się zaczął — pierwsza wyprawa i jesteś na szczycie.</div>';
     }
+    /* Tabela, nie wiersze z flexa: w oknie ligi (.card ma text-align:center)
+       nick lądował na środku, oderwany od miejsca i kwoty. Kolumna punktów
+       pokazuje, ile jest warte MIEJSCE — kto nie ma jeszcze progu kaucji,
+       widzi tę kwotę na szaro, żeby było jasne, o co gra i czego brakuje. */
+    const miejsca = (d.nagrody && d.nagrody.miejsca) || [];
+    const prog = d.prog || 100;
+    const wartosc = (nr) => miejsca[nr-1] ? miejsca[nr-1] + ' pkt' : null;
+    let szare = false;
+    html += '<table class="lg-tab"><thead><tr><th class="lt-nr">#</th><th class="lt-nick">Gracz</th>'
+         +  '<th class="lt-zl">Kaucja</th><th class="lt-pkt">GrynaPlus</th></tr></thead><tbody>';
     d.top.forEach(w=>{
-      const medal = w.miejsce===1?'🥇':(w.miejsce===2?'🥈':(w.miejsce===3?'🥉':w.miejsce+'.'));
-      const nag = !w.kwalifikacja ? 'pod progiem' : (w.nagroda ? w.nagroda+' pkt' : 'losowanie');
-      html += '<div class="lg-row'+(w.ja?' me':'')+(w.kwalifikacja?'':' pod-progiem')+'">'
-           +  '<span class="lg-no">'+medal+'</span>'
-           +  '<span class="lg-nick">'+esc(w.nick||'—')+'</span>'
-           +  '<span class="lg-val">'+fmt(w.kaucja)+'</span>'
-           +  '<span class="lg-nag">'+nag+'</span></div>';
+      let pkt, klasa = '';
+      if(wartosc(w.miejsce)){
+        pkt = wartosc(w.miejsce);
+        if(!w.kwalifikacja){ klasa = ' bez-progu'; szare = true; }
+      } else {
+        pkt = w.kwalifikacja ? 'losowanie' : '—';
+      }
+      html += '<tr class="'+(w.ja?'me':'')+'">'
+           +  '<td class="lt-nr">'+w.miejsce+'.</td>'
+           +  '<td class="lt-nick">'+esc(w.nick||'—')+(w.ja?' <span class="lt-ty">(Ty)</span>':'')+'</td>'
+           +  '<td class="lt-zl">'+fmt(w.kaucja)+'</td>'
+           +  '<td class="lt-pkt'+klasa+'">'+pkt+'</td></tr>';
     });
     if(d.moj && d.moj.miejsce && d.moj.miejsce > d.top.length){
-      html += '<div class="lg-me">Twoje miejsce: <b>'+d.moj.miejsce+'</b> &middot; <b>'+fmt(d.moj.kaucja)+'</b></div>';
+      html += '<tr class="me"><td class="lt-nr">'+d.moj.miejsce+'.</td><td class="lt-nick">Ty</td>'
+           +  '<td class="lt-zl">'+fmt(d.moj.kaucja)+'</td><td class="lt-pkt">'+(d.moj.kwalifikacja?'losowanie':'—')+'</td></tr>';
     }
+    html += '</tbody></table>';
+    if(szare) html += '<div class="lg-przypis">Szare punkty: gracz nie ma jeszcze '+prog+' zł kaucji w tym tygodniu, więc na razie nagrody by nie dostał.</div>';
     return html;
   }
   async function wczytajLige(){
