@@ -172,6 +172,10 @@
      Limit wysokości trzyma kartę w ryzach niezależnie od szerokości ekranu. */
   .map-scene{position:relative;width:100%;aspect-ratio:320/128;max-height:min(160px,21vh);border-radius:14px;overflow:hidden;border:3px solid var(--ink);margin-bottom:7px;background:#cfe8f7;}
   .map-scene svg{display:block;width:100%;height:100%;}
+  .map-scene .map-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;}
+  .map-scene #mapPrev{left:6px;}
+  .map-scene #mapNext{right:6px;}
+  .map-scene .map-nav:disabled{opacity:0;pointer-events:none;}
   .map-scene.locked svg{filter:grayscale(0.75) brightness(0.72);}
   .scene-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;text-shadow:0 3px 6px rgba(0,0,0,0.5);}
   .map-card .mc-name{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:17px;color:var(--ink);}
@@ -223,6 +227,18 @@
   .lg-row .lg-no{flex-shrink:0;width:26px;text-align:right;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;color:var(--gold-dark);}
   .lg-row .lg-nick{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .lg-row .lg-val{flex-shrink:0;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;}
+  .lg-row .lg-nag{flex-shrink:0;min-width:46px;text-align:right;font-size:10px;font-weight:700;color:var(--kom-nagroda);}
+  .lg-row.pod-progiem .lg-nag{color:#8A7150;font-weight:600;}
+  .lg-row.pod-progiem{opacity:.7;}
+  .lg-sekcja{margin:10px 0 4px;font-size:11px;font-weight:700;color:var(--naglowek);text-align:left;}
+  .lg-nagroda{margin:6px 0 2px;padding:8px 10px;border-radius:12px;background:var(--panel-3);border:2px dashed var(--gold-dark);
+    font-size:12px;color:var(--ink);text-align:left;}
+  .lg-nagroda b.kod{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;letter-spacing:1px;user-select:all;}
+  .liga-zasady{font-size:11px;margin:0 0 6px;}
+  /* Linijka ligi na ekranie wyniku: widoczna tylko, gdy serwer odpowiedział */
+  .liga-wynik{display:none;margin:0 0 8px;padding:7px 10px;border-radius:12px;background:var(--kom-fiolet);color:#fff;
+    font-size:12px;font-weight:700;line-height:1.35;}
+  .liga-wynik.show{display:block;}
   .lg-me{margin-top:7px;padding-top:7px;border-top:2px dashed rgba(138,106,58,0.35);font-size:11px;color:#5C4522;}
   .map-card .mc-mods{font-size:14px;letter-spacing:3px;margin-top:3px;line-height:1;}
   /* Pasek „z wiadomości" po wyprawie — lokalny absurd jest największą
@@ -410,6 +426,14 @@
     background:linear-gradient(90deg,#FFD166,var(--gold));}
   #payoutList .status small{font-size:10px;font-weight:600;opacity:0.85;}
   .zaklad-wybrany{border-color:var(--gold-dark);background:var(--panel-3);}
+  .skroty{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 8px;}
+  button.skrot{width:auto;min-height:46px;margin:0;padding:5px 4px;border-radius:14px;border:2.5px solid var(--ink);
+    background:var(--panel);color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,0.14);cursor:pointer;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;}
+  button.skrot:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.14);}
+  .skrot .sk-t{font-size:12px;font-weight:800;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .skrot .sk-s{font-size:10px;font-weight:600;color:#6B5230;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  button.skrot.zaklad-wybrany{border-color:var(--gold-dark);background:var(--panel-3);}
   #zakladLista .shop-row.wybrany{border-color:var(--gold-dark);background:var(--panel-3);}
   #zakladLista .status small{font-size:10px;opacity:0.8;}
   .sort-rekord{font-size:13px;color:#5C4522;margin-bottom:12px;}
@@ -508,7 +532,13 @@
     .lvl-grid{gap:5px;margin-bottom:8px;}
     .lvl-tile{padding:5px 1px 4px;}
     .lvl-tile .lt-no{font-size:15px;}
-    .map-scene{max-height:min(130px,17vh);}
+    /* Rząd kafelków nad kartą zjadł ~50 px. Mierzone Z TELEGRAMEM (jego
+       pasek i status bar dokładają 32 px nagłówka): przy 15vh GRAJ wystawał
+       18 px pod pasek zakładek na 320x568, a reklama +25% o 7 px na 360x640.
+       Oddajemy to z ilustracji — to jedyny element karty bez funkcji. */
+    .map-scene{max-height:min(100px,11vh);}
+    .skroty{margin-bottom:6px;}
+    button.skrot{min-height:44px;padding:3px 4px;}
     .play-cta{font-size:20px !important;padding:9px 14px !important;margin:8px 0 6px !important;}
     .map-card .mc-name{font-size:15px;}
     .map-pager{margin-top:6px;margin-bottom:2px;}
@@ -611,6 +641,17 @@
         <!-- ZAKŁADKA: GRAJ -->
         <div class="tab-panel" id="tabGraj">
           <div class="stage">
+            <!-- Zakład, Sortownia i Liga stoją NAD kartą mapy. Pod nią leżały
+                 pod paskiem zakładek na każdym telefonie niższym niż ~760 px
+                 (na 360x640 pasek zaczyna się na 561 px, a karta kończy na
+                 522) — czyli dla sporej części graczy po prostu nie istniały.
+                 Jeden rząd kafelków kosztuje GRAJ ~55 px i GRAJ nadal
+                 mieści się nad paskiem nawet na 320x568. -->
+            <div class="skroty">
+              <button class="skrot" id="zakladBtn"><span class="sk-t">🎲 Zakład</span><span class="sk-s">bez zakładu</span></button>
+              <button class="skrot" id="sortowniaBtn"><span class="sk-t">🗑️ Sortownia</span><span class="sk-s">bez energii</span></button>
+              <button class="skrot" id="ligaBtn"><span class="sk-t">🏆 Liga</span><span class="sk-s">nagrody w pkt</span></button>
+            </div>
             <div class="map-stage">
               <div class="map-card" id="mapCard">
                 <!-- renderMapSelector nadpisuje wnętrze karty, więc przycisk
@@ -626,12 +667,6 @@
               <div class="map-dots" id="mapDots"></div>
               <button class="map-nav" id="mapNext" aria-label="Następna mapa" title="Następna mapa">›</button>
             </div>
-            <!-- Sortownia stoi TUTAJ, a nie na dole zakładki: wszystko poniżej
-                 karty mapy leży poza ekranem telefonu, więc guzik na dole nie
-                 istniałby dla gracza — ten sam błąd mieliśmy już z reklamą za
-                 energię i z wejściem do ustawień. -->
-            <button class="secondary" id="zakladBtn">🎲 Zakład przed wyprawą — bez zakładu</button>
-            <button class="secondary" id="sortowniaBtn">🗑️ SORTOWNIA — gra bez energii</button>
           </div>
 
           <div class="stash-box" id="stashBox">
@@ -870,6 +905,28 @@
     </div>
   </div>
 
+  <!-- LIGA TYGODNIA -->
+  <div class="overlay hidden" id="ligaOverlay" data-wyjscie="ligaCloseBtn">
+    <div class="card karta-news">
+      <h1 style="font-size:22px;">🏆 Liga tygodnia</h1>
+      <p class="sub liga-zasady" id="ligaZasady">Liczy się kaucja zebrana w wyprawach od poniedziałku.</p>
+      <div class="news-ramka"><div class="news-lista" id="ligaLista"><div class="mod-none">Wczytuję…</div></div></div>
+      <button class="primary" id="ligaCloseBtn">ZAMYKAM</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="ligaNagrodaOverlay" data-wyjscie="ligaNagrodaOkBtn">
+    <div class="card">
+      <h1 style="font-size:24px;" id="ligaNagrodaTytul">🏆 Liga — zeszły tydzień</h1>
+      <p class="sub" id="ligaNagrodaOpis"></p>
+      <div class="coupon-code" id="ligaNagrodaKod">—</div>
+      <div class="coupon-points" id="ligaNagrodaPkt">+0 pkt</div>
+      <button class="secondary reward" id="ligaNagrodaKopiuj">📋 Kopiuj kod</button>
+      <button class="primary" id="ligaNagrodaOkBtn">SUPER</button>
+      <div class="footnote">Kod znajdziesz też w oknie ligi do końca tygodnia.</div>
+    </div>
+  </div>
+
   <div class="overlay hidden" id="streakOverlay" data-wyjscie="streakTakeBtn">
     <div class="card">
       <h1 style="font-size:24px;" id="streakTytul">📅 Dzień <span id="streakDay">1</span> z rzędu!</h1>
@@ -911,6 +968,7 @@
       <div class="news-bar" id="newsBar"></div>
       <p class="sub" id="worLinijka" style="margin:0 0 6px;">🛍️ trafia do wora — oddaj w sklepie, żeby zamienić na kaucję</p>
       <p class="result-tier" id="resultTier"></p>
+      <div class="liga-wynik" id="ligaWynik"></div>
       <div class="tasks-box">
         <div class="t-title" id="goalsEndTitle">🎯 Gwiazdki poziomu</div>
         <div id="goalsListEnd"></div>
@@ -1866,7 +1924,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-22 · 44';
+  const APP_VERSION = '2026-09-23 · 45';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3003,6 +3061,12 @@
   // Bonus startowy mieszka w tej samej karcie, więc dzieli los guzika GRAJ:
   // renderMapSelector nadpisuje jej wnętrze i doczepia oba z powrotem.
   const boostBtnEl = document.getElementById('boostAdBtn');
+  /* Strzałki mapy trzymamy w zmiennych z tego samego powodu co GRAJ:
+     renderMapSelector nadpisuje wnętrze karty, a razem z ilustracją
+     zniknęłyby też leżące na niej strzałki — szukanie po id po nadpisaniu
+     zwraca już null. */
+  const strzalkaLewaEl = document.getElementById('mapPrev');
+  const strzalkaPrawaEl = document.getElementById('mapNext');
   const BOOST_NAPIS = '🎬 REKLAMA → +25% ŁUPU';
   let premiaReklamy = false;   // trzyma się do momentu, aż naprawdę zapłaci
   function renderMapSelector(){
@@ -3038,6 +3102,13 @@
       card.innerHTML = body;
       if(playBtnEl) card.appendChild(playBtnEl); // wraca po nadpisaniu wnętrza
       if(boostBtnEl) card.appendChild(boostBtnEl);
+      /* Strzałki leżą NA ilustracji, a nie w osobnym wierszu pod kartą:
+         odkąd nad kartą stoi rząd kafelków, tamten wiersz spadał pod pasek
+         zakładek na każdym telefonie niższym niż ~700 px i mapy nie dało się
+         przełączyć. Na ilustracji nie kosztują ani piksela wysokości.
+         Przenosimy te same elementy, więc podpięte zdarzenia zostają. */
+      const scena = card.querySelector('.map-scene');
+      if(scena && strzalkaLewaEl && strzalkaPrawaEl){ scena.appendChild(strzalkaLewaEl); scena.appendChild(strzalkaPrawaEl); }
     }
     const dots = document.getElementById('mapDots');
     if(dots){
@@ -3048,7 +3119,7 @@
         dots.appendChild(d);
       });
     }
-    const prevBtn=document.getElementById('mapPrev'), nextBtn=document.getElementById('mapNext');
+    const prevBtn=strzalkaLewaEl, nextBtn=strzalkaPrawaEl;
     if(prevBtn) prevBtn.disabled = stageIdx<=0;
     if(nextBtn) nextBtn.disabled = stageIdx>=MAPS.length-1;
 
@@ -3709,6 +3780,11 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-23 · 45', linie:[
+      '🏆 Liga tygodnia daje punkty grynaplus: 1. miejsce 150 pkt, 2. — 100, 3. — 70, miejsca 4.–10. po 20 i losowanie 2 × 20.',
+      '💰 Liczy się cała kaucja zebrana w wyprawach od poniedziałku, a nie jedna najlepsza wyprawa. Warunek: co najmniej 100 zł w tygodniu.',
+      '📍 Po każdej wyprawie widzisz swoje miejsce i ile brakuje do wyższego. Nagroda czeka na Ciebie w poniedziałek.'
+    ]},
     { v:'2026-09-22 · 44', linie:[
       '🎟️ Dzienny limit punktów podniesiony z 200 do 1000 — sufit przestaje być sufitem.'
     ]},
@@ -3792,12 +3868,12 @@
   // Sortujemy sami, żeby wpis dopisany w złe miejsce nie wylądował na górze.
   NEWS.sort((a,b) => numerWydania(b.v) - numerWydania(a.v));
   let newsCalosc = false;
-  function sygnalPrzewijania(){
-    const box = document.getElementById('newsList');
+  function sygnalPrzewijaniaW(box){
     if(!box || !box.parentElement) return;
     const zostalo = box.scrollHeight - box.scrollTop - box.clientHeight;
     box.parentElement.classList.toggle('jest-wiecej', zostalo > 4);
   }
+  function sygnalPrzewijania(){ sygnalPrzewijaniaW(document.getElementById('newsList')); }
   document.getElementById('newsList').addEventListener('scroll', sygnalPrzewijania);
   function rysujNowosci(od){
     const box = document.getElementById('newsList');
@@ -3891,8 +3967,9 @@
     const b = document.getElementById('zakladBtn');
     if(!b) return;
     const z = zakladDef(zakladRundy);
-    b.textContent = z ? ('🎲 Zakład: '+z.nazwa+'  +'+Math.round(z.bonus*100)+'% / −'+Math.round(z.kara*100)+'%')
-                      : '🎲 Zakład przed wyprawą — bez zakładu';
+    b.querySelector('.sk-t').textContent = z ? '🎲 ' + z.nazwa : '🎲 Zakład';
+    b.querySelector('.sk-s').textContent = z ? '+'+Math.round(z.bonus*100)+'% / −'+Math.round(z.kara*100)+'%' : 'bez zakładu';
+    b.title = z ? 'Zakład: ' + z.nazwa : 'Zakład przed wyprawą';
     b.classList.toggle('zaklad-wybrany', !!z);
   }
 
@@ -6465,7 +6542,7 @@
     await saveDaily(); await saveProfile();
     checkTasks();
     refreshProfileUI();
-    zglosWynik(banked);     // do ligi tygodniowej; nie blokuje niczego
+    ligaPoWyprawie();       // wynik ligi liczy serwer z zapisu profilu — tu go tylko pokazujemy
     /* `level` to poziom GRACZA (doświadczenie), a `poziomMapy` to poziom
        mapy, na którym toczyła się wyprawa. Bez tego drugiego nie dało się
        odpowiedzieć na najważniejsze pytanie z danych: na którym poziomie
@@ -6529,6 +6606,7 @@
         showToast('💰 Łup podwojony!');
         grynaPlusEvent('rewarded_double', { profileNick:profile.nick });
         await saveProfile(); refreshProfileUI();
+        ligaPoWyprawie();   // PO zapisie — serwer dolicza podwojenie do ligi dopiero przy nim
       },
       (rewarded)=>{ e.target.textContent = rewarded ? '✅ Nagroda odebrana' : '🎬 Obejrzyj reklamę → podwój ten łup'; e.target.disabled=!!rewarded; },
       'double_loot'
@@ -6829,11 +6907,6 @@
      zablokować rozgrywki, więc każdy jest owinięty w try/catch.
      ========================================================= */
   function backendDostepny(){ return !!(TG && TG.initData); }
-  async function zglosWynik(banked){
-    if(!backendDostepny() || !(banked>0)) return;
-    try{ await apiCall('/score', { banked: Number(banked.toFixed(2)), nick: profile.nick }); }
-    catch(e){ /* liga to dodatek — nie przerywa niczego graczowi */ }
-  }
   async function zglosPolecenie(){
     if(!backendDostepny() || !profile.invitedBy || profile.refSent) return;
     try{
@@ -6841,6 +6914,81 @@
       profile.refSent = true; await saveProfile();
     }catch(e){}
   }
+  /* Liga liczy kaucję zebraną w wyprawach od poniedziałku. Wynik liczy
+     SERWER z zapisów profilu — gra niczego nie zgłasza, więc nie da się go
+     sobie wpisać. Tu tylko pokazujemy tabelę, nagrody i „ile brakuje". */
+  let ligaDane = null;              // ostatnia odpowiedź /league
+  let ligaNagrodaOstatnia = null;   // nagroda za zeszły tydzień, jeśli jest
+  const esc = (t)=>String(t==null?'':t).replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+  function ligaZasadyTekst(d){
+    const m = (d && d.nagrody && d.nagrody.miejsca) || [150,100,70,20];
+    const l = (d && d.nagrody && d.nagrody.losowanie) || { ile:2, pkt:20 };
+    const prog = (d && d.prog) || 100;
+    const ile20 = m.filter(x=>x===m[3]).length;
+    return 'Liczy się kaucja zebrana w wyprawach od poniedziałku. Nagrody w punktach grynaplus: '
+      + '<b>1. '+m[0]+' pkt · 2. '+m[1]+' · 3. '+m[2]+'</b>'
+      + (ile20 ? ' · 4.–'+(3+ile20)+'. po '+m[3] : '')
+      + ' · losowanie '+l.ile+'×'+l.pkt+' wśród reszty. Warunek: co najmniej <b>'+prog+' zł</b> w tygodniu.';
+  }
+  /* „Jesteś 4. — do podium brakuje…" — jedno zdanie o tym, co gracz może
+     zrobić TERAZ. Używa go ekran wyniku, przycisk na głównej i okno ligi. */
+  function ligaStatus(d){
+    const m = d && d.moj;
+    if(!m || !m.miejsce) return null;
+    if(!m.kwalifikacja) return 'Do progu nagród brakuje ' + fmt(m.doProgu);
+    let t = m.miejsce + '. miejsce';
+    if(m.nagroda) t += ' · teraz ' + m.nagroda + ' pkt';
+    if(m.miejsce === 1) return t + ' — trzymaj prowadzenie!';
+    if(m.doPodium > 0) return t + ' · do podium brakuje ' + fmt(m.doPodium);
+    return t + ' · do ' + (m.miejsce - 1) + '. miejsca brakuje ' + fmt(m.doWyzej);
+  }
+  function ligaTabelaHTML(d){
+    let html = '';
+    if(ligaNagrodaOstatnia && ligaNagrodaOstatnia.code){
+      html += '<div class="lg-nagroda">🎁 Nagroda za zeszły tydzień: <b>'+ligaNagrodaOstatnia.points+' pkt</b> — kod '
+           +  '<b class="kod">'+esc(ligaNagrodaOstatnia.code)+'</b></div>';
+    } else if(ligaNagrodaOstatnia && ligaNagrodaOstatnia.status === 'czeka'){
+      html += '<div class="lg-nagroda">🎁 Masz nagrodę za zeszły tydzień ('+ligaNagrodaOstatnia.points+' pkt) — kod pojawi się tutaj, gdy tylko będzie gotowy.</div>';
+    }
+    const st = ligaStatus(d);
+    if(st) html += '<div class="lg-sekcja">Ty: '+esc(st)+'</div>';
+    if(!d || !d.top || !d.top.length){
+      return html + '<div class="mod-none">Tydzień dopiero się zaczął — pierwsza wyprawa i jesteś na szczycie.</div>';
+    }
+    d.top.forEach(w=>{
+      const medal = w.miejsce===1?'🥇':(w.miejsce===2?'🥈':(w.miejsce===3?'🥉':w.miejsce+'.'));
+      const nag = !w.kwalifikacja ? 'pod progiem' : (w.nagroda ? w.nagroda+' pkt' : 'losowanie');
+      html += '<div class="lg-row'+(w.ja?' me':'')+(w.kwalifikacja?'':' pod-progiem')+'">'
+           +  '<span class="lg-no">'+medal+'</span>'
+           +  '<span class="lg-nick">'+esc(w.nick||'—')+'</span>'
+           +  '<span class="lg-val">'+fmt(w.kaucja)+'</span>'
+           +  '<span class="lg-nag">'+nag+'</span></div>';
+    });
+    if(d.moj && d.moj.miejsce && d.moj.miejsce > d.top.length){
+      html += '<div class="lg-me">Twoje miejsce: <b>'+d.moj.miejsce+'</b> &middot; <b>'+fmt(d.moj.kaucja)+'</b></div>';
+    }
+    return html;
+  }
+  async function wczytajLige(){
+    if(!backendDostepny()) return null;
+    try{ ligaDane = await apiGet('/league'); }catch(e){ return null; }
+    odswiezPrzyciskLigi();
+    return ligaDane;
+  }
+  function odswiezPrzyciskLigi(){
+    const b = document.getElementById('ligaBtn');
+    if(!b) return;
+    const m = ligaDane && ligaDane.moj;
+    let krotko = 'nagrody w pkt';
+    if(m && m.miejsce){
+      krotko = !m.kwalifikacja ? 'do progu ' + fmt(m.doProgu)
+             : m.miejsce + '. miejsce · ' + (m.nagroda ? m.nagroda + ' pkt' : 'losowanie');
+    }
+    b.querySelector('.sk-s').textContent = krotko;
+    b.title = ligaStatus(ligaDane) || 'Liga tygodnia — nagrody w punktach grynaplus';
+  }
+  // Profil: ta sama tabela co w oknie ligi
   async function renderLiga(){
     const box = document.getElementById('leagueBox');
     if(!box) return;
@@ -6848,29 +6996,92 @@
       box.innerHTML = '<div class="mod-none">Liga działa w Telegramie — tam gra wie, kto jest kim.</div>';
       return;
     }
-    try{
-      const d = await apiGet('/league');
-      if(!d.top || !d.top.length){
-        box.innerHTML = '<div class="mod-none">Tydzień dopiero się zaczął — pierwsza wyprawa i jesteś na szczycie.</div>';
-        return;
-      }
-      let html = '';
-      d.top.forEach(w=>{
-        const medal = w.miejsce===1?'🥇':(w.miejsce===2?'🥈':(w.miejsce===3?'🥉':w.miejsce+'.'));
-        html += '<div class="lg-row'+(w.ja?' me':'')+'">'
-             +  '<span class="lg-no">'+medal+'</span>'
-             +  '<span class="lg-nick">'+String(w.nick||'—').replace(/[<>&]/g,'')+'</span>'
-             +  '<span class="lg-val">'+fmt(w.best)+'</span></div>';
-      });
-      if(d.moj && d.moj.miejsce && d.moj.miejsce > d.top.length){
-        html += '<div class="lg-me">Twoje miejsce: <b>'+d.moj.miejsce+'</b> &middot; najlepsza wyprawa <b>'+fmt(d.moj.best)+'</b></div>';
-      }
-      html += '<div class="lg-me">Liczy się NAJLEPSZA wyprawa tygodnia. Reset w poniedziałek.</div>';
-      box.innerHTML = html;
-    }catch(e){
-      box.innerHTML = '<div class="mod-none">Nie udało się wczytać ligi. Spróbuj za chwilę.</div>';
-    }
+    const d = await wczytajLige();
+    box.innerHTML = d ? ligaTabelaHTML(d) + '<div class="lg-me">'+ligaZasadyTekst(d)+'</div>'
+                      : '<div class="mod-none">Nie udało się wczytać ligi. Spróbuj za chwilę.</div>';
   }
+  async function pokazOknoLigi(){
+    const ov = document.getElementById('ligaOverlay');
+    const lista = document.getElementById('ligaLista');
+    document.getElementById('ligaZasady').innerHTML = ligaZasadyTekst(ligaDane);
+    lista.innerHTML = ligaDane ? ligaTabelaHTML(ligaDane) : '<div class="mod-none">Wczytuję…</div>';
+    ov.classList.remove('hidden');
+    sygnalPrzewijaniaW(lista);
+    if(!backendDostepny()){
+      lista.innerHTML = '<div class="mod-none">Liga działa w Telegramie — tam gra wie, kto jest kim.</div>';
+      return;
+    }
+    const d = await wczytajLige();
+    document.getElementById('ligaZasady').innerHTML = ligaZasadyTekst(d || ligaDane);
+    lista.innerHTML = d ? ligaTabelaHTML(d) : '<div class="mod-none">Nie udało się wczytać ligi. Spróbuj za chwilę.</div>';
+    lista.scrollTop = 0;
+    sygnalPrzewijaniaW(lista);
+  }
+  document.getElementById('ligaBtn').addEventListener('click', ()=>{ Sfx.click(); haptic('light'); pokazOknoLigi(); });
+  document.getElementById('ligaCloseBtn').addEventListener('click', ()=>{
+    Sfx.click(); document.getElementById('ligaOverlay').classList.add('hidden');
+  });
+  document.getElementById('ligaLista').addEventListener('scroll', (e)=>sygnalPrzewijaniaW(e.target));
+
+  /* Po wyprawie (i po podwojeniu łupu) serwer ma już nowy wynik, bo liczy
+     go przy zapisie profilu. Pokazujemy, co to zmieniło w tabeli. */
+  async function ligaPoWyprawie(){
+    const el = document.getElementById('ligaWynik');
+    if(el) el.classList.remove('show');   // bez tego mignąłby wynik z poprzedniej wyprawy
+    const d = await wczytajLige();
+    const st = ligaStatus(d);
+    if(!el) return;
+    if(!st){ el.classList.remove('show'); return; }
+    el.textContent = '🏆 Liga: ' + st;
+    el.classList.add('show');
+  }
+
+  /* Nagroda za zeszły tydzień. Serwer rozlicza przy pierwszym pytaniu
+     gracza w nowym tygodniu, więc pytamy przy każdym wejściu — a okno
+     pokazujemy raz na tydzień (kod zostaje potem w oknie ligi). */
+  function ligaNagroda(){
+    return new Promise(async (gotowe)=>{
+      if(!backendDostepny()) return gotowe(false);
+      let d = null;
+      try{ d = await apiCall('/league/nagroda', {}); }catch(e){ return gotowe(false); }
+      const n = d && d.nagroda;
+      if(!n) return gotowe(false);
+      ligaNagrodaOstatnia = n;
+      const klucz = n.code ? 'lk_liga_kod' : 'lk_liga_czeka';
+      let bylo = null;
+      try{ bylo = localStorage.getItem(klucz); }catch(e){}
+      if(bylo === d.week) return gotowe(false);
+      try{ localStorage.setItem(klucz, d.week); }catch(e){}
+
+      const ov = document.getElementById('ligaNagrodaOverlay');
+      const kod = document.getElementById('ligaNagrodaKod');
+      const kop = document.getElementById('ligaNagrodaKopiuj');
+      document.getElementById('ligaNagrodaTytul').textContent =
+        n.losowanie ? '🎲 Wylosowano Cię w lidze!' : ('🏆 ' + n.miejsce + '. miejsce w lidze!');
+      document.getElementById('ligaNagrodaPkt').textContent = '+' + n.points + ' pkt grynaplus';
+      if(n.code){
+        document.getElementById('ligaNagrodaOpis').textContent = 'Nagroda za zeszły tydzień. Wpisz kod w aplikacji grynaplus.';
+        kod.textContent = n.code; kod.style.display = ''; kop.classList.remove('hidden');
+      } else {
+        document.getElementById('ligaNagrodaOpis').textContent =
+          'Nagroda za zeszły tydzień jest Twoja — kod pojawi się w oknie ligi, gdy tylko będzie gotowy.';
+        kod.style.display = 'none'; kop.classList.add('hidden');
+      }
+      ov.classList.remove('hidden');
+      hapticNotify('success');
+      const ok = document.getElementById('ligaNagrodaOkBtn');
+      ok.onclick = ()=>{ Sfx.click(); ov.classList.add('hidden'); ok.onclick = null; gotowe(true); };
+    });
+  }
+  document.getElementById('ligaNagrodaKopiuj').addEventListener('click', async (e)=>{
+    const code = document.getElementById('ligaNagrodaKod').textContent;
+    haptic('light');
+    try{
+      await navigator.clipboard.writeText(code);
+      e.target.textContent = '✅ Skopiowano!';
+      setTimeout(()=>{ e.target.textContent = '📋 Kopiuj kod'; }, 1600);
+    }catch(err){ showToast('Skopiuj kod ręcznie: ' + code); }
+  });
   document.getElementById('inviteBtn').addEventListener('click', ()=>{
     Sfx.click(); haptic('light');
     const txt = 'Gram w Łowcę Kaucji — zbieram butelki i puszki po osiedlu, uciekając sąsiadom. '
@@ -7021,7 +7232,8 @@
     /* Okna witające gracza ustawiają się w kolejce, jedno po drugim:
        seria dni → co nowego → wyzwanie z linku. Gdyby szły równolegle,
        nachodziłyby na siebie. */
-    checkDailyStreak().then(()=>{
+    checkDailyStreak().then(ligaNagroda).then(()=>{
+      wczytajLige();                      // przycisk na głównej od razu z miejscem w tabeli
       const bylyNowosci = coNowegoJesliTrzeba();
       if(zLinku === 'wyzwanie') setTimeout(pokazWyzwanie, bylyNowosci ? 1200 : 400);
     });
