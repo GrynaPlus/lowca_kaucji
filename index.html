@@ -1403,6 +1403,7 @@
        show_11784973()                    -> Rewarded Interstitial
        show_11784973({ymid, requestVar})  -> j.w. + śledzenie
        show_11784973('pop')               -> Rewarded Popup
+       show_11784973({type:'pop', ymid, requestVar}) -> j.w. + śledzenie
        show_11784973({type:'preload'})    -> wstępne ładowanie
        show_11784973({type:'inApp', ...}) -> automatyczne reklamy
 
@@ -1447,6 +1448,13 @@
 
     // Między rundami: Rewarded Popup — lżejszy format.
     // Gra rusza dalej niezależnie od tego, czy obejrzał do końca.
+    /* Przerywnik też dostaje własny bilet. Wcześniej leciał jako gołe
+       'pop', więc Monetag odsyłał go (jeśli w ogóle) z numerem gracza
+       z preloadu — zawsze tym samym, a ten sam ymid nadpisywał jeden wiersz.
+       Przerywników nie dało się więc policzyć do wymogu reklam za kupony,
+       choć gracz je oglądał, a gra na nich zarabiała. Teraz każdy ma swój
+       bilet i oznaczenie „przerywnik", więc liczy się tak jak reklama
+       z nagrodą. NIE ustawiamy ostatniBilet — ten jest dla odbioru kodu. */
     async function showInterstitial(onClosed){
       const fn = sdk();
       if(!fn){
@@ -1455,7 +1463,7 @@
         return mockAd('interstitial', null, onClosed);
       }
       try{
-        await fn('pop');
+        await fn({ type:'pop', ymid: nowyBilet(), requestVar:'przerywnik' });
       }catch(e){
         console.warn('[ads] popup nieudany/przerwany', e);
       }
@@ -2012,7 +2020,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-24 · 52';
+  const APP_VERSION = '2026-09-24 · 53';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2741,7 +2749,7 @@
         '<span class="mn">'+tier.label+
           '<div class="sd">'+tier.costKaucja+' zł kaucji → '+tier.pointsReward+' pkt grynaplus'+
             (function(){ const r = wymogReklam(tier); return r
-              ? '<br>🎬 obejrzane reklamy: <b>'+Math.min(r.ma, r.trzeba)+'/'+r.trzeba+'</b>' : ''; })()+
+              ? '<br>🎬 reklamy obejrzane w grze: <b>'+Math.min(r.ma, r.trzeba)+'/'+r.trzeba+'</b>' : ''; })()+
             (braknieKaucji
               ? '<div class="pasek-celu"><span style="width:'+(postep*100).toFixed(1)+'%"></span></div>'
               : '')+
@@ -4240,6 +4248,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-24 · 53', linie:[
+      '🎬 Reklamy między wyprawami też liczą się teraz do odbioru kuponów.'
+    ]},
     { v:'2026-09-24 · 52', linie:[
       '👕 Sklep ma nowe zakładki: Wygląd — stroje dla łowcy, od bluz po komplet „Złoty łowca".',
       '⚡ Dopalacze na jedną wyprawę: Energetyk, Wykrywacz, Czapka niewidka i Soczek.',
