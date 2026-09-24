@@ -153,6 +153,17 @@
   /* Pasek gracza to też komunikat: niesie nick i postęp XP. Na dawnym
      jasnym różu biały nick miał 2,17:1 i ginął w tle. */
   .event-banner{flex-shrink:0;display:flex;align-items:center;gap:9px;margin:10px 14px 0;padding:7px 10px;border-radius:18px;background:linear-gradient(135deg,rgba(124,92,255,0.35),rgba(0,229,190,0.18));border:1px solid var(--linia);box-shadow:var(--cien);}
+  /* --- Pasek „na żywo": ilu gra i co się ostatnio stało. Liczby podaje
+     serwer (/api/live), telefon tylko je pokazuje. Cienki, jednolinijkowy —
+     na 320x568 pod GRAJ nie ma ani piksela zapasu. --- */
+  .live-bar{flex-shrink:0;display:flex;align-items:center;gap:7px;height:24px;margin:6px 14px 0;padding:0 11px;border-radius:12px;background:var(--szklo);border:1px solid var(--linia);font-family:'Inter','Segoe UI',Roboto,sans-serif;font-size:11px;font-weight:600;color:var(--ink);overflow:hidden;}
+  .live-bar.hidden{display:none;}
+  .lv-kropka{flex-shrink:0;width:7px;height:7px;border-radius:50%;background:#2EE59D;animation:lvPuls 1.8s ease-out infinite;}
+  @keyframes lvPuls{0%{box-shadow:0 0 0 0 rgba(46,229,157,0.7);}70%,100%{box-shadow:0 0 0 6px rgba(46,229,157,0);}}
+  .lv-tekst{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .28s ease,transform .28s ease;}
+  .lv-tekst.znika{opacity:0;transform:translateY(-5px);}
+  .lv-tekst b{font-weight:700;color:#fff;}
+  @media (prefers-reduced-motion: reduce){ .lv-kropka{animation:none;} .lv-tekst{transition:none;} }
   .eb-badge{flex-shrink:0;width:38px;height:38px;border-radius:11px;background:var(--akcent-grad);border:none;box-shadow:var(--poswiata);color:var(--na-akcencie);font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;text-shadow:none;}
   .eb-body{flex:1;min-width:0;}
   .eb-title{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:11px;color:#fff;text-shadow:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;}
@@ -625,6 +636,14 @@
     .map-card .mc-name{font-size:15px;}
     .map-pager{margin-top:6px;margin-bottom:2px;}
   }
+  /* Pasek „na żywo" dołożył 30 px nad GRAJ, a na 320x568 GRAJ miał tylko
+     22 px zapasu. Oddaje je baner gracza: mniejszy znaczek poziomu i ciaśniejsze
+     odstępy — nick i pasek XP zostają w tym samym rozmiarze. */
+  @media (max-height: 600px){
+    .event-banner{margin-top:6px;padding:5px 10px;}
+    .eb-badge{width:34px;height:34px;font-size:15px;}
+    .live-bar{margin-top:4px;height:22px;}
+  }
 
   .build-stamp{margin-top:12px;text-align:center;font-family:'Inter','Segoe UI',Roboto,sans-serif;font-size:10px;font-weight:600;color:var(--tekst-2);letter-spacing:.03em;}
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
@@ -717,6 +736,8 @@
         </div>
         <div class="eb-gift">🎁</div>
       </div>
+
+      <div class="live-bar hidden" id="liveBar"><span class="lv-kropka"></span><span class="lv-tekst" id="liveTekst"></span></div>
 
       <div class="menu-scroll" id="menuScrollEl">
 
@@ -2020,7 +2041,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-24 · 53';
+  const APP_VERSION = '2026-09-24 · 54';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -4248,6 +4269,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-09-24 · 54', linie:[
+      '🟢 Pod paskiem poziomu widać teraz na żywo, ilu łowców gra, kto odebrał kupon i kto prowadzi w lidze.'
+    ]},
     { v:'2026-09-24 · 53', linie:[
       '🎬 Reklamy między wyprawami też liczą się teraz do odbioru kuponów.'
     ]},
@@ -7625,6 +7649,104 @@
     return ligaDane;
   }
 
+  /* --- „Na żywo": pasek pod banerem gracza ---
+     Pokazujemy wyłącznie to, co policzył serwer: ilu graczy jest teraz
+     i dziś, ile punktów wypłaciły kupony, kto ostatnio coś odebrał i kto
+     prowadzi w lidze. Nic tu nie jest dopisywane „dla tłumu" — progi niżej
+     tylko chowają liczby zbyt małe, żeby coś mówiły. */
+  const LIVE_ODSWIEZ_MS = 60 * 1000;
+  const LIVE_ZMIANA_MS = 4500;
+  const LIVE_PROG = { teraz:2, dzis:5, lacznie:20, wyplacono:50 };
+  let liveDane = null, liveLinieTeraz = [], liveIdx = 0, livePobrano = 0, liveWToku = false, liveRoznica = 0;
+  function liveLiczba(v){ return Math.round(Number(v)||0).toLocaleString('pl-PL'); }
+  function liveKiedy(iso){
+    const t = new Date(iso).getTime();
+    if(!isFinite(t)) return '';
+    const min = Math.floor((Date.now() + liveRoznica - t) / 60000);
+    if(min < 1) return 'przed chwilą';
+    if(min < 60) return min+' min temu';
+    const godz = Math.floor(min / 60);
+    return godz < 24 ? godz+' godz. temu' : 'wczoraj';
+  }
+  /* Linia to lista kawałków [tekst, pogrubiony?] — składamy ją przez
+     textContent, bo nick wpisuje gracz. */
+  function liveLinie(d){
+    const n = (x)=>Number(x)||0;
+    const liczby = [], zdarzenia = [];
+    if(n(d.teraz) >= LIVE_PROG.teraz){
+      const l = [['Teraz w grze: '],[liveLiczba(d.teraz),1]];
+      if(n(d.dzis) >= LIVE_PROG.dzis) l.push([' · dziś: '],[liveLiczba(d.dzis),1]);
+      liczby.push(l);
+    } else if(n(d.dzis) >= LIVE_PROG.dzis){
+      liczby.push([['Łowców dziś: '],[liveLiczba(d.dzis),1]]);
+    }
+    if(n(d.lacznie) >= LIVE_PROG.lacznie) liczby.push([['👥 Łowców łącznie: '],[liveLiczba(d.lacznie),1]]);
+    if(n(d.wyplacono) >= LIVE_PROG.wyplacono) liczby.push([['🎟️ Wypłacone kupony: '],[liveLiczba(d.wyplacono)+' pkt',1],[' GrynaPlus']]);
+    (Array.isArray(d.wydarzenia) ? d.wydarzenia : []).forEach(w=>{
+      if(!w || typeof w !== 'object') return;
+      const nick = String(w.nick || 'Łowca').slice(0, 24);
+      if(w.rodzaj === 'kupon' && n(w.pkt) > 0)
+        zdarzenia.push([['🎟️ '],[nick,1],[' — kupon '+n(w.pkt)+' pkt · '+liveKiedy(w.kiedy)]]);
+      else if(w.rodzaj === 'liga' && n(w.pkt) > 0)
+        zdarzenia.push([['🏆 '],[nick,1],[' — nagroda ligi '+n(w.pkt)+' pkt · '+liveKiedy(w.kiedy)]]);
+      else if(w.rodzaj === 'lider' && n(w.kaucja) > 0){
+        const m = n(w.miejsce);
+        zdarzenia.push(m === 1 ? [['🥇 Lider tygodnia: '],[nick,1],[' · '+fmt(n(w.kaucja))]]
+                               : [[(m === 2 ? '🥈 ' : '🥉 ')+m+'. w lidze: '],[nick,1],[' · '+fmt(n(w.kaucja))]]);
+      }
+    });
+    // na przemian: liczba, wydarzenie, liczba… żeby pasek nie był samą statystyką
+    const out = [];
+    for(let i = 0; i < Math.max(liczby.length, zdarzenia.length); i++){
+      if(liczby[i]) out.push(liczby[i]);
+      if(zdarzenia[i]) out.push(zdarzenia[i]);
+    }
+    return out;
+  }
+  function livePokaz(l){
+    const el = document.getElementById('liveTekst');
+    if(!el) return;
+    el.textContent = '';
+    l.forEach(([t, gruby])=>{
+      if(gruby){ const b = document.createElement('b'); b.textContent = t; el.appendChild(b); }
+      else el.appendChild(document.createTextNode(t));
+    });
+  }
+  function liveMenuWidac(){
+    const ov = document.getElementById('startOverlay');
+    return !!ov && !ov.classList.contains('hidden') && !document.hidden;
+  }
+  async function liveOdswiez(){
+    if(!backendDostepny() || liveWToku) return;
+    liveWToku = true;
+    livePobrano = Date.now();     // także przy błędzie — inaczej ponawialibyśmy co 4,5 s
+    try{
+      const d = await apiGet('/live');
+      liveDane = d;
+      const z = new Date(d.zegar).getTime();
+      if(isFinite(z)) liveRoznica = z - Date.now();
+    }catch(e){ /* zostaje poprzedni stan — pasek to dodatek, nie ma co krzyczeć */ }
+    liveWToku = false;
+    if(!liveDane) return;
+    liveLinieTeraz = liveLinie(liveDane);
+    const bar = document.getElementById('liveBar');
+    if(bar) bar.classList.toggle('hidden', !liveLinieTeraz.length);
+    if(liveLinieTeraz.length){ liveIdx = liveIdx % liveLinieTeraz.length; livePokaz(liveLinieTeraz[liveIdx]); }
+  }
+  function liveTik(){
+    if(!liveMenuWidac()) return;
+    if(Date.now() - livePobrano >= LIVE_ODSWIEZ_MS){ liveOdswiez(); return; }
+    if(liveLinieTeraz.length < 2) return;
+    // „x min temu" też się starzeje, więc linie składamy od nowa przy każdej zmianie
+    liveLinieTeraz = liveLinie(liveDane);
+    liveIdx = (liveIdx + 1) % liveLinieTeraz.length;
+    const el = document.getElementById('liveTekst');
+    if(!el){ return; }
+    el.classList.add('znika');
+    setTimeout(()=>{ livePokaz(liveLinieTeraz[liveIdx]); el.classList.remove('znika'); }, 280);
+  }
+  setInterval(liveTik, LIVE_ZMIANA_MS);
+
   /* --- licznik do końca tygodnia --- */
   let ligaPrzesuniecie = 0;
   /* Koniec tygodnia podaje serwer. Zapas na wypadek starszego serwera:
@@ -7927,6 +8049,7 @@
        nachodziłyby na siebie. */
     checkDailyStreak().then(ligaNagroda).then(()=>{
       wczytajLige();                      // przycisk na głównej od razu z miejscem w tabeli
+      liveOdswiez();
       const bylyNowosci = coNowegoJesliTrzeba();
       if(zLinku === 'wyzwanie') setTimeout(pokazWyzwanie, bylyNowosci ? 1200 : 400);
     });
