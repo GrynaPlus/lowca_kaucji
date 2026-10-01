@@ -1450,6 +1450,33 @@
   // rewarded trwa 15–30 s, więc 45 s nie ucina niczego prawdziwego.
   const AD_TIMEOUT = 45000;
 
+  /* --- DZIENNY LIMIT REKLAM ---
+     Monetag płaci coraz mniej za kolejne reklamy tej samej osoby w ciągu
+     dnia — po kilkunastu stawka spada kilkadziesiąt razy. Po LIMIT_REKLAM
+     dziennie (doba od północy w Polsce) gra przestaje więc proponować
+     reklamy, a przerywniki znikają. Wyjątek: reklama przy odbiorze kuponu —
+     kto uzbierał na kupon, musi móc go odebrać. Liczymy na telefonie (żeby
+     działało od razu) i bierzemy większą z liczb, gdy odezwie się serwer
+     (/payout-status) — on liczy też reklamy z innych urządzeń. Serwer i tak
+     nie zalicza do kuponów niczego ponad limit. */
+  let LIMIT_REKLAM = 15;
+  const REKLAMY_BEZ_LIMITU = ['coupon_claim'];
+  const dzienPLFmt = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Warsaw', year:'numeric', month:'2-digit', day:'2-digit' });
+  function dzisPL(){ return dzienPLFmt.format(new Date()); }
+  function reklamyDzis(){
+    try{
+      const z = JSON.parse(localStorage.getItem('lk_reklamy_dzis') || 'null');
+      if(z && z.d === dzisPL()) return Math.max(0, z.n|0);
+    }catch(e){}
+    return 0;
+  }
+  function ustawReklamyDzis(n){
+    try{ localStorage.setItem('lk_reklamy_dzis', JSON.stringify({ d: dzisPL(), n: Math.max(0, n|0) })); }catch(e){}
+  }
+  function policzReklame(){ ustawReklamyDzis(reklamyDzis() + 1); }
+  function limitReklamWyczerpany(){ return reklamyDzis() >= LIMIT_REKLAM; }
+  const NAPIS_LIMITU = '🌙 Limit reklam na dziś wykorzystany — wróć jutro. Energia odnawia się sama (+1 co 20 min).';
+
   const Ads = (function(){
     function sdk(){ return window['show_'+MONETAG_ZONE] || null; }
 
@@ -1467,8 +1494,11 @@
       try{ fn({ type:'preload', ymid: tgUserId() }).catch(()=>{}); }catch(e){}
     }
 
-    // Między rundami: Rewarded Popup — lżejszy format.
-    // Gra rusza dalej niezależnie od tego, czy obejrzał do końca.
+    /* Między rundami: reklama pełnoekranowa (ten sam format co reklamy
+       z nagrodą). Do 1.10.2026 szedł tu Rewarded Popup, ale Monetag
+       oznaczał go jako not_valued z ceną 0 $ — przerywnik nic nie zarabiał.
+       Gra rusza dalej niezależnie od tego, czy obejrzał do końca.
+       Po dziennym limicie przerywników nie ma. */
     /* Przerywnik też dostaje własny bilet. Wcześniej leciał jako gołe
        'pop', więc Monetag odsyłał go (jeśli w ogóle) z numerem gracza
        z preloadu — zawsze tym samym, a ten sam ymid nadpisywał jeden wiersz.
@@ -1483,11 +1513,20 @@
         if(TG && TG.initData){ onClosed && onClosed(); return; }
         return mockAd('interstitial', null, onClosed);
       }
+      if(limitReklamWyczerpany()){ onClosed && onClosed(); return; }
+      let budzik = null;
       try{
-        await fn({ type:'pop', ymid: nowyBilet(), requestVar:'przerywnik' });
+        /* SDK potrafi milczeć bez końca, gdy nie ma reklamy — a tu czeka
+           start wyprawy, więc po AD_TIMEOUT idziemy dalej. */
+        await Promise.race([
+          fn({ ymid: nowyBilet(), requestVar:'przerywnik' }),
+          new Promise((_, nie)=>{ budzik = setTimeout(()=>nie(new Error('brak odpowiedzi SDK')), AD_TIMEOUT); })
+        ]);
+        policzReklame();
       }catch(e){
-        console.warn('[ads] popup nieudany/przerwany', e);
+        console.warn('[ads] przerywnik nieudany/przerwany', e);
       }
+      clearTimeout(budzik);
       preloadNext();
       onClosed && onClosed();
     }
@@ -1513,6 +1552,16 @@
     }
 
     async function showRewarded(onReward, onClosed, placement){
+      if(limitReklamWyczerpany() && REKLAMY_BEZ_LIMITU.indexOf(placement) < 0){
+        /* Wołający pokaże zwykle „Reklama się nie wyświetliła — spróbuj za
+           chwilę", co tu byłoby nieprawdą, więc na moment to wyciszamy. */
+        wyciszBladReklamy = true;
+        try{ onClosed && onClosed(false); } finally { wyciszBladReklamy = false; }
+        showToast(NAPIS_LIMITU);
+        grynaPlusEvent('ad_limit', { placement: placement || 'reward', dzis: reklamyDzis() });
+        if(typeof updatePlayButton === 'function') updatePlayButton();
+        return;
+      }
       const bilet = nowyBilet();
       ostatniBilet = bilet;
       const fn = sdk();
@@ -1540,6 +1589,7 @@
       try{
         await fn({ ymid: bilet, requestVar: placement || 'reward' });
         clearTimeout(budzik);
+        policzReklame();
         onReward && onReward();     // także gdy odpowiedź się spóźniła
         preloadNext();
         zamknij(true);
@@ -2041,7 +2091,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-09-24 · 54';
+  const APP_VERSION = '2026-10-01 · 55';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2726,6 +2776,9 @@
       });
       if(!res.ok) return;
       statusProgow = await res.json();
+      if(Number(statusProgow.limitReklamDzienny) > 0) LIMIT_REKLAM = Number(statusProgow.limitReklamDzienny);
+      if(typeof statusProgow.reklamyDzis === 'number') ustawReklamyDzis(Math.max(reklamyDzis(), statusProgow.reklamyDzis));
+      updatePlayButton();
       renderPayouts();
       /* Plakietka na zakładce liczy progi „gotowe do odbioru", a te zależą
          teraz także od reklam. Bez tego pokazywałaby trzy gotowe kupony
@@ -2752,7 +2805,8 @@
       return;
     }
     if(capNote){
-      capNote.textContent = 'Dziś odebrano '+pointsClaimedToday()+'/'+PAYOUT_CONFIG.dailyPointsCap+' pkt';
+      capNote.textContent = 'Dziś odebrano '+pointsClaimedToday()+'/'+PAYOUT_CONFIG.dailyPointsCap+' pkt'
+        + ' · 🎬 reklamy dziś: '+Math.min(reklamyDzis(), LIMIT_REKLAM)+'/'+LIMIT_REKLAM;
     }
     PAYOUT_CONFIG.tiers.forEach(tier=>{
       const st = canClaimTier(tier);
@@ -3338,7 +3392,11 @@
 
   const toastEl=document.getElementById('liveToast');
   let toastQueue=[], toastBusy=false;
-  function showToast(text){ toastQueue.push(text); if(!toastBusy) nextToast(); }
+  let wyciszBladReklamy = false;
+  function showToast(text){
+    if(wyciszBladReklamy && /^Reklama (się nie wyświetliła|przerwana)/.test(text)) return;
+    toastQueue.push(text); if(!toastBusy) nextToast();
+  }
   function nextToast(){
     if(toastQueue.length===0){ toastBusy=false; return; }
     toastBusy=true; toastEl.textContent=toastQueue.shift(); toastEl.classList.add('show');
@@ -3377,13 +3435,13 @@
     // Chowamy, gdy nie ma czego doładowywać: przez pierwszą dobę gra jest
     // bez limitu, a przy komplecie żyć reklama nic by nie dała — a guzik
     // i tak ją odtwarzał, więc gracz oglądał całość i nie dostawał nic.
-    if(adBtn) adBtn.classList.toggle('hidden', pierwszaDoba() || profile.energy >= energyMax());
+    if(adBtn) adBtn.classList.toggle('hidden', pierwszaDoba() || profile.energy >= energyMax() || limitReklamWyczerpany());
     /* Bonus startowy ma sens tylko wtedy, gdy jest w co wchodzić: mapa
        kupiona i jest czym zagrać. Przy braku energii ustępuje miejsca
        reklamie za energię, żeby nie stawiać obok siebie dwóch reklam. */
     if(boostBtnEl){
       const mapaMoja = profile.mapsOwned.includes(stageMap().id);
-      boostBtnEl.classList.toggle('hidden', !mapaMoja || brakEnergii());
+      boostBtnEl.classList.toggle('hidden', !mapaMoja || brakEnergii() || limitReklamWyczerpany());
       if(!boostBtnEl.textContent.startsWith('Odtwarzanie')){
         boostBtnEl.disabled = premiaReklamy;
         boostBtnEl.textContent = premiaReklamy ? '✅ +25% łupu w tej wyprawie' : BOOST_NAPIS;
@@ -3408,7 +3466,8 @@
     btn.classList.remove('energy-mode');
     if(!pierwszaDoba() && profile.energy<=0){
       btn.disabled=false;
-      btn.textContent='🎬 REKLAMA → +1 GRA';
+      // po limicie reklam guzik mówi wprost, że zostaje czekanie (stuknięcie pokaże, ile)
+      btn.textContent = limitReklamWyczerpany() ? '⏳ BRAK ENERGII' : '🎬 REKLAMA → +1 GRA';
       btn.classList.add('energy-mode');
     }
     else { btn.disabled=false; btn.textContent='GRAJ'; }
@@ -3776,15 +3835,19 @@
           + '<p class="sub">'+shop.name+'</p>'
           + '<div style="font-size:26px;letter-spacing:2px;min-height:34px;">'+(left>0?'🧍'.repeat(Math.min(left,8)):'✅')+'</div>'
           + '<p class="sub">'+(left>0 ? 'Przed Tobą: <b>'+left+'</b>' : 'Twoja kolej!')+'</p>'
-          + (left>0 ? '<button class="secondary reward" data-act="skip">🎬 Obejrzyj reklamę → bez kolejki</button>' : '')
+          + (left>0 && !limitReklamWyczerpany() ? '<button class="secondary reward" data-act="skip">🎬 Obejrzyj reklamę → bez kolejki</button>' : '')
           + '<button class="secondary danger" data-act="home">Odpuszczam, wracam z worem</button>';
         const sk = card().querySelector('[data-act="skip"]');
-        if(sk) sk.addEventListener('click', ()=>{ Sfx.click(); stop(); Ads.showRewarded(()=>{ left=0; machine(); }, ()=>{}, 'kolejka_skip'); });
+        /* Nieudana reklama (brak reklamy, limit dzienny) wcześniej zostawiała
+           kolejkę zatrzymaną na zawsze — teraz kolejka po prostu idzie dalej. */
+        if(sk) sk.addEventListener('click', ()=>{ Sfx.click(); stop();
+          Ads.showRewarded(()=>{ left=0; machine(); }, (udane)=>{ if(!udane && left>0){ draw(); ruszaj(); } }, 'kolejka_skip'); });
         card().querySelector('[data-act="home"]').addEventListener('click', ()=>{ Sfx.click(); close(); });
       };
+      const ruszaj = ()=>{ timer = setInterval(()=>{ left--; if(left<=0){ stop(); draw(); setTimeout(machine, 500); } else draw(); }, 1500); };
       draw();
       if(left<=0){ setTimeout(machine, 500); return; }
-      timer = setInterval(()=>{ left--; if(left<=0){ stop(); draw(); setTimeout(machine, 500); } else draw(); }, 1500);
+      ruszaj();
     }
 
     function machine(){
@@ -4269,6 +4332,10 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-10-01 · 55', linie:[
+      '🎬 Najwyżej 15 reklam dziennie — po limicie gra nie proponuje już reklam, a przerywników między wyprawami nie ma do jutra.',
+      '🎟️ Do kuponów liczy się 15 reklam z każdego dnia. Licznik „reklamy dziś" jest w zakładce Kupony.'
+    ]},
     { v:'2026-09-24 · 54', linie:[
       '🟢 Pod paskiem poziomu widać teraz na żywo, ilu łowców gra, kto odebrał kupon i kto prowadzi w lidze.'
     ]},
@@ -8050,6 +8117,7 @@
     checkDailyStreak().then(ligaNagroda).then(()=>{
       wczytajLige();                      // przycisk na głównej od razu z miejscem w tabeli
       liveOdswiez();
+      odswiezStatusProgow();              // dzisiejszy licznik reklam z serwera (inne urządzenie, wyczyszczona pamięć)
       const bylyNowosci = coNowegoJesliTrzeba();
       if(zLinku === 'wyzwanie') setTimeout(pokazWyzwanie, bylyNowosci ? 1200 : 400);
     });
