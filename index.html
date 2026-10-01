@@ -197,6 +197,8 @@
   .sz-st .ik{font-size:20px;line-height:1.1;}
   .sz-st .op{font-size:9px;font-weight:700;line-height:1.15;text-align:center;}
   .sz-st .ko{font-size:9px;color:var(--tekst-2);}
+  .sz-st .pk{font-size:8.5px;font-weight:800;line-height:1.1;color:#2A1606;background:#FFD27A;border-radius:6px;padding:1px 4px;margin:1px 0;text-align:center;}
+  .sz-st.glowna .pk{font-size:10px;}
   .sz-st.gotowe{background:linear-gradient(160deg,#F2C14E,#E0732F);border-color:#FFE3A6;color:#2A1606;cursor:pointer;box-shadow:0 0 14px rgba(242,165,65,0.55);}
   .sz-st.gotowe .nr,.sz-st.gotowe .ko{color:#2A1606;}
   .sz-st.odebrane{opacity:.45;}
@@ -2138,7 +2140,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-10-02 · 56';
+  const APP_VERSION = '2026-10-02 · 57';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2368,6 +2370,11 @@
     { typ:'kaucja',   cel:25, opis:'Przynieś z wypraw 25 zł' }
   ];
   const SEZON_ZADANIE_NAGRODA = 25;
+  /* Nagrody 10, 20 i 30 dają też punkty GrynaPlus. Te liczy już serwer —
+     z kasztanów, które sam naliczył przy zapisach profilu (licznik w grze
+     da się podrobić, a punkty to prawdziwe pieniądze). Kod idzie z pul
+     sezon-5/10/25 wgrywanych w panelu. */
+  const SEZON_PUNKTY = { 10:5, 20:10, 30:25 };
   const KASZTANY_NA_WYPRAWE = 7;      // tyle najwyżej pojawi się na jednej wyprawie
 
   function sezonTeraz(){ const d = dzisPL(); return SEZONY.find(z=>d>=z.od && d<=z.do) || null; }
@@ -2375,7 +2382,8 @@
   function sezonStan(){
     const z = sezonTeraz();
     if(!z) return null;
-    if(!profile.sezon || profile.sezon.id !== z.id) profile.sezon = { id:z.id, k:0, odeb:[], zad:null };
+    if(!profile.sezon || profile.sezon.id !== z.id) profile.sezon = { id:z.id, k:0, odeb:[], zad:null, pkt:{} };
+    if(!profile.sezon.pkt || typeof profile.sezon.pkt!=='object') profile.sezon.pkt = {};
     return profile.sezon;
   }
   function sezonDniDoKonca(z){
@@ -2384,7 +2392,10 @@
   }
   function sezonGotowe(st){
     let n = 0;
-    for(let i=1;i<=SEZON_NAGRODY.length;i++) if(st.k >= sezonProg(i) && st.odeb.indexOf(i) < 0) n++;
+    for(let i=1;i<=SEZON_NAGRODY.length;i++){
+      if(st.k >= sezonProg(i) && st.odeb.indexOf(i) < 0) n++;
+      else if(SEZON_PUNKTY[i] && st.odeb.indexOf(i) >= 0 && !(st.pkt && st.pkt[i])) n++;   // odebrana w grze, punkty czekają
+    }
     return n;
   }
   function sezonZadanie(st){
@@ -2437,6 +2448,32 @@
     grynaPlusEvent('sezon_nagroda', { sezon:st.id, nagroda:i, rodzaj:n.t, kasztany:st.k, profileNick:profile.nick });
     await saveProfile();
     renderSezon(); odswiezSezonBtn(); renderEnergy(); renderShop();
+    if(SEZON_PUNKTY[i]) sezonPunkty(i);
+  }
+  let sezonPunktyWToku = false;
+  async function sezonPunkty(i){
+    const st = sezonStan();
+    if(!st || !SEZON_PUNKTY[i] || st.pkt[i] || sezonPunktyWToku) return;
+    if(!backendDostepny()){ showToast('🎟️ Punkty GrynaPlus odbierzesz w grze w Telegramie'); return; }
+    sezonPunktyWToku = true;
+    let r = null;
+    try{ r = await apiCall('/sezon/nagroda', { prog:i }); }
+    catch(e){ showToast(e.message || 'Nie udało się odebrać punktów — spróbuj za chwilę'); }
+    sezonPunktyWToku = false;
+    if(r && r.status === 'wydana' && r.code){
+      st.pkt[i] = r.code;
+      if(!Array.isArray(profile.coupons)) profile.coupons = [];
+      profile.coupons.unshift({ code:r.code, points:r.points, ts:Date.now(), status:'wydany' });
+      profile.coupons = profile.coupons.slice(0,20);
+      await saveProfile();
+      Sfx.star(); hapticNotify('success');
+      grynaPlusEvent('code_claimed', { tierId:'sezon-'+r.points, points:r.points, code:r.code, tgUserId:tgUserId(), profileNick:profile.nick });
+      showCouponModal(r.code, r.points);
+      if(typeof renderCoupons === 'function') renderCoupons();
+    } else if(r){
+      showToast('🎟️ Kody na tę nagrodę chwilowo się skończyły — spróbuj później, nic nie przepada');
+    }
+    renderSezon(); odswiezSezonBtn();
   }
 
   function odswiezSezonBtn(){
@@ -2466,7 +2503,8 @@
     glowa.innerHTML = '<canvas></canvas><div class="sz-info"><div class="sz-ile">🌰 '+st.k+'</div>'
       + '<div class="sz-pasek"><span style="width:'+proc+'%"></span></div>'
       + '<div class="sz-pod">'+(komplet ? 'Cały pasek zebrany — brawo!' : 'Nagroda '+cel+' za '+(sezonProg(cel)-st.k)+' 🌰')
-      + ' · zostało '+dni+' '+(dni===1?'dzień':'dni')+'</div></div>';
+      + ' · zostało '+dni+' '+(dni===1?'dzień':'dni')+'</div>'
+      + '<div class="sz-pod">🎟️ Nagrody 10, 20 i 30 dają też punkty GrynaPlus</div></div>';
     const cv = glowa.querySelector('canvas'), DPR_S = Math.min(3, window.devicePixelRatio||1);
     cv.width = Math.round(74*DPR_S); cv.height = Math.round(86*DPR_S);
     rysujNaPlotnie(cv, strojZPrzymiarka(z.komplet), 1.15*DPR_S);
@@ -2478,15 +2516,20 @@
     const siatka = document.createElement('div'); siatka.className = 'sz-siatka';
     SEZON_NAGRODY.forEach((n, ix)=>{
       const i = ix+1, o = sezonOpisNagrody(n);
+      const pkt = SEZON_PUNKTY[i];
       const odebr = st.odeb.indexOf(i) >= 0, gotowe = !odebr && st.k >= sezonProg(i);
-      const el = document.createElement(gotowe ? 'button' : 'div');
-      if(gotowe) el.type = 'button';
-      el.className = 'sz-st'+(gotowe?' gotowe':'')+(odebr?' odebrane':'')+(i===SEZON_NAGRODY.length?' glowna':'');
-      el.innerHTML = '<span class="nr">'+i+'</span><span class="ik"></span><span class="op"></span><span class="ko"></span>';
+      const punktyCzekaja = odebr && pkt && !st.pkt[i];
+      const klik = gotowe || punktyCzekaja;
+      const el = document.createElement(klik ? 'button' : 'div');
+      if(klik) el.type = 'button';
+      el.className = 'sz-st'+(klik?' gotowe':'')+(odebr && !punktyCzekaja?' odebrane':'')+(i===SEZON_NAGRODY.length?' glowna':'');
+      el.innerHTML = '<span class="nr">'+i+'</span><span class="ik"></span><span class="op"></span>'+(pkt?'<span class="pk"></span>':'')+'<span class="ko"></span>';
       el.querySelector('.ik').textContent = o.ik;
       el.querySelector('.op').textContent = i===SEZON_NAGRODY.length ? 'Komplet „'+o.op+'” — tylko w tym sezonie' : o.op;
-      el.querySelector('.ko').textContent = gotowe ? 'ODBIERZ' : (odebr ? '' : sezonProg(i)+' 🌰');
+      if(pkt) el.querySelector('.pk').textContent = '+'+pkt+' pkt GrynaPlus';
+      el.querySelector('.ko').textContent = gotowe ? 'ODBIERZ' : (punktyCzekaja ? 'ODBIERZ PKT' : (odebr ? '' : sezonProg(i)+' 🌰'));
       if(gotowe) el.onclick = ()=>sezonOdbierz(i);
+      else if(punktyCzekaja) el.onclick = ()=>sezonPunkty(i);
       siatka.appendChild(el);
     });
     lista.innerHTML = ''; lista.appendChild(siatka);
@@ -3174,6 +3217,9 @@
       sz.k = Math.max(0, Math.floor(Number(sz.k)||0));
       sz.odeb = Array.isArray(sz.odeb) ? sz.odeb.filter(i=>Number.isInteger(i) && i>=1 && i<=SEZON_NAGRODY.length) : [];
       if(!sz.zad || typeof sz.zad!=='object') sz.zad = null;
+      const pk = (sz.pkt && typeof sz.pkt==='object') ? sz.pkt : {};
+      sz.pkt = {};
+      Object.keys(SEZON_PUNKTY).forEach(i=>{ if(typeof pk[i]==='string' && pk[i]) sz.pkt[i] = pk[i].slice(0,64); });
     } else profile.sezon = null;
     if(!profile.mapSel || typeof profile.mapSel!=='object') profile.mapSel={};
     /* Pierwsza doba bez limitu jest dla kogoś, kto DOPIERO przyszedł —
@@ -4560,6 +4606,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-10-02 · 57', linie:[
+      '🎟️ Kasztany dają też punkty GrynaPlus: nagroda 10 sezonu — 5 pkt, nagroda 20 — 10 pkt, a komplet „Kasztanowy łowca” — 25 pkt.'
+    ]},
     { v:'2026-10-02 · 56', linie:[
       '🍂 Ruszył sezon „Złota jesień”! Na wyprawach leżą kasztany 🌰 — zbieraj je i odbieraj 30 nagród.',
       '🌰 Na końcu paska komplet „Kasztanowy łowca” — tylko do 31 października, potem już go nie zdobędziesz.',
@@ -8065,6 +8114,8 @@
       const nick = String(w.nick || 'Łowca').slice(0, 24);
       if(w.rodzaj === 'kupon' && n(w.pkt) > 0)
         zdarzenia.push([['🎟️ '],[nick,1],[' — kupon '+n(w.pkt)+' pkt · '+liveKiedy(w.kiedy)]]);
+      else if(w.rodzaj === 'sezon' && n(w.pkt) > 0)
+        zdarzenia.push([['🍂 '],[nick,1],[' — nagroda sezonu '+n(w.pkt)+' pkt · '+liveKiedy(w.kiedy)]]);
       else if(w.rodzaj === 'liga' && n(w.pkt) > 0)
         zdarzenia.push([['🏆 '],[nick,1],[' — nagroda ligi '+n(w.pkt)+' pkt · '+liveKiedy(w.kiedy)]]);
       else if(w.rodzaj === 'lider' && n(w.kaucja) > 0){
