@@ -1335,6 +1335,7 @@
   let profilZaladowany = false;
 
   const LocalDB = (function(){
+    const kolejkaZapisu = {};
     function apiUsable(){
       // bez initData backend i tak odrzuci każde zapytanie (401),
       // więc od razu spadamy na localStorage zamiast strzelać w API
@@ -1380,13 +1381,33 @@
           try{ return localStorage.getItem(key); }catch(e2){ return null; }
         }
       },
-      async set(key,value){
+      /* Zapisy jednego klucza idą do serwera PO KOLEI, nigdy naraz. Serwer
+         liczy ligę i kasztany z różnicy „stary profil → nowy profil"; dwa
+         równoległe zapisy widziały ten sam stary profil i ta sama wyprawa
+         mogła się policzyć dwa razy. Gdy zapis już leci, kolejny czeka,
+         a z kilku czekających wysyłamy tylko najnowszy (to pełny profil). */
+      set(key,value){
         // najpierw zawsze lokalnie — gra nigdy nie czeka na sieć, żeby zadziałać
         try{ localStorage.setItem(key, value); }catch(e){}
         const url = apiUsable() ? endpointFor(key) : null;
-        if(!url) return;
+        if(!url) return Promise.resolve();
+        /* Jeden łańcuch na klucz: kolejny zapis rusza dopiero, gdy poprzedni
+           się skończy. Dopóki zaplanowany zapis nie wystartował, nowsze
+           wartości tylko go podmieniają — wyjdzie najnowsza. */
+        const k = kolejkaZapisu[key] || (kolejkaZapisu[key] = { ogon:Promise.resolve(), czeka:undefined, zaplanowany:false });
+        k.czeka = value;
+        if(!k.zaplanowany){
+          k.zaplanowany = true;
+          k.ogon = k.ogon.then(()=>{ k.zaplanowany = false; const v = k.czeka; k.czeka = undefined; return wyslijZapis(url, key, v); });
+        }
+        return k.ogon;
+      }
+    };
+    async function wyslijZapis(url, key, value){
         try{
-          const res = await fetch(url, { method:'POST', headers: authHeaders(), body: JSON.stringify({ value }) });
+          const cialo = JSON.stringify({ value });
+          // keepalive: zapis dojdzie, nawet gdy gracz zamknie grę zaraz po wyprawie (limit 64 KB)
+          const res = await fetch(url, { method:'POST', headers: authHeaders(), body: cialo, keepalive: cialo.length < 60000 });
           if(!res.ok){
             let reason = 'HTTP '+res.status;
             try{ const j = await res.json(); if(j && j.error) reason = j.error; }catch(e){}
@@ -1395,8 +1416,7 @@
         }catch(e){
           console.warn('[api] POST '+key+' nieudane (zapisano tylko lokalnie)', e);
         }
-      }
-    };
+    }
   })();
 
   /* =========================================================
@@ -2140,7 +2160,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-10-02 · 58';
+  const APP_VERSION = '2026-10-02 · 59';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -4606,6 +4626,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-10-02 · 59', linie:[
+      '🚪 Koniec zacinania przy wyjściu — wynik wyprawy pokazuje się od razu, zapis leci w tle.'
+    ]},
     { v:'2026-10-02 · 58', linie:[
       '🎟️ Więcej punktów za kasztany: co piąta nagroda sezonu daje punkty GrynaPlus — 5, 5, 10, 10, 15 i 25 pkt, razem 70 pkt. Pierwsze już po 2–3 dniach gry.'
     ]},
@@ -7606,10 +7629,15 @@
       wynikWyzwania = null;
     }
 
-    await saveDaily(); await saveProfile();
+    /* Okno wyniku NIE czeka na serwer. Dawniej oba zapisy szły jeden po
+       drugim przed pokazaniem wyniku i obraz stał na wyjściu ~1 s (zapis
+       profilu to po stronie serwera kilka zapytań do bazy: profil, liga,
+       kasztany). Kopia lokalna zapisuje się od razu, serwer dostaje swoje
+       w tle, a ligę odświeżamy, gdy zapis dojdzie. */
+    const zapisWyprawy = Promise.all([saveDaily(), saveProfile()]);
     checkTasks();
     refreshProfileUI();
-    ligaPoWyprawie();       // wynik ligi liczy serwer z zapisu profilu — tu go tylko pokazujemy
+    zapisWyprawy.then(ligaPoWyprawie);   // wynik ligi liczy serwer z zapisu profilu — tu go tylko pokazujemy
     /* `level` to poziom GRACZA (doświadczenie), a `poziomMapy` to poziom
        mapy, na którym toczyła się wyprawa. Bez tego drugiego nie dało się
        odpowiedzieć na najważniejsze pytanie z danych: na którym poziomie
