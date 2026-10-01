@@ -170,7 +170,42 @@
   .eb-bar{position:relative;height:14px;border-radius:9px;background:var(--tor);border:none;overflow:hidden;}
   .eb-fill{height:100%;background:var(--akcent-grad);transition:width .4s ease;}
   .eb-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:9.5px;color:#fff;text-shadow:none;}
-  .eb-gift{flex-shrink:0;font-size:23px;}
+  .eb-gift{flex-shrink:0;font-size:23px;position:relative;background:none;border:none;padding:0;margin:0;color:inherit;line-height:1;}
+  /* W sezonie prezent zamienia się w przycisk okna sezonu: liczba nagród
+     do odebrania na czerwonej plakietce, postęp pod spodem. */
+  /* 44 px do dotknięcia, ale ujemny margines, żeby baner nie urósł ponad
+     znaczek poziomu — na 320x568 każdy piksel spycha GRAJ pod zakładki. */
+  button.eb-gift.sezon{cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:44px;min-height:44px;margin:-3px 0;justify-content:center;}
+  .eb-gift .sz-postep{font-family:'Inter','Segoe UI',Roboto,sans-serif;font-size:9px;font-weight:700;color:#FFE3A6;letter-spacing:.02em;}
+  .eb-gift .sz-plak{position:absolute;top:-2px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:#FF4D6D;color:#fff;font-family:'Inter','Segoe UI',Roboto,sans-serif;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #1A1440;}
+  .eb-gift .sz-plak.hidden{display:none;}
+
+  /* --- okno sezonu --- */
+  .sz-glowa{flex:0 0 auto;display:flex;gap:10px;align-items:center;margin:0 0 10px;padding:10px;border-radius:16px;background:linear-gradient(135deg,rgba(242,165,65,0.22),rgba(200,90,40,0.18));border:1px solid rgba(242,193,78,0.35);}
+  .sz-glowa canvas{flex:0 0 auto;width:74px;height:86px;}
+  .sz-info{flex:1;min-width:0;text-align:left;}
+  .sz-ile{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:22px;color:#FFE3A6;line-height:1.1;}
+  .sz-pod{font-size:11px;color:var(--tekst-2);margin-top:2px;}
+  .sz-pasek{height:9px;border-radius:6px;background:var(--tor);overflow:hidden;margin:6px 0 4px;}
+  .sz-pasek span{display:block;height:100%;background:linear-gradient(90deg,#F2C14E,#E0732F);}
+  .sz-zad{flex:0 0 auto;display:flex;align-items:center;gap:8px;text-align:left;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:var(--szklo);border:1px solid var(--linia);font-size:12px;}
+  .sz-zad b{color:#FFE3A6;}
+  .sz-zad .ok{color:#5BE49B;font-weight:700;}
+  .sz-siatka{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:2px;}
+  .sz-st{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:62px;padding:5px 2px;border-radius:12px;background:var(--szklo);border:1px solid var(--linia);color:var(--ink);font-family:'Inter','Segoe UI',Roboto,sans-serif;}
+  .sz-st .nr{position:absolute;top:3px;left:5px;font-size:9px;font-weight:700;color:var(--tekst-2);}
+  .sz-st .ik{font-size:20px;line-height:1.1;}
+  .sz-st .op{font-size:9px;font-weight:700;line-height:1.15;text-align:center;}
+  .sz-st .ko{font-size:9px;color:var(--tekst-2);}
+  .sz-st.gotowe{background:linear-gradient(160deg,#F2C14E,#E0732F);border-color:#FFE3A6;color:#2A1606;cursor:pointer;box-shadow:0 0 14px rgba(242,165,65,0.55);}
+  .sz-st.gotowe .nr,.sz-st.gotowe .ko{color:#2A1606;}
+  .sz-st.odebrane{opacity:.45;}
+  .sz-st.odebrane::after{content:'✓';position:absolute;top:2px;right:5px;font-size:11px;font-weight:800;color:#5BE49B;}
+  .sz-st.glowna{grid-column:span 5;flex-direction:row;gap:10px;min-height:54px;}
+  .sz-st.glowna .ik{font-size:26px;}
+  .sz-st.glowna .op{font-size:12px;}
+  @media (prefers-reduced-motion: no-preference){ .sz-st.gotowe{animation:szPuls 1.6s ease-in-out infinite;} }
+  @keyframes szPuls{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
 
   /* zapas na dole: wypukłe „Główna" wystaje ponad pasek zakładek i bez
      tego przykrywałoby ostatnią linijkę przewijanej treści */
@@ -642,6 +677,7 @@
   @media (max-height: 600px){
     .event-banner{margin-top:6px;padding:5px 10px;}
     .eb-badge{width:34px;height:34px;font-size:15px;}
+    button.eb-gift.sezon{margin:-5px 0;}
     .live-bar{margin-top:4px;height:22px;}
   }
 
@@ -734,7 +770,7 @@
             <span class="eb-val" id="xpValText">0 / 80 XP</span>
           </div>
         </div>
-        <div class="eb-gift">🎁</div>
+        <button type="button" class="eb-gift" id="sezonBtn" aria-label="Sezon">🎁</button>
       </div>
 
       <div class="live-bar hidden" id="liveBar"><span class="lv-kropka"></span><span class="lv-tekst" id="liveTekst"></span></div>
@@ -1023,6 +1059,16 @@
     </div>
   </div>
 
+  <div class="overlay hidden" id="sezonOverlay" data-wyjscie="sezonCloseBtn">
+    <div class="card karta-news">
+      <h1 style="font-size:22px;" id="sezonTytul">🍂 Sezon</h1>
+      <div class="sz-glowa" id="sezonGlowa"></div>
+      <div class="sz-zad" id="sezonZad"></div>
+      <div class="news-ramka"><div class="news-lista" id="sezonLista"></div></div>
+      <button class="primary" id="sezonCloseBtn">ZAMYKAM</button>
+    </div>
+  </div>
+
   <div class="overlay hidden" id="ligaNagrodaOverlay" data-wyjscie="ligaNagrodaOkBtn">
     <div class="card">
       <h1 style="font-size:24px;" id="ligaNagrodaTytul">🏆 Liga — zeszły tydzień</h1>
@@ -1072,6 +1118,7 @@
       <div class="banner" id="recordBanner">🏆 NOWY REKORD JEDNEJ WYPRAWY!</div>
       <div class="banner" id="levelBanner" style="background:var(--kom-info);">⭐ Awans na wyższy poziom!</div>
       <div class="banner" id="mapLevelBanner" style="background:var(--kom-nagroda);"></div>
+      <div class="banner" id="sezonBanner" style="background:linear-gradient(135deg,#C8742E,#8B4A2B);"></div>
       <div class="result-amount" id="resultAmount">0,00 zł</div>
       <div class="news-bar" id="newsBar"></div>
       <p class="sub" id="worLinijka" style="margin:0 0 6px;">🛍️ trafia do wora — oddaj w sklepie, żeby zamienić na kaucję</p>
@@ -2091,7 +2138,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-10-01 · 55';
+  const APP_VERSION = '2026-10-02 · 56';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -2252,7 +2299,13 @@
     { id:'k-ninja',      slot:'komplet', nazwa:'Ninja',          rz:'legenda', cena:500,  ikona:'🥷',
       st:{ bluza:'#2A2840', spodnie:'#2A2840', plecak:'#2A2840', maska:'#2A2840', wlosy:'#2A2840', czapka:'🥷', buty:'#3D3A5C' } },
     { id:'k-zloty',      slot:'komplet', nazwa:'Złoty łowca',    rz:'legenda', cena:1000, ikona:'👑',
-      st:{ bluza:['#FFE27A','#F5B94A'], spodnie:'#C99A2E', plecak:'#FFD166', poswiata:'#FFD166', iskry:true, czapka:'👑' } }
+      st:{ bluza:['#FFE27A','#F5B94A'], spodnie:'#C99A2E', plecak:'#FFD166', poswiata:'#FFD166', iskry:true, czapka:'👑' } },
+    /* Stroje sezonowe: nie do kupienia, tylko z paska sezonu (pole `sezon`). */
+    { id:'buty-kalosze',   slot:'buty',    nazwa:'Kalosze',           rz:'rzadki',  cena:null, sezon:'2026-10', st:{ buty:'#F2C14E' } },
+    { id:'plecak-kasztan', slot:'plecak',  nazwa:'Plecak kasztanowy', rz:'rzadki',  cena:null, sezon:'2026-10', st:{ plecak:'#8B4A2B' } },
+    { id:'bluza-jesien',   slot:'bluza',   nazwa:'Jesienna w liście', rz:'epicki',  cena:null, sezon:'2026-10', st:{ bluza:'#D9822B', wzor:'#F2C14E' } },
+    { id:'k-kasztan',      slot:'komplet', nazwa:'Kasztanowy łowca',  rz:'legenda', cena:null, sezon:'2026-10', ikona:'🌰',
+      st:{ bluza:['#D9822B','#8B4A2B'], spodnie:'#5A3A22', plecak:'#A0522D', naszywka:'🌰', czapka:'🍂', poswiata:'#F2A541', buty:'#F2C14E' } }
   ];
   const RZADKOSC = { zwykly:'ZWYKŁY', rzadki:'RZADKI', epicki:'EPICKI', legenda:'LEGENDA' };
   const STROJ_DOMYSLNY = { bluza:'bluza-pom', plecak:'plecak-tur', buty:'buty-biale', komplet:null };
@@ -2278,6 +2331,172 @@
   ];
   // dopalacze działające w bieżącej wyprawie (ustawiane w beginRound)
   let dopalaczeWyprawy = {}, niewidkaUzyta = false;
+
+  /* =========================================================
+     SEZONY — co miesiąc nowy. Na wyprawach leżą kasztany (zbiera się je
+     obok kaucji, nie zajmują plecaka i przepadają, gdy cię złapią), a za
+     kasztany odbiera się 30 nagród z paska sezonu. Ostatnia to komplet,
+     którego potem nie da się zdobyć ani kupić.
+     Nagrody są wyłącznie w grze: dopalacze, energia (do pełna — serwer
+     nie przyjmie więcej niż 10) i stroje. Bez kaucji, bo ta zamienia się
+     w kupony, i bez doświadczenia, bo serwer odrzuca skok o >3 poziomy.
+     Kolejny sezon = nowy wpis w SEZONY (+ ewentualnie nowe stroje).
+     ========================================================= */
+  const SEZONY = [
+    { id:'2026-10', nazwa:'Złota jesień', ikona:'🍂', od:'2026-10-01', do:'2026-10-31', komplet:'k-kasztan' }
+  ];
+  const SEZON_NAGRODY = [
+    { t:'dop', id:'energetyk', n:1 }, { t:'energia', n:2 },          { t:'dop', id:'wykrywacz', n:1 },
+    { t:'dop', id:'soczek', n:2 },    { t:'stroj', id:'buty-kalosze' }, { t:'energia', n:2 },
+    { t:'dop', id:'niewidka', n:1 },  { t:'dop', id:'energetyk', n:2 }, { t:'dop', id:'wykrywacz', n:2 },
+    { t:'stroj', id:'plecak-kasztan' }, { t:'dop', id:'soczek', n:2 }, { t:'energia', n:3 },
+    { t:'dop', id:'niewidka', n:2 },  { t:'dop', id:'energetyk', n:2 }, { t:'stroj', id:'bluza-jesien' },
+    { t:'dop', id:'wykrywacz', n:2 }, { t:'energia', n:3 },           { t:'dop', id:'soczek', n:3 },
+    { t:'dop', id:'niewidka', n:2 },  { t:'zestaw', n:1 },            { t:'dop', id:'energetyk', n:3 },
+    { t:'energia', n:4 },             { t:'dop', id:'wykrywacz', n:3 }, { t:'dop', id:'soczek', n:3 },
+    { t:'zestaw', n:2 },              { t:'dop', id:'niewidka', n:3 },  { t:'energia', n:5 },
+    { t:'dop', id:'energetyk', n:3 }, { t:'zestaw', n:3 },            { t:'stroj', id:'k-kasztan' }
+  ];
+  /* Ile kasztanów łącznie trzeba na nagrodę i: 20, 41, 63 … 915. Na wyprawie
+     wpada ich 3–5, zadanie dnia daje 25, więc ktoś grający codziennie
+     dochodzi do kompletu w ok. 2,5–3 tygodnie, a grający co drugi dzień
+     — mniej więcej pod koniec miesiąca. */
+  function sezonProg(i){ return Math.round(i * (20 + i*0.35)); }
+  const SEZON_ZADANIA = [
+    { typ:'kasztany', cel:15, opis:'Zbierz 15 kasztanów na wyprawach' },
+    { typ:'wyprawy',  cel:4,  opis:'Wróć z łupem z 4 wypraw' },
+    { typ:'kaucja',   cel:25, opis:'Przynieś z wypraw 25 zł' }
+  ];
+  const SEZON_ZADANIE_NAGRODA = 25;
+  const KASZTANY_NA_WYPRAWE = 7;      // tyle najwyżej pojawi się na jednej wyprawie
+
+  function sezonTeraz(){ const d = dzisPL(); return SEZONY.find(z=>d>=z.od && d<=z.do) || null; }
+  // stan gracza w bieżącym sezonie; nowy sezon zaczyna od zera (stroje zostają)
+  function sezonStan(){
+    const z = sezonTeraz();
+    if(!z) return null;
+    if(!profile.sezon || profile.sezon.id !== z.id) profile.sezon = { id:z.id, k:0, odeb:[], zad:null };
+    return profile.sezon;
+  }
+  function sezonDniDoKonca(z){
+    const dzis = Date.parse(dzisPL()+'T12:00:00Z'), koniec = Date.parse(z.do+'T12:00:00Z');
+    return Math.max(0, Math.round((koniec-dzis)/86400000)) + 1;     // dzisiejszy dzień też się liczy
+  }
+  function sezonGotowe(st){
+    let n = 0;
+    for(let i=1;i<=SEZON_NAGRODY.length;i++) if(st.k >= sezonProg(i) && st.odeb.indexOf(i) < 0) n++;
+    return n;
+  }
+  function sezonZadanie(st){
+    const d = dzisPL();
+    if(!st.zad || st.zad.d !== d) st.zad = { d:d, p:0, ok:false };
+    const nr = Math.floor(Date.parse(d+'T12:00:00Z')/86400000) % SEZON_ZADANIA.length;
+    return Object.assign({}, SEZON_ZADANIA[nr], { p:st.zad.p, ok:st.zad.ok });
+  }
+  /* Po udanej wyprawie: kasztany z mapy + postęp zadania dnia. Zwraca, co
+     się zmieniło, żeby okno wyniku mogło to pokazać. */
+  function sezonPoWyprawie(kasztany, banked){
+    const st = sezonStan();
+    if(!st) return null;
+    const przed = sezonGotowe(st);
+    st.k += kasztany;
+    const z = sezonZadanie(st);
+    let zadanieZrobione = false;
+    if(!st.zad.ok){
+      const krok = z.typ==='kasztany' ? kasztany : z.typ==='wyprawy' ? (banked>0 ? 1 : 0) : Math.max(0, banked);
+      st.zad.p = Math.round((st.zad.p + krok)*100)/100;
+      if(st.zad.p >= z.cel){ st.zad.ok = true; st.k += SEZON_ZADANIE_NAGRODA; zadanieZrobione = true; }
+    }
+    return { kasztany:kasztany, zadanieZrobione:zadanieZrobione, nowe:sezonGotowe(st)-przed };
+  }
+  function sezonOpisNagrody(n){
+    if(n.t==='energia') return { ik:'🔋', op:'+'+n.n+' energii' };
+    if(n.t==='zestaw')  return { ik:'🎁', op:'Zestaw ×'+n.n };
+    if(n.t==='stroj'){ const e = strojPoId(n.id); return { ik: e.ikona || (e.slot==='buty'?'👢':e.slot==='plecak'?'🎒':'🧥'), op:e.nazwa }; }
+    const d = DOPALACZE.find(x=>x.id===n.id);
+    return { ik:d.ikona, op:d.nazwa+' ×'+n.n };
+  }
+  async function sezonOdbierz(i){
+    const st = sezonStan();
+    if(!st || st.odeb.indexOf(i) >= 0 || st.k < sezonProg(i)) return;
+    const n = SEZON_NAGRODY[i-1];
+    if(n.t==='energia'){
+      if(profile.energy >= energyMax()){ showToast('🔋 Energia jest pełna — odbierz, gdy jej ubędzie'); return; }
+      profile.energy = Math.min(energyMax(), profile.energy + n.n);
+    } else if(n.t==='dop'){
+      profile.dopalacze[n.id] = Math.min(99, (profile.dopalacze[n.id]||0) + n.n);
+    } else if(n.t==='zestaw'){
+      DOPALACZE.forEach(d=>{ profile.dopalacze[d.id] = Math.min(99, (profile.dopalacze[d.id]||0) + n.n); });
+    } else if(n.t==='stroj'){
+      if(!profile.stroje.includes(n.id)) profile.stroje.push(n.id);
+    }
+    st.odeb.push(i);
+    Sfx.star(); hapticNotify('success');
+    const o = sezonOpisNagrody(n);
+    showToast(o.ik+' '+o.op+(n.t==='stroj' ? ' — załóż w Sklepie → Wygląd' : ''));
+    grynaPlusEvent('sezon_nagroda', { sezon:st.id, nagroda:i, rodzaj:n.t, kasztany:st.k, profileNick:profile.nick });
+    await saveProfile();
+    renderSezon(); odswiezSezonBtn(); renderEnergy(); renderShop();
+  }
+
+  function odswiezSezonBtn(){
+    const b = document.getElementById('sezonBtn');
+    if(!b) return;
+    const z = sezonTeraz(), st = z && sezonStan();
+    b.classList.toggle('sezon', !!z);
+    b.disabled = !z;
+    if(!z){ b.textContent = '🎁'; return; }
+    const odebrane = st.odeb.length, gotowe = sezonGotowe(st);
+    b.innerHTML = '<span>'+z.ikona+'</span><span class="sz-postep">'+odebrane+'/'+SEZON_NAGRODY.length+'</span>'
+                + '<span class="sz-plak'+(gotowe?'':' hidden')+'">'+gotowe+'</span>';
+    b.setAttribute('aria-label', 'Sezon '+z.nazwa+(gotowe ? ', nagród do odebrania: '+gotowe : ''));
+  }
+  function renderSezon(){
+    const z = sezonTeraz(), st = z && sezonStan();
+    const glowa = document.getElementById('sezonGlowa'), zad = document.getElementById('sezonZad'), lista = document.getElementById('sezonLista');
+    if(!glowa) return;
+    if(!z){ glowa.innerHTML=''; zad.innerHTML=''; lista.innerHTML='<div class="mod-none">Sezon się skończył — nowy już niedługo.</div>'; return; }
+    document.getElementById('sezonTytul').textContent = z.ikona+' '+z.nazwa;
+    // najbliższa nieodebrana nagroda — do niej liczymy pasek
+    let cel = 1; while(cel <= SEZON_NAGRODY.length && st.k >= sezonProg(cel)) cel++;
+    const od = cel>1 ? sezonProg(cel-1) : 0;
+    const komplet = cel > SEZON_NAGRODY.length;
+    const proc = komplet ? 100 : Math.round(100*(st.k-od)/(sezonProg(cel)-od));
+    const dni = sezonDniDoKonca(z);
+    glowa.innerHTML = '<canvas></canvas><div class="sz-info"><div class="sz-ile">🌰 '+st.k+'</div>'
+      + '<div class="sz-pasek"><span style="width:'+proc+'%"></span></div>'
+      + '<div class="sz-pod">'+(komplet ? 'Cały pasek zebrany — brawo!' : 'Nagroda '+cel+' za '+(sezonProg(cel)-st.k)+' 🌰')
+      + ' · zostało '+dni+' '+(dni===1?'dzień':'dni')+'</div></div>';
+    const cv = glowa.querySelector('canvas'), DPR_S = Math.min(3, window.devicePixelRatio||1);
+    cv.width = Math.round(74*DPR_S); cv.height = Math.round(86*DPR_S);
+    rysujNaPlotnie(cv, strojZPrzymiarka(z.komplet), 1.15*DPR_S);
+    const zd = sezonZadanie(st);
+    zad.innerHTML = '<span style="font-size:20px;">📋</span><div style="flex:1;min-width:0;"><div>Zadanie dnia: <b></b></div>'
+      + '<div class="sz-pod">'+(zd.ok ? '<span class="ok">✓ zrobione — +'+SEZON_ZADANIE_NAGRODA+' 🌰</span> · jutro nowe'
+                                     : Math.min(zd.p, zd.cel)+' / '+zd.cel+' · nagroda +'+SEZON_ZADANIE_NAGRODA+' 🌰')+'</div></div>';
+    zad.querySelector('b').textContent = zd.opis;
+    const siatka = document.createElement('div'); siatka.className = 'sz-siatka';
+    SEZON_NAGRODY.forEach((n, ix)=>{
+      const i = ix+1, o = sezonOpisNagrody(n);
+      const odebr = st.odeb.indexOf(i) >= 0, gotowe = !odebr && st.k >= sezonProg(i);
+      const el = document.createElement(gotowe ? 'button' : 'div');
+      if(gotowe) el.type = 'button';
+      el.className = 'sz-st'+(gotowe?' gotowe':'')+(odebr?' odebrane':'')+(i===SEZON_NAGRODY.length?' glowna':'');
+      el.innerHTML = '<span class="nr">'+i+'</span><span class="ik"></span><span class="op"></span><span class="ko"></span>';
+      el.querySelector('.ik').textContent = o.ik;
+      el.querySelector('.op').textContent = i===SEZON_NAGRODY.length ? 'Komplet „'+o.op+'” — tylko w tym sezonie' : o.op;
+      el.querySelector('.ko').textContent = gotowe ? 'ODBIERZ' : (odebr ? '' : sezonProg(i)+' 🌰');
+      if(gotowe) el.onclick = ()=>sezonOdbierz(i);
+      siatka.appendChild(el);
+    });
+    lista.innerHTML = ''; lista.appendChild(siatka);
+  }
+  function pokazSezon(){
+    if(!sezonTeraz()) return;
+    renderSezon();
+    document.getElementById('sezonOverlay').classList.remove('hidden');
+    const l = document.getElementById('sezonLista'); l.scrollTop = 0; sygnalPrzewijaniaW(l);
+  }
   function upLevel(id){ return (profile.upgrades && profile.upgrades[id]) || 0; }
   /* Ułamek drogi do sufitu po `lvl` zakupach. Każdy poziom domyka
      `krok` tego, co jeszcze zostało — stąd malejące zyski. */
@@ -2863,6 +3082,7 @@
     streak:0, lastPlayDate:'', wallet:0, mapsOwned:['osiedle'], lastMapId:'osiedle',
     mapProgress:{}, upgrades:{}, mapLevels:{}, mapSel:{},
     stroje:['bluza-pom','plecak-tur','buty-biale'], zalozone:{ bluza:'bluza-pom', plecak:'plecak-tur', buty:'buty-biale', komplet:null },
+    sezon:null,
     dopalacze:{}, dopalaczeWl:{},
     firstSeen:0,        // kiedy gracz pierwszy raz odpalił grę (pierwsza doba bez limitu energii)
     invitedBy:'',       // kto go przyprowadził
@@ -2949,6 +3169,12 @@
     if(!profile.dopalacze || typeof profile.dopalacze!=='object') profile.dopalacze={};
     if(!profile.dopalaczeWl || typeof profile.dopalaczeWl!=='object') profile.dopalaczeWl={};
     DOPALACZE.forEach(d=>{ const n=Math.floor(Number(profile.dopalacze[d.id])||0); profile.dopalacze[d.id]=Math.max(0,Math.min(99,n)); });
+    if(profile.sezon && typeof profile.sezon==='object' && typeof profile.sezon.id==='string'){
+      const sz = profile.sezon;
+      sz.k = Math.max(0, Math.floor(Number(sz.k)||0));
+      sz.odeb = Array.isArray(sz.odeb) ? sz.odeb.filter(i=>Number.isInteger(i) && i>=1 && i<=SEZON_NAGRODY.length) : [];
+      if(!sz.zad || typeof sz.zad!=='object') sz.zad = null;
+    } else profile.sezon = null;
     if(!profile.mapSel || typeof profile.mapSel!=='object') profile.mapSel={};
     /* Pierwsza doba bez limitu jest dla kogoś, kto DOPIERO przyszedł —
        najczęściej z filmiku. Samo „nie mam jeszcze tego pola" znaczyło
@@ -3404,6 +3630,7 @@
   }
 
   function refreshProfileUI(){
+    odswiezSezonBtn();
     const stamp = document.getElementById('buildStamp');
     if(stamp) stamp.textContent = 'wersja ' + APP_VERSION;
     document.querySelectorAll('#homePick button').forEach(b=>
@@ -4027,7 +4254,7 @@
     return e.slot==='komplet' ? z.komplet===e.id : (!z.komplet && z[e.slot]===e.id);
   }
   async function kupStroj(e){
-    if(profile.stroje.includes(e.id)) return;
+    if(profile.stroje.includes(e.id) || e.sezon) return;
     if(profile.wallet < e.cena){ showToast('Za mało kaucji: trzeba '+fmt(e.cena)); return; }
     profile.wallet -= e.cena;
     profile.stroje.push(e.id);
@@ -4060,6 +4287,7 @@
     if(mam){ przycisk.textContent = zalozony(pokaz) ? (pokaz.slot==='komplet' ? 'ZDEJMIJ' : 'ZAŁOŻONE') : 'ZAŁÓŻ';
       przycisk.disabled = zalozony(pokaz) && pokaz.slot!=='komplet';
       przycisk.onclick = ()=>{ zalozStroj(pokaz); renderShop(); }; }
+    else if(pokaz.sezon){ przycisk.textContent = '🍂 TYLKO Z SEZONU'; przycisk.disabled = true; }
     else { przycisk.textContent = 'KUP · '+pokaz.cena+' zł'; przycisk.disabled = profile.wallet < pokaz.cena;
       przycisk.onclick = ()=>kupStroj(pokaz); }
     pd.appendChild(przycisk);
@@ -4077,9 +4305,9 @@
       const k = document.createElement('button'); k.type='button';
       k.className = 'kafel'+((sklepPodglad ? sklepPodglad===e.id : zalozony(e)) ? ' wyb' : '');
       const mamTo = profile.stroje.includes(e.id);
-      const cena = mamTo ? (zalozony(e) ? '✓ założone' : 'masz — załóż') : e.cena+' zł';
+      const cena = mamTo ? (zalozony(e) ? '✓ założone' : 'masz — załóż') : (e.sezon ? '🍂 z sezonu' : e.cena+' zł');
       k.innerHTML = '<span class="rzad '+e.rz+'">'+RZADKOSC[e.rz]+'</span><canvas></canvas>'+
-        '<div class="kn"></div><div class="kc '+(mamTo?'masz':(profile.wallet<e.cena?'za-malo':''))+'">'+cena+'</div>';
+        '<div class="kn"></div><div class="kc '+(mamTo?'masz':(!e.sezon && profile.wallet<e.cena?'za-malo':''))+'">'+cena+'</div>';
       k.querySelector('.kn').textContent = e.nazwa;
       const kc = k.querySelector('canvas'); kc.width=Math.round(60*DPR_S); kc.height=Math.round(72*DPR_S);
       rysujNaPlotnie(kc, strojZPrzymiarka(e.id), 1.1*DPR_S);
@@ -4332,6 +4560,11 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-10-02 · 56', linie:[
+      '🍂 Ruszył sezon „Złota jesień”! Na wyprawach leżą kasztany 🌰 — zbieraj je i odbieraj 30 nagród.',
+      '🌰 Na końcu paska komplet „Kasztanowy łowca” — tylko do 31 października, potem już go nie zdobędziesz.',
+      '📋 Codziennie zadanie sezonu za +25 kasztanów. Sezon otwierasz liściem 🍂 obok swojego nicku.'
+    ]},
     { v:'2026-10-01 · 55', linie:[
       '🎬 Najwyżej 15 reklam dziennie — po limicie gra nie proponuje już reklam, a przerywników między wyprawami nie ma do jutra.',
       '🎟️ Do kuponów liczy się 15 reklam z każdego dnia. Licznik „reklamy dziś" jest w zakładce Kupony.'
@@ -4886,7 +5119,10 @@
   let bushes=[], cars=[], carSpawnTimer=1.5;
   let noiseRings=[], activeBinTarget=null;
   let exitZone={x:0,y:210,w:130,h:100};
-  let spawnTimer=0, elapsedSinceStart=0;
+  let spawnTimer=0, elapsedSinceStart=0, kasztanyWyprawy=false, kasztanTimer=0;
+  /* Jesienny wygląd map: liczony raz na wyprawę (kasztanyWyprawy), bo
+     sprawdzanie daty w każdej klatce to zbędny koszt. */
+  const JESIEN = ['#E9A23B','#D9622B','#F2C14E','#C8742E'];
   // statystyki bieżącej wyprawy — na ich podstawie oceniane są cele mapy
   let run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
 
@@ -5100,6 +5336,8 @@
     { key:'plastic',value:0.5, r:13, color:'#3FBF7F', dark:'#278C58' },
     { key:'trash',  value:0,   r:12, color:'#8B4A4A', dark:'#5C3131' }
   ];
+  // kasztan: nie trafia do plecaka, liczy się do sezonu (patrz SEZONY)
+  const KASZTAN = { key:'kasztan', value:0, r:12 };
   function pickType(){
     const w = MAP_WEIGHTS[currentMapId] || MAP_WEIGHTS.row;
     const total = TYPES.reduce((s,t)=>s+w[t.key],0);
@@ -5249,7 +5487,9 @@
     noiseRings=[]; activeBinTarget=null;
     carSpawnTimer=1.5;
     doubleUsedThisRound=false; leveledThisRound=false;
-    run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false };
+    run = { binsEmptied:0, bags:0, comboMax:1, maxHeat:0, spottedByCar:false, guardAlerted:false, kasztany:0, kasztanyPokazane:0 };
+    // sezon ustalamy na starcie wyprawy — wyprawa zaczęta 31.10 o 23:59 dokończy się po staremu
+    kasztanyWyprawy = !!sezonTeraz(); kasztanTimer = 3 + Math.random()*3;
     player.x=WORLD_W/2; player.y=WORLD_H-unprojY(90); player.heat=0; player.noiseRadius=0; player.hidden=false;
     // wyjście zaczyna się PONIŻEJ paska interfejsu — wcześniej leżało
     // na wysokości 60 px ekranu, czyli dokładnie pod nagłówkiem Telegrama
@@ -5327,8 +5567,8 @@
                   tapsNeeded:tapsNeededBase()+Math.floor(Math.random()*3), tapsDone:0, shakeTimer:0, bob:Math.random()*Math.PI*2 });
     }
   }
-  function spawnItem(initial){
-    const margin=50, t=pickType();
+  function spawnItem(initial, typ){
+    const margin=50, t=typ || pickType();
     let x = margin+Math.random()*(WORLD_W-margin*2);
     const iTop = playTop()+unprojY(22), iBot = WORLD_H-unprojY(100);
     let y = iTop + Math.random()*(iBot-iTop);
@@ -5341,7 +5581,7 @@
     }
     if(tooCloseToExit(x,y)) y = exitZone.y+exitZone.h+unprojY(30+Math.random()*40);
     if(pointInObstacle(x,y,18)){ x = Math.max(margin, Math.min(WORLD_W-margin, x+70)); }
-    const it={ type:t, x, y, born:elapsedSinceStart, life:6+Math.random()*4, bob:Math.random()*Math.PI*2, popped:false };
+    const it={ type:t, x, y, born:elapsedSinceStart, life:(t===KASZTAN ? 9 : 6)+Math.random()*4, bob:Math.random()*Math.PI*2, popped:false };
     if(!initial){ const dx=it.x-player.x; if(viewDist(it.x,it.y,player.x,player.y)<80){ it.x = player.x + (dx>=0?1:-1)*140; } }
     items.push(it);
   }
@@ -5446,6 +5686,12 @@
 
   function collect(it){
     it.popped=true;
+    if(it.type===KASZTAN){
+      run.kasztany++;
+      Sfx.plastic(); haptic('light');
+      addFloatText(it.x,it.y,'+1 🌰','#FFD27A');
+      return;
+    }
     if(loot>=backpackCap() && it.type.value>0){
       addFloatText(it.x,it.y,'🎒 Plecak pełny!','#FF9B7A');
       updateHUD(); return;
@@ -6012,6 +6258,14 @@
     }
     const spawnRate=Math.max(0.35, 0.85-elapsedSinceStart*0.008);
     if(!allBinsDone && !backpackFull && spawnTimer<=0 && items.length<14){ spawnItem(false); spawnTimer=spawnRate; }
+    /* Kasztany rosną niezależnie od plecaka (nie zajmują w nim miejsca),
+       ale kończą się razem z terenem — inaczej dałoby się je farmić. */
+    if(kasztanyWyprawy && !allBinsDone){
+      kasztanTimer -= dt;
+      if(kasztanTimer <= 0 && run.kasztanyPokazane < KASZTANY_NA_WYPRAWE){
+        spawnItem(false, KASZTAN); run.kasztanyPokazane++; kasztanTimer = 5 + Math.random()*4;
+      }
+    }
     for(const it of items){ if(it.popped) continue; if(viewDist(player.x,player.y,it.x,it.y)<player.r+it.type.r-4) collect(it); }
     items=items.filter(it=>!it.popped && (elapsedSinceStart-it.born)<it.life);
     particles.forEach(p=>{ p.y+=p.vy*VIEW_UNTILT; p.life-=dt*0.9; });
@@ -6165,7 +6419,7 @@
       for(let i=0;i<9;i++){
         const bx=i*WORLD_W/9+12, h=46+((i*29)%30);
         ctx.fillStyle='#B5835A'; ctx.fillRect(bx+26,108-h*0.45,6,h*0.45);
-        ctx.fillStyle=kol[i%kol.length]; ctx.beginPath(); ctx.arc(bx+29,108-h*0.6,22,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle=(kasztanyWyprawy ? JESIEN : kol)[i%kol.length]; ctx.beginPath(); ctx.arc(bx+29,108-h*0.6,22,0,Math.PI*2); ctx.fill();
         ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(bx+22,108-h*0.7,8,0,Math.PI*2); ctx.fill();
       }
     } else {
@@ -6173,6 +6427,15 @@
       for(let i=0;i<n;i++){
         const bw=WORLD_W/n-(map.id==='miasto'?6:18), bx=i*(WORLD_W/n)+(map.id==='miasto'?0:8), by=16+(i%3)*8;
         dom(bx,by,bw,108-by,kol[i%kol.length]);
+      }
+    }
+    // jesień: złote drzewka przed zabudową (przy rowie drzewa same zmieniają kolor)
+    if(kasztanyWyprawy && map.id!=='row'){
+      for(let i=0;i<5;i++){
+        const tx = (i+0.5)*WORLD_W/5 + ((i*37)%30) - 15;
+        ctx.fillStyle='#8B5A3A'; ctx.fillRect(tx-2,90,4,18);
+        ctx.fillStyle=JESIEN[i%JESIEN.length]; ctx.beginPath(); ctx.arc(tx,84,13,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.beginPath(); ctx.arc(tx-4,80,5,0,Math.PI*2); ctx.fill();
       }
     }
   }
@@ -6204,7 +6467,7 @@
   function gruntWarstwa(map){
     const bottom = projY(WORLD_H);
     const klucz = [currentMapId, Math.round(WORLD_W), Math.round(bottom),
-                   Math.round(HORIZON), DPR].join('|');
+                   Math.round(HORIZON), DPR, kasztanyWyprawy ? 'jesien' : ''].join('|');
     if(gruntPlotno && gruntKlucz === klucz) return gruntPlotno;
     const c = document.createElement('canvas');
     c.width  = Math.max(1, Math.round(WORLD_W*DPR));
@@ -6228,6 +6491,18 @@
         const kol=['#FF8FB8','#FFD166','#8FD8FF'];
         for(let i=0;i<60;i++){ g.fillStyle=kol[i%3]; g.beginPath();
           g.arc((i*211)%WORLD_W, HORIZON+30+((i*127)%Math.max(1,bottom-HORIZON-30)), 2.2, 0, Math.PI*2); g.fill(); }
+      }
+    }
+    if(kasztanyWyprawy){
+      // ciepły odcień trawy i rozsypane liście — w tych samych miejscach na każdej wyprawie
+      g.fillStyle='rgba(233,150,60,0.10)'; g.fillRect(0,HORIZON,WORLD_W,bottom-HORIZON);
+      for(let i=0;i<110;i++){
+        const x=(i*191+37)%WORLD_W, y=HORIZON+12+((i*113)%Math.max(1,bottom-HORIZON-12));
+        g.save(); g.translate(x,y); g.rotate((i*1.7)%Math.PI);
+        g.fillStyle=JESIEN[i%JESIEN.length]; g.globalAlpha=0.85;
+        g.beginPath(); g.ellipse(0,0,5.5,2.8,0,0,Math.PI*2); g.fill();
+        g.strokeStyle='rgba(120,60,20,0.45)'; g.lineWidth=0.8; g.beginPath(); g.moveTo(-5,0); g.lineTo(5,0); g.stroke();
+        g.restore();
       }
     }
     const haze=g.createLinearGradient(0,HORIZON,0,HORIZON+70);
@@ -6261,6 +6536,21 @@
     ctx.restore();
     // ziemia razem z trawą, kostką i mgiełką — jeden rysunek zamiast tysięcy operacji
     ctx.drawImage(gruntWarstwa(map), 0, 0, WORLD_W, bottom);
+    if(kasztanyWyprawy) rysujSpadajaceLiscie(bottom);
+  }
+  // dziewięć liści dryfujących w dół — pozycja liczona z czasu, bez stanu
+  function rysujSpadajaceLiscie(bottom){
+    const t = elapsedSinceStart;
+    for(let i=0;i<9;i++){
+      const okres = 9 + (i%4)*2, faza = ((t + i*3.1) % okres) / okres;
+      const x = ((i*157 + t*14) % (WORLD_W+40)) - 20 + Math.sin(t*1.3 + i)*18;
+      const y = HORIZON - 60 + faza*(bottom - HORIZON + 60);
+      ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin(t*2 + i)*0.9);
+      ctx.globalAlpha = faza > 0.9 ? (1-faza)*10 : 0.9;
+      ctx.fillStyle = JESIEN[i%JESIEN.length];
+      ctx.beginPath(); ctx.ellipse(0,0,6,3,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
   }
   function drawExitZone(){
     ctx.save();
@@ -6386,6 +6676,17 @@
     ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(-3,-1.5,3,1.5,0,0,Math.PI*2); ctx.fill();
     ctx.restore();
   }
+  function drawKasztanShape(){
+    // błyszczący brązowy kasztan z jasną „łysinką" u góry i liściem obok
+    ctx.save(); ctx.translate(4,-6); ctx.rotate(-0.6);
+    ctx.fillStyle='#E9A23B'; ctx.beginPath(); ctx.ellipse(0,0,4,8,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#B5701E'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,-7); ctx.lineTo(0,7); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle='#7A3E1D'; ctx.beginPath(); ctx.ellipse(0,4,9,8,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#4A2410'; ctx.lineWidth=1.4; ctx.stroke();
+    ctx.fillStyle='#D9B48A'; ctx.beginPath(); ctx.ellipse(0,-2,5.5,2.6,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.ellipse(-3.6,4,2,3.4,-0.4,0,Math.PI*2); ctx.fill();
+  }
   function drawBagShape(type){
     const grad=ctx.createLinearGradient(-16,-14,16,18);
     grad.addColorStop(0, shade(type.color,32)); grad.addColorStop(1, type.dark);
@@ -6408,7 +6709,8 @@
     if(c) return c;
     c = noweePlotno(SZT_W, SZT_H);
     naPlotnie(c, SZT_OX, SZT_OY, ()=>{
-      if(type.key==='trash'){ drawTrashShape(type); }
+      if(type.key==='kasztan'){ drawKasztanShape(); }
+      else if(type.key==='trash'){ drawTrashShape(type); }
       else if(type.key==='can'){ drawCanShape(type); }
       else { drawBottleShape(type); }
     });
@@ -7236,6 +7538,7 @@
        potrafi wskazać poziom, którego gracz jeszcze nie odblokował, więc
        inaczej dałoby się nim przeskoczyć pół gry. Kaucja jest zwyczajna. */
     sprawdzZlecenie(banked);
+    const sezonWynik = sezonPoWyprawie(run.kasztany||0, banked);
     const lvlRes = wyzwanie
       ? { stars:0, gained:0, opened:false, quota:levelQuota(currentMapId, playedLevel) }
       : evaluateLevel(banked);
@@ -7267,7 +7570,8 @@
     }
     grynaPlusEvent('round_finished', { earned:Number(banked.toFixed(2)), level:profile.level,
       mapId:currentMapId, poziomMapy:playedLevel, norma:levelQuota(currentMapId, playedLevel),
-      udana:banked >= levelQuota(currentMapId, playedLevel), newBest:isNewBest, profileNick:profile.nick });
+      udana:banked >= levelQuota(currentMapId, playedLevel), newBest:isNewBest,
+      kasztany: sezonWynik ? sezonWynik.kasztany : undefined, profileNick:profile.nick });
 
     document.getElementById('resultAmount').textContent = fmt(banked + premia);
     if(premia>0) setTimeout(()=>showToast('🌅 Pierwsza wyprawa dnia: +50% (+'+fmt(premia)+')'), 900);
@@ -7279,6 +7583,13 @@
     pokazWynikZakladu();
     pokazPrzypomnienieWora();
     document.getElementById('levelBanner').classList.toggle('show', leveledThisRound);
+    const szB = document.getElementById('sezonBanner');
+    if(sezonWynik && (sezonWynik.kasztany || sezonWynik.zadanieZrobione || sezonWynik.nowe)){
+      szB.textContent = '🌰 +'+sezonWynik.kasztany+' '+(sezonWynik.kasztany===1?'kasztan':(sezonWynik.kasztany%10>=2&&sezonWynik.kasztany%10<=4&&(sezonWynik.kasztany%100<10||sezonWynik.kasztany%100>=20)?'kasztany':'kasztanów'))
+        + (sezonWynik.zadanieZrobione ? ' · ✅ zadanie dnia +'+SEZON_ZADANIE_NAGRODA : '')
+        + (sezonWynik.nowe ? ' · 🎁 nagroda sezonu do odebrania!' : '');
+      szB.classList.add('show');
+    } else szB.classList.remove('show');
     const mapLvlBanner = document.getElementById('mapLevelBanner');
     if(wynikWyzwania){
       mapLvlBanner.textContent = wynikWyzwania.wygrana
@@ -7904,6 +8215,11 @@
     Sfx.click(); document.getElementById('ligaOverlay').classList.add('hidden');
   });
   document.getElementById('ligaLista').addEventListener('scroll', (e)=>sygnalPrzewijaniaW(e.target));
+  document.getElementById('sezonBtn').addEventListener('click', ()=>{ if(!sezonTeraz()) return; Sfx.click(); haptic('light'); pokazSezon(); });
+  document.getElementById('sezonCloseBtn').addEventListener('click', ()=>{
+    Sfx.click(); document.getElementById('sezonOverlay').classList.add('hidden');
+  });
+  document.getElementById('sezonLista').addEventListener('scroll', (e)=>sygnalPrzewijaniaW(e.target));
 
   /* Po wyprawie (i po podwojeniu łupu) serwer ma już nowy wynik, bo liczy
      go przy zapisie profilu. Pokazujemy, co to zmieniło w tabeli. */
