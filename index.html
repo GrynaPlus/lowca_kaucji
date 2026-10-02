@@ -1306,7 +1306,7 @@
     });
     let data = {};
     try{ data = await res.json(); }catch(e){}
-    if(!res.ok) throw new Error(data.error || ('Błąd serwera (HTTP '+res.status+')'));
+    if(!res.ok){ const err = new Error(data.error || ('Błąd serwera (HTTP '+res.status+')')); err.dane = data; err.status = res.status; throw err; }
     return data;
   }
 
@@ -2160,7 +2160,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-10-02 · 59';
+  const APP_VERSION = '2026-10-02 · 60';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3007,15 +3007,58 @@
      pracy, dopóki pula dla danego progu się nie wyczerpie — wtedy
      serwer zwróci błąd i gra pokaże go jako toast.
      --------------------------------------------------------- */
-  async function grantPayout(tier){
-    let result;
+  /* --- BILET REKLAMY DO KUPONU ---
+     Potwierdzenie reklamy (postback) przychodzi od Monetaga do serwera
+     czasem kilka, czasem kilkadziesiąt sekund po jej zamknięciu. Dawniej
+     odmowa „nie doszło potwierdzenie" kończyła sprawę, a następne ODBIERZ
+     odpalało NOWĄ reklamę — gracz oglądał reklamę za reklamą i kuponu nie
+     dostawał. Teraz bilet obejrzanej reklamy zostaje (także po zamknięciu
+     gry, ważny jak na serwerze 20 minut), gra sama ponawia odbiór przez
+     ok. pół minuty, a kolejne ODBIERZ używa go bez nowej reklamy. */
+  const BILET_KUPONU_MS = 18*60*1000;          // serwer uznaje bilet 20 min — zostawiamy zapas
+  function biletKuponu(){
     try{
-      // bilet z reklamy obejrzanej przed chwilą — serwer sprawdzi go u Monetaga
-      result = await apiCall('/claim-code', { tierId: tier.id, ymid: ostatniBilet });
-    }catch(e){
-      showToast(e.message || 'Nie udało się odebrać kodu — spróbuj później');
-      return;
-    }
+      const b = JSON.parse(localStorage.getItem('lk_bilet_kuponu') || 'null');
+      if(b && b.ymid && Date.now() - b.ts < BILET_KUPONU_MS) return b.ymid;
+    }catch(e){}
+    return null;
+  }
+  function zapamietajBiletKuponu(ymid){
+    try{ if(ymid) localStorage.setItem('lk_bilet_kuponu', JSON.stringify({ ymid:ymid, ts:Date.now() }));
+         else localStorage.removeItem('lk_bilet_kuponu'); }catch(e){}
+  }
+  let odbiorWToku = false;
+  async function grantPayout(tier, bilet){
+    if(odbiorWToku) return;
+    odbiorWToku = true;
+    bilet = bilet || ostatniBilet;
+    zapamietajBiletKuponu(bilet);
+    let result = null;
+    try{
+      for(let proba = 0; proba < 8 && !result; proba++){
+        try{
+          // bilet z reklamy obejrzanej przed chwilą — serwer sprawdzi go u Monetaga
+          result = await apiCall('/claim-code', { tierId: tier.id, ymid: bilet });
+        }catch(e){
+          const d = e.dane || {};
+          const czekaNaPostback = d.reklamaNiepotwierdzona && /Nie doszło potwierdzenie/.test(e.message || '');
+          if(czekaNaPostback && proba < 7){
+            if(proba === 0) showToast('⏳ Czekam na potwierdzenie reklamy od Monetaga…');
+            await new Promise(r=>setTimeout(r, 4000));
+            continue;
+          }
+          // bilet nadal dobry, chyba że serwer mówi, że jest zużyty, przeterminowany albo cudzy
+          if(d.reklamaNiepotwierdzona && !czekaNaPostback) zapamietajBiletKuponu(null);
+          showToast(czekaNaPostback
+            ? 'Monetag spóźnia się z potwierdzeniem — stuknij ODBIERZ za minutę, bez nowej reklamy'
+            : (e.message || 'Nie udało się odebrać kodu — spróbuj później'));
+          if(d.wymaganeReklamy !== undefined) odswiezStatusProgow();
+          return;
+        }
+      }
+    } finally { odbiorWToku = false; }
+    if(!result) return;
+    zapamietajBiletKuponu(null);
     // serwer jest źródłem prawdy dla salda — po prostu wczytujemy je z odpowiedzi
     profile.wallet = result.wallet;
     if(!Array.isArray(profile.coupons)) profile.coupons=[];
@@ -3120,7 +3163,11 @@
         div.onclick = ()=>{
           const st2 = canClaimTier(tier);
           if(!st2.ok){ showToast(st2.reason); return; }
-          if(PAYOUT_CONFIG.requireAdToClaim){
+          const zapasowy = biletKuponu();
+          if(PAYOUT_CONFIG.requireAdToClaim && zapasowy){
+            // reklama już obejrzana, tylko potwierdzenie się spóźniło — nie każemy oglądać drugiej
+            grantPayout(tier, zapasowy);
+          } else if(PAYOUT_CONFIG.requireAdToClaim){
             showToast('Reklama przed odbiorem…');
             Ads.showRewarded(
               ()=>{ grantPayout(tier); },
@@ -4626,6 +4673,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-10-02 · 60', linie:[
+      '🎟️ Naprawione odbieranie kuponów: gdy potwierdzenie reklamy się spóźnia, gra sama czeka i ponawia — bez oglądania kolejnej reklamy.'
+    ]},
     { v:'2026-10-02 · 59', linie:[
       '🚪 Koniec zacinania przy wyjściu — wynik wyprawy pokazuje się od razu, zapis leci w tle.'
     ]},
