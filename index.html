@@ -1511,6 +1511,7 @@
      Dziś przy trzech energiach wychodzi jeden na 84 sekundy gry. „Co 3"
      trzyma więc dotychczasowe tempo przerywania, dając ich w sumie trzy
      razy więcej na sesję. */
+  // co ile UDANYCH wyprawy przerywnik (po oknie wyniku, patrz poWyniku)
   const AD_CONFIG = { showInterstitialEveryNRounds: 3 };
   // Dobrowolne reklamy: gracz sam po nie sięga, bo coś z nich ma.
   const BOOST_LUPU = 0.25;    // bonus startowy do łupu z najbliższej wyprawy
@@ -2160,7 +2161,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-10-02 · 60';
+  const APP_VERSION = '2026-10-02 · 61';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -4673,6 +4674,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-10-02 · 61', linie:[
+      '🎬 Przerwa na reklamę jest teraz po ukończonej wyprawie, a nie przed startem — i tylko po udanych wyprawach.'
+    ]},
     { v:'2026-10-02 · 60', linie:[
       '🎟️ Naprawione odbieranie kuponów: gdy potwierdzenie reklamy się spóźnia, gra sama czeka i ponawia — bez oglądania kolejnej reklamy.'
     ]},
@@ -5233,6 +5237,7 @@
 
   let state='idle';
   let loot=0, combo=1, comboTimer=0;
+  let udaneWyprawySesji=0;      // wyprawy zakończone z łupem w tej sesji (do przerywnika)
   let roundsPlayed=0, doubleUsedThisRound=false, leveledThisRound=false, lastBankedAmount=0;
   const player={x:0,y:0,r:20,moving:false,heat:0,noiseRadius:0,hidden:false};
   let pointer={x:0,y:0,active:false};
@@ -7607,6 +7612,7 @@
     if(!profile.tutorialDone) profile.tutorialDone = true;
     Sfx.bank(); hapticNotify('success');
     const banked = loot; loot=0; lastBankedAmount=banked;
+    if(banked > 0) udaneWyprawySesji++;
     profile.gamesPlayed += 1;
     // Kasa nie wpada od razu — butelki lądują w worze i czekają na
     // odstawienie w punkcie skupu. XP, poziom mapy i gwiazdki dostajesz
@@ -7800,8 +7806,7 @@
       if(!pierwszaDoba()) profile.energy-=1;   // pierwszej doby nie liczymy
       await saveProfile(); renderEnergy(); beginRound();
     };
-    const shouldAd = roundsPlayed>0 && roundsPlayed % AD_CONFIG.showInterstitialEveryNRounds === 0;
-    if(shouldAd) Ads.showInterstitial(()=>proceed()); else proceed();
+    proceed();      // przerywnik nie stoi już przed wyprawą — patrz poWyniku()
   }
   document.getElementById('startBtn').addEventListener('click', (e)=>{
     if(buyStageMap()) return; // mapa nieposiadana → przycisk kupuje zamiast startować
@@ -7887,8 +7892,23 @@
       dzien: dzienZycia() });
     Sfx.click(); goToMenu();
   });
-  document.getElementById('againBtn').addEventListener('click', attemptStart);
-  document.getElementById('menuBtnEnd').addEventListener('click', goToMenu);
+  /* PRZERYWNIK PO UKOŃCZONEJ WYPRAWIE
+     Dawniej wyskakiwał przy GRAJ, czyli przed wyprawą — w chwili, gdy gracz
+     chce już grać. Teraz po co trzeciej UDANEJ wyprawie, kiedy gracz zamyka
+     okno wyniku (Jeszcze raz / Wróć do menu): naturalna przerwa, a gracz
+     jest zadowolony z łupu. Nigdy po złapaniu i nigdy w pierwszej dobie
+     gracza — wtedy decyduje, czy w ogóle wróci. Limit dzienny pilnuje
+     sam Ads.showInterstitial. */
+  let przerywnikPoWyprawie = 0;          // numer udanej wyprawy, po której już był
+  function poWyniku(dalej){
+    const n = udaneWyprawySesji, co = AD_CONFIG.showInterstitialEveryNRounds;
+    if(n > 0 && n % co === 0 && przerywnikPoWyprawie !== n && !pierwszaDoba()){
+      przerywnikPoWyprawie = n;
+      Ads.showInterstitial(dalej);
+    } else dalej();
+  }
+  document.getElementById('againBtn').addEventListener('click', ()=>poWyniku(attemptStart));
+  document.getElementById('menuBtnEnd').addEventListener('click', ()=>poWyniku(goToMenu));
 
   /* Adres mini-appki. Doklejamy do niego parametr startapp, więc to on
      decyduje, czy wyzwania i polecenia w ogóle zadziałają.
