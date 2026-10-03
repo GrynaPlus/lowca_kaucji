@@ -689,6 +689,8 @@
   .stat-box .n{font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;font-weight:700;font-size:16px;color:var(--gold-dark);}
   .stat-box .l{font-size:9px;color:var(--tekst-2);}
 
+  /* okno zapasowej reklamy wyskakuje nad oknem, z którego gracz kliknął (np. wynik wyprawy) */
+  #popupOverlay{z-index:45;}
   #adMock{position:absolute;inset:0;background:#0B0F0B;z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-family:'Baloo 2','Segoe UI',Roboto,sans-serif;text-align:center;padding:24px;}
   #adMock.show{display:flex;}
   #adMock .tag{position:absolute;top:14px;left:14px;font-size:10px;background:rgba(255,255,255,0.12);padding:4px 9px;border-radius:8px;color:#aaa;font-family:'Inter','Segoe UI',Roboto,sans-serif;}
@@ -1091,6 +1093,16 @@
       <p class="sub" id="streakOpis" style="display:none;"></p>
       <button class="secondary reward" id="streakAdBtn">🎬 Obejrzyj reklamę → podwój bonus</button>
       <button class="primary" id="streakTakeBtn">ODBIERAM</button>
+    </div>
+  </div>
+
+  <!-- Zapasowa reklama: gdy pełnoekranowa się nie wczyta, gracz może otworzyć stronę partnera -->
+  <div class="overlay hidden" id="popupOverlay" data-wyjscie="popupNieBtn">
+    <div class="card">
+      <h1 style="font-size:22px;">🎬 Reklama się nie wczytała</h1>
+      <p class="sub">Zamiast niej możesz otworzyć stronę partnera — nagroda i tak będzie Twoja.</p>
+      <button class="primary" id="popupTakBtn">🔗 OTWÓRZ STRONĘ PARTNERA → NAGRODA</button>
+      <button class="secondary" id="popupNieBtn">Nie, dzięki</button>
     </div>
   </div>
 
@@ -1543,8 +1555,52 @@
   function ustawReklamyDzis(n){
     try{ localStorage.setItem('lk_reklamy_dzis', JSON.stringify({ d: dzisPL(), n: Math.max(0, n|0) })); }catch(e){}
   }
-  function policzReklame(){ ustawReklamyDzis(reklamyDzis() + 1); }
+  function policzReklame(){ ustawReklamyDzis(reklamyDzis() + 1); wlaczInAppJesliTrzeba(); }
   function limitReklamWyczerpany(){ return reklamyDzis() >= LIMIT_REKLAM; }
+  // przerywnik tylko, gdy zostaje zapas na reklamy, które gracz ogląda z własnej woli
+  const ZAPAS_PRZED_PRZERYWNIKIEM = 5;
+
+  /* --- REWARDED POPUP: zapasowa reklama ---
+     Gdy reklama pełnoekranowa się nie wczyta (Monetag nie ma reklamy dla
+     tego gracza — w Polsce zdarza się to często), zamiast „nie wyświetliła
+     się" gracz może otworzyć stronę partnera i dostać nagrodę. Tylko przy
+     nagrodach w grze, nigdy przy kuponie. Popup to inny format, więc nie
+     wlicza się do limitu 15 ani do reklam pod kupony (serwer pomija
+     miejsca z końcówką _pop), ale ma swój limit dzienny. */
+  const POPUP_DZIENNIE = 5;
+  const POPUP_BEZ = ['coupon_claim'];
+  function popupyDzis(){
+    try{ const z = JSON.parse(localStorage.getItem('lk_popup_dzis') || 'null'); if(z && z.d === dzisPL()) return Math.max(0, z.n|0); }catch(e){}
+    return 0;
+  }
+  function policzPopup(){ try{ localStorage.setItem('lk_popup_dzis', JSON.stringify({ d: dzisPL(), n: popupyDzis() + 1 })); }catch(e){} }
+  function zapytajOPopup(){
+    return new Promise(gotowe=>{
+      const ov = document.getElementById('popupOverlay');
+      const tak = document.getElementById('popupTakBtn'), nie = document.getElementById('popupNieBtn');
+      const koniec = (odp)=>{ ov.classList.add('hidden'); tak.onclick = null; nie.onclick = null; gotowe(odp); };
+      tak.onclick = ()=>koniec(true);      // kliknięcie gracza — popup otwiera nową kartę tylko z gestu
+      nie.onclick = ()=>koniec(false);
+      ov.classList.remove('hidden');
+    });
+  }
+
+  /* --- IN-APP INTERSTITIAL: dochód z graczy po limicie ---
+     Reklama sama wyskakuje co kilka minut i nie da się jej wstrzymać, więc
+     włączamy ją dopiero graczowi, który obejrzał dziś LIMIT_REKLAM reklam:
+     reklam z nagrodą już nie ogląda, więc niczego mu nie zjada, a reszta
+     graczy jej w ogóle nie widzi. Nigdy w pierwszej dobie. Raz na sesję —
+     wielokrotne wywołanie psuje harmonogram Monetaga. W trakcie wyprawy
+     gra sama się pauzuje, gdy reklama przykryje ekran (patrz niżej). */
+  let inAppWlaczone = false;
+  function wlaczInAppJesliTrzeba(){
+    if(inAppWlaczone || !limitReklamWyczerpany()) return;
+    if(typeof pierwszaDoba === 'function' && pierwszaDoba()) return;
+    if(!window['show_'+MONETAG_ZONE]) return;
+    inAppWlaczone = true;
+    Ads.enableInAppAuto();
+    grynaPlusEvent('inapp_wlaczone', { dzis: reklamyDzis() });
+  }
   const NAPIS_LIMITU = '🌙 Limit reklam na dziś wykorzystany — wróć jutro. Energia odnawia się sama (+1 co 20 min).';
 
   const Ads = (function(){
@@ -1667,16 +1723,33 @@
         clearTimeout(budzik);
         console.warn('[ads] rewarded nieudany/przerwany', e);
         preloadNext();
+        if(!zamkniete && POPUP_BEZ.indexOf(placement) < 0 && popupyDzis() < POPUP_DZIENNIE){
+          const tak = await zapytajOPopup();
+          if(tak){
+            try{
+              await fn({ type:'pop', ymid: nowyBilet(), requestVar: (placement || 'reward') + '_pop' });
+              policzPopup();
+              grynaPlusEvent('ad_popup', { placement: placement || 'reward' });
+              onReward && onReward();
+              zamknij(true);
+              return;
+            }catch(e2){ console.warn('[ads] popup nieudany', e2); }
+          } else {
+            // gracz sam odmówił — „reklama się nie wyświetliła" byłoby tu nieprawdą
+            wyciszBladReklamy = true;
+            try{ zamknij(false); } finally { wyciszBladReklamy = false; }
+            return;
+          }
+        }
         zamknij(false);
       }
     }
 
-    /* --- In-App Interstitial (WYŁĄCZONY) ---------------------
-       Automatyczne reklamy wg harmonogramu. Włącz TYLKO jeśli
-       zaakceptujesz, że reklama może wyskoczyć w trakcie wyprawy.
-       Żeby włączyć: odkomentuj wywołanie w boot() na dole pliku.
-       Ustawienia poniżej są łagodniejsze niż domyślne z docsów
-       (2 reklamy / 6 minut to bardzo dużo przy 1-minutowych rundach).
+    /* --- In-App Interstitial ---------------------------------
+       Automatyczne reklamy wg harmonogramu — włącza je wyłącznie
+       wlaczInAppJesliTrzeba() (gracz po dziennym limicie, nie w pierwszej
+       dobie). Najwyżej 3 na godzinę, co najmniej 5 minut odstępu,
+       pierwsza po 2 minutach.
     --------------------------------------------------------- */
     function enableInAppAuto(){
       const fn = sdk();
@@ -1685,10 +1758,10 @@
         fn({
           type:'inApp',
           inAppSettings:{
-            frequency: 1,     // 1 reklama...
-            capping: 0.25,    // ...na 15 minut
-            interval: 60,     // min. 60 s odstępu
-            timeout: 20,      // 20 s opóźnienia przed pierwszą
+            frequency: 3,     // 3 reklamy...
+            capping: 1,       // ...na godzinę
+            interval: 300,    // min. 5 minut odstępu
+            timeout: 120,     // 2 minuty przed pierwszą
             everyPage: false
           }
         });
@@ -2161,7 +2234,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-10-02 · 61';
+  const APP_VERSION = '2026-10-03 · 62';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -3104,6 +3177,7 @@
       statusProgow = await res.json();
       if(Number(statusProgow.limitReklamDzienny) > 0) LIMIT_REKLAM = Number(statusProgow.limitReklamDzienny);
       if(typeof statusProgow.reklamyDzis === 'number') ustawReklamyDzis(Math.max(reklamyDzis(), statusProgow.reklamyDzis));
+      wlaczInAppJesliTrzeba();
       updatePlayButton();
       renderPayouts();
       /* Plakietka na zakładce liczy progi „gotowe do odbioru", a te zależą
@@ -4674,6 +4748,10 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-10-03 · 62', linie:[
+      '🔗 Gdy reklama się nie wczyta, możesz zamiast niej otworzyć stronę partnera — nagroda i tak jest Twoja.',
+      '⏸️ Gdy wyjdziesz z gry albo coś przykryje ekran w trakcie wyprawy, gra sama się pauzuje.'
+    ]},
     { v:'2026-10-02 · 61', linie:[
       '🎬 Przerwa na reklamę jest teraz po ukończonej wyprawie, a nie przed startem — i tylko po udanych wyprawach.'
     ]},
@@ -7389,6 +7467,36 @@
     document.getElementById('pauseOverlay').classList.remove('hidden');
     Sfx.click(); haptic('light');
   }
+  /* AUTO-PAUZA: reklama (In-App, popup) albo wyjście z aplikacji w trakcie
+     wyprawy wstrzymuje grę — przechodnie i przypał stoją, a gracz wraca
+     przez „WRACAM DO GRY". Obca warstwa = nowy element dołożony do strony
+     po starcie (nasze są w HTML od początku), który zakrywa większość
+     ekranu. Do tego utrata fokusu (reklama w iframe) i schowanie karty. */
+  function pauzaZPowodu(powod){
+    if(state!=='playing') return;
+    pauseRound();
+    grynaPlusEvent('pauza_auto', { powod: powod, mapId: currentMapId });
+  }
+  (function(){
+    const nasze = new Set(Array.from(document.body.children));
+    const zakrywa = (el)=>{
+      if(!el || el.nodeType!==1 || nasze.has(el) || !el.isConnected) return false;
+      const st = getComputedStyle(el); if(st.display==='none' || st.visibility==='hidden' || Number(st.opacity)===0) return false;
+      const r = el.getBoundingClientRect();
+      return r.width >= innerWidth*0.6 && r.height >= innerHeight*0.6;
+    };
+    const obs = new MutationObserver(muts=>{
+      if(state!=='playing') return;
+      muts.forEach(m=>m.addedNodes.forEach(n=>{
+        // styl reklamy dociera chwilę po wstawieniu elementu
+        setTimeout(()=>{ if(zakrywa(n)) pauzaZPowodu('nakladka'); }, 200);
+      }));
+    });
+    obs.observe(document.body, { childList:true });
+    obs.observe(document.documentElement, { childList:true });
+    window.addEventListener('blur', ()=>pauzaZPowodu('fokus'));
+    document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pauzaZPowodu('tlo'); });
+  })();
   function resumeRound(){
     document.getElementById('pauseOverlay').classList.add('hidden');
     if(state==='paused'){ state='playing'; last=performance.now(); }
@@ -7897,12 +8005,14 @@
      chce już grać. Teraz po co trzeciej UDANEJ wyprawie, kiedy gracz zamyka
      okno wyniku (Jeszcze raz / Wróć do menu): naturalna przerwa, a gracz
      jest zadowolony z łupu. Nigdy po złapaniu i nigdy w pierwszej dobie
-     gracza — wtedy decyduje, czy w ogóle wróci. Limit dzienny pilnuje
-     sam Ads.showInterstitial. */
+     gracza — wtedy decyduje, czy w ogóle wróci. I tylko gdy z dziennego
+     limitu zostaje ≥5 reklam: przerywnik nie może zjeść graczowi reklamy
+     za energię, którą ogląda z własnej woli i która trzyma go w grze. */
   let przerywnikPoWyprawie = 0;          // numer udanej wyprawy, po której już był
   function poWyniku(dalej){
     const n = udaneWyprawySesji, co = AD_CONFIG.showInterstitialEveryNRounds;
-    if(n > 0 && n % co === 0 && przerywnikPoWyprawie !== n && !pierwszaDoba()){
+    const zapas = LIMIT_REKLAM - reklamyDzis();
+    if(n > 0 && n % co === 0 && przerywnikPoWyprawie !== n && !pierwszaDoba() && zapas >= ZAPAS_PRZED_PRZERYWNIKIEM){
       przerywnikPoWyprawie = n;
       Ads.showInterstitial(dalej);
     } else dalej();
