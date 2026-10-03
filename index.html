@@ -29,6 +29,8 @@
         Po załadowaniu dostępna jest globalna funkcja show_11784973()
      ============================================================ -->
 <script src="https://libtl.com/sdk.js" data-zone="11784973" data-sdk="show_11784973"></script>
+<!-- Adsgram — druga sieć reklamowa (test 50/50 z Monetagiem); async, żeby jej awaria nie blokowała gry -->
+<script src="https://sad.adsgram.ai/js/sad.min.js" async></script>
 <style>
   :root{
     /* MOTYW „NEON NOC": ciemny granat i fiolet, półprzezroczyste karty,
@@ -1603,6 +1605,23 @@
   }
   const NAPIS_LIMITU = '🌙 Limit reklam na dziś wykorzystany — wróć jutro. Energia odnawia się sama (+1 co 20 min).';
 
+  /* --- ADSGRAM: test drugiej sieci ---
+     Połowa reklam z nagrodą (losowo przy każdej) idzie przez Adsgram, żeby
+     porównać stawki z Monetagiem na tych samych miejscach. Gdy Adsgram nie
+     ma reklamy, gra po cichu przechodzi na Monetag — gracz nie zostaje bez
+     nagrody. Odbiór kuponu zostaje na Monetagu, bo serwer potwierdza go
+     biletem z postbacku Monetaga. Obejrzaną reklamę Adsgram serwer dostaje
+     przez Reward URL (/api/ads/adsgram) i liczy ją do kuponów jak każdą inną. */
+  const ADSGRAM_BLOK = '51597';
+  const ADSGRAM_UDZIAL = 0.5;
+  const ADSGRAM_BEZ = ['coupon_claim'];
+  let adsgramKontroler = null;
+  function adsgram(){
+    if(adsgramKontroler) return adsgramKontroler;
+    try{ if(window.Adsgram && TG && TG.initData) adsgramKontroler = window.Adsgram.init({ blockId: ADSGRAM_BLOK }); }catch(e){ console.warn('[adsgram] init', e); }
+    return adsgramKontroler;
+  }
+
   const Ads = (function(){
     function sdk(){ return window['show_'+MONETAG_ZONE] || null; }
 
@@ -1687,6 +1706,26 @@
         grynaPlusEvent('ad_limit', { placement: placement || 'reward', dzis: reklamyDzis() });
         if(typeof updatePlayButton === 'function') updatePlayButton();
         return;
+      }
+      if(ADSGRAM_BEZ.indexOf(placement) < 0 && Math.random() < ADSGRAM_UDZIAL && adsgram()){
+        let wynik = null;
+        try{ wynik = await adsgram().show(); }
+        catch(r){ wynik = r || { error:true }; }
+        if(wynik && wynik.done && !wynik.error){
+          policzReklame();
+          grynaPlusEvent('ad_adsgram', { placement: placement || 'reward', wynik: 'obejrzana' });
+          onReward && onReward();
+          onClosed && onClosed(true);
+          return;
+        }
+        if(wynik && !wynik.error){
+          // gracz sam zamknął reklamę przed końcem — bez nagrody, jak przy Monetagu
+          grynaPlusEvent('ad_adsgram', { placement: placement || 'reward', wynik: 'pominieta' });
+          onClosed && onClosed(false);
+          return;
+        }
+        grynaPlusEvent('ad_adsgram', { placement: placement || 'reward', wynik: 'brak' });
+        // Adsgram nie ma reklamy albo się wysypał — dalej normalnie przez Monetag
       }
       const bilet = nowyBilet();
       ostatniBilet = bilet;
@@ -2234,7 +2273,7 @@
   // Bij ten numer przy każdym wgraniu nowej wersji. Widać go w zakładce
   // Profil — jeśli telefon pokazuje stary numer, to pamięć podręczna,
   // a nie brak wdrożenia.
-  const APP_VERSION = '2026-10-03 · 62';
+  const APP_VERSION = '2026-10-03 · 63';
   let currentMapId = 'osiedle';
 
   /* =========================================================
@@ -4748,6 +4787,9 @@
 
   /* --- co nowego --- */
   const NEWS = [
+    { v:'2026-10-03 · 63', linie:[
+      '📺 Więcej reklam do wyboru: część reklam pochodzi teraz od drugiego partnera, więc rzadziej zdarza się „brak reklamy”.'
+    ]},
     { v:'2026-10-03 · 62', linie:[
       '🔗 Gdy reklama się nie wczyta, możesz zamiast niej otworzyć stronę partnera — nagroda i tak jest Twoja.',
       '⏸️ Gdy wyjdziesz z gry albo coś przykryje ekran w trakcie wyprawy, gra sama się pauzuje.'
